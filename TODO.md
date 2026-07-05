@@ -41,30 +41,30 @@ Agents must work phase by phase. Do not skip to later phases unless dependencies
 ## Phase 2 — Supabase Setup
 
 - [x] Create Supabase schema migration (and README instructions guide)
-- [ ] Create `profiles` table
-- [ ] Create `download_jobs` table
-- [ ] Create `media_formats` table
-- [ ] Create `policy_logs` table
-- [ ] Create `user_settings` table
-- [ ] Enable Row Level Security
-- [ ] Add RLS policies
-- [ ] Review `docs/SUPABASE_RLS_POLICY.md`
-- [ ] Create private storage bucket (Optional, for later cloud storage)
-- [ ] Add storage access rules (Optional, for later cloud storage)
-- [ ] Test user-specific data access (Documented verification query checks)
+- [x] Create `profiles` table
+- [x] Create `download_jobs` table
+- [x] Create `media_formats` table
+- [x] Create `policy_logs` table
+- [x] Create `user_settings` table
+- [x] Enable Row Level Security
+- [x] Add RLS policies
+- [x] Review `docs/SUPABASE_RLS_POLICY.md`
+- [x] Create private storage bucket (Optional, for later cloud storage)
+- [x] Add storage access rules (Optional, for later cloud storage)
+- [x] Test user-specific data access (Documented verification query checks)
 
 ---
 
 ## Phase 3 — Authentication
 
-- [ ] Configure Supabase Google Auth using `docs/GOOGLE_OAUTH_SETUP.md`
-- [ ] Create login page/button
-- [ ] Create auth callback route
-- [ ] Create sign out action
-- [ ] Protect dashboard routes
-- [ ] Create profile bootstrap logic
-- [ ] Add auth loading states
-- [ ] Add auth error states
+- [x] Configure Supabase Google Auth using `docs/GOOGLE_OAUTH_SETUP.md`
+- [x] Create login page/button
+- [x] Create auth callback route
+- [x] Create sign out action
+- [x] Protect dashboard routes
+- [x] Create profile bootstrap logic
+- [x] Add auth loading states
+- [x] Add auth error states
 
 ---
 

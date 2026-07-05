@@ -23,7 +23,15 @@ const configItems = [
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
-export function AppSidebar() {
+interface AppSidebarProps {
+  user: {
+    name: string;
+    email: string;
+    avatar_url?: string;
+  };
+}
+
+export function AppSidebar({ user }: AppSidebarProps) {
   const pathname = usePathname();
 
   return (
@@ -134,21 +142,26 @@ export function AppSidebar() {
         {/* User Account Footer Card */}
         <div className="flex items-center justify-between rounded-lg border border-border/40 bg-accent/20 px-3 py-2">
           <div className="flex items-center gap-2 min-w-0">
-            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-accent/80 shrink-0 text-muted-foreground border border-border/40">
-              <User className="h-3.5 w-3.5" />
+            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-accent/80 shrink-0 text-muted-foreground border border-border/40 overflow-hidden">
+              {user.avatar_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={user.avatar_url} alt={user.name} className="h-full w-full object-cover" />
+              ) : (
+                <User className="h-3.5 w-3.5" />
+              )}
             </div>
             <div className="flex flex-col min-w-0">
               <span className="text-[11px] font-medium text-foreground truncate">
-                Demo User
+                {user.name}
               </span>
               <span className="text-[9px] text-muted-foreground truncate">
-                user@example.com
+                {user.email}
               </span>
             </div>
           </div>
           <Link
-            href="/"
-            title="Mock Sign Out"
+            href="/auth/signout"
+            title="Sign Out"
             className="text-muted-foreground hover:text-destructive transition-colors shrink-0 p-1 rounded hover:bg-accent/40"
           >
             <LogOut className="h-3.5 w-3.5" />

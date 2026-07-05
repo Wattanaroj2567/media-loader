@@ -1,7 +1,10 @@
+"use client";
+
 import { Download, ShieldCheck, Zap, Lock, ArrowRight, Eye, Server, Layers } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
-import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
+import { createClient } from "@/utils/supabase/client";
+import { useState } from "react";
 
 const features = [
   {
@@ -29,6 +32,23 @@ const workflowSteps = [
 ];
 
 export default function LandingPage() {
+  const [loading, setLoading] = useState(false);
+  const supabase = createClient();
+
+  const handleLogin = async () => {
+    setLoading(true);
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      },
+    });
+    if (error) {
+      setLoading(false);
+      console.error("Auth error:", error);
+    }
+  };
+
   return (
     <div className="flex min-h-screen flex-col items-center justify-center px-6 py-20 bg-background">
       {/* Product Badge */}
@@ -56,22 +76,23 @@ export default function LandingPage() {
 
         {/* Action Button Container */}
         <div className="w-full max-w-xs space-y-3 mt-4">
-          <Link
-            href="/dashboard"
+          <button
+            onClick={handleLogin}
+            disabled={loading}
             id="btn-google-login"
-            className={buttonVariants({ size: "lg" }) + " w-full gap-2.5 font-semibold bg-primary hover:bg-primary/95 text-primary-foreground shadow-md hover:shadow-lg transition-all"}
+            className={buttonVariants({ size: "lg" }) + " w-full gap-2.5 font-semibold bg-primary hover:bg-primary/95 text-primary-foreground shadow-md hover:shadow-lg transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"}
           >
             <GoogleIcon />
-            Continue with Google
-          </Link>
+            {loading ? "Redirecting..." : "Continue with Google"}
+          </button>
           <div className="flex items-center justify-center gap-1.5 text-[11px] text-zinc-400 font-sans">
-            <Eye className="h-3.5 w-3.5 text-primary" />
-            <span>Mock sign-in active for Phase 1.2</span>
+            <ShieldCheck className="h-3.5 w-3.5 text-primary" />
+            <span>Secure Google login powered by Supabase</span>
           </div>
         </div>
 
         <p className="text-[11px] text-zinc-400 max-w-sm leading-normal">
-          Backend API and Worker process run locally via Docker. Media files are stored inside your local temporary environment. Supabase Auth integration planned.
+          Backend API and Worker process run locally via Docker. Media files are stored inside your local temporary environment. Supabase Auth integration active.
         </p>
       </div>
 
