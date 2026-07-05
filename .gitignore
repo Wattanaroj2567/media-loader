@@ -1,0 +1,46 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Next.js
+.next/
+out/
+
+# Python virtual environments
+.venv/
+venv/
+ENV/
+__pycache__/
+*.pyc
+
+# Local environment variables
+.env
+.env.local
+.env.*.local
+
+# Operating System files
+.DS_Store
+Thumbs.db
+
+# Build and IDE files
+dist/
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+
+# Temporary worker files
+.tmp/
+tmp/
+storage/
+
+# Media formats
+*.mp4
+*.mp3
+*.wav
+*.m4a
+*.webm
+

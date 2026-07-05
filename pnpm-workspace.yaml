@@ -1,0 +1,14 @@
+packages:
+  - 'apps/*'
+  - 'packages/*'
+
+allowBuilds:
+  esbuild: true
+  sharp: true
+  unrs-resolver: true
+
+# Allow these packages to run post-install build scripts across the workspace
+onlyBuiltDependencies:
+  - sharp
+  - unrs-resolver
+  - esbuild
