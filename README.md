@@ -99,7 +99,7 @@ Every URL must pass a policy check before analysis or download.
 ## Tech Stack
 
 | Layer | Technology |
-|---|---|
+| --- | --- |
 | Frontend | Next.js, TypeScript |
 | Hosting | Vercel |
 | Auth | Supabase Auth with Google |
@@ -152,7 +152,7 @@ Python Media Worker
 ## Main Pages
 
 | Page | Purpose |
-|---|---|
+| --- | --- |
 | Landing | Explain the product and show Google login |
 | Dashboard | Main URL analyzer and quick job view |
 | Analyze Result | Show metadata, policy result, and available formats |
@@ -162,69 +162,56 @@ Python Media Worker
 
 ---
 
+## Project Structure
 
-## Where the Real Project Will Be Created
-
-This Zip is the AI Agent work package. It contains the planning documents and rules.
-
-When an AI coding agent starts implementation, it must create the real application project inside:
+This project is set up as a monorepo using **pnpm workspaces** directly in the workspace root:
 
 ```text
-./media-loader
-```
-
-Recommended final layout:
-
-```text
-media-loader-agent-workpack/
+media-loader/
 ├─ README.md
-├─ AGENTS.md
-├─ TODO.md
-├─ docs/
-├─ prompts/
-└─ media-loader/        # Real generated project code
-```
-
-Use this instruction when starting the agent:
-
-```text
-Create the real implementation project inside ./media-loader only. Do not create source code directly in the work package root.
-```
-
-## Project Work Package Structure
-
-```text
-media-loader-agent-workpack/
-├─ README.md
-├─ AGENTS.md
-├─ TODO.md
-├─ PROJECT_BRIEF.md
-├─ ARCHITECTURE.md
-├─ API_SPEC.md
-├─ DATABASE_SCHEMA.md
-├─ DEVELOPMENT_WORKFLOW.md
-├─ TESTING_PLAN.md
-├─ ROADMAP.md
-├─ WORKTREE_STRUCTURE.md
-├─ docs/
-│  ├─ UI_UX_GUIDE.md
-│  ├─ SECURITY_AND_POLICY.md
-│  ├─ PROJECT_OUTPUT_LOCATION.md
-│  ├─ UI_UX_GUIDE.md
-│  ├─ SECURITY_AND_POLICY.md
-│  ├─ SECRETS_PROTOCOL.md
-│  ├─ USER_SETUP_GUIDE.md
+├─ AGENTS.md               # Central rules for AI agents
+├─ TODO.md                 # Master implementation checklist
+├─ .gitignore
+├─ .editorconfig
+├─ .env.example
+├─ .env.local
+├─ package.json
+├─ pnpm-workspace.yaml
+├─ pnpm-lock.yaml
+├─ apps/
+│  ├─ web/                 # Next.js frontend application (Vercel deployment)
+│  ├─ api/                 # FastAPI backend service (Docker runtime)
+│  └─ worker/              # Python-based media worker (Docker runtime)
+├─ docs/                   # Architecture, guidelines, specs and roadmap documentation
+│  ├─ API_SPEC.md
+│  ├─ ARCHITECTURE.md
+│  ├─ DATABASE_SCHEMA.md
+│  ├─ DECISION_LOG.md
+│  ├─ DEVELOPMENT_WORKFLOW.md
 │  ├─ ENVIRONMENT_VARIABLES.md
-│  ├─ SUPABASE_SETUP.md
-│  ├─ SUPABASE_RLS_POLICY.md
+│  ├─ FASTAPI_WORKER_PLAN.md
 │  ├─ GOOGLE_OAUTH_SETUP.md
-│  ├─ VERCEL_SETUP.md
 │  ├─ LOCAL_DEV_CHECKLIST.md
-│  └─ FASTAPI_WORKER_PLAN.md
-├─ supabase/
+│  ├─ PATCH_NOTES_V4.md
+│  ├─ PROJECT_BRIEF.md
+│  ├─ PROJECT_OUTPUT_LOCATION.md
+│  ├─ ROADMAP.md
+│  ├─ SECRETS_PROTOCOL.md
+│  ├─ SECURITY_AND_POLICY.md
+│  ├─ SUPABASE_RLS_POLICY.md
+│  ├─ SUPABASE_SETUP.md
+│  ├─ TESTING_PLAN.md
+│  ├─ UI_UX_GUIDE.md
+│  ├─ USER_SETUP_GUIDE.md
+│  ├─ VERCEL_SETUP.md
+│  └─ WORKTREE_STRUCTURE.md
+├─ supabase/               # Supabase database config, migrations, schemas & policies
+│  ├─ README.md
 │  ├─ schema.sql
-│  └─ rls_policies.sql
-├─ prompts/
+│  ├─ rls_policies.sql
+│  └─ migrations/
+│     └─ 0001_initial_schema.sql
+├─ prompts/                # Dedicated prompts for various AI Agent roles
 │  ├─ frontend-agent.md
 │  ├─ backend-agent.md
 │  ├─ worker-agent.md
@@ -232,10 +219,13 @@ media-loader-agent-workpack/
 │  ├─ uiux-agent.md
 │  ├─ security-agent.md
 │  └─ reviewer-agent.md
-├─ scripts/
-│  └─ check-env.example.ts
-└─ examples/
-   └─ .env.example
+├─ scripts/                # Utility scripts (e.g. check-env.ts)
+└─ examples/               # Reference Docker and environment configuration templates
+   ├─ .dockerignore.example
+   ├─ .env.example
+   ├─ apps-api.Dockerfile
+   ├─ apps-worker.Dockerfile
+   └─ docker-compose.local.yml
 ```
 
 ---
