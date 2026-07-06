@@ -11,6 +11,7 @@ import sys
 from worker.cleanup import cleanup_expired_outputs
 from worker.config import get_settings
 from worker.job_queue import (
+    get_job_status,
     is_job_cancelled,
     poll_queued_job,
     release_job_lock,
