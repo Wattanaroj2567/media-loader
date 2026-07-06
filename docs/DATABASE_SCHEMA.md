@@ -32,16 +32,20 @@ Stores each media job.
 | original_url | text | Submitted URL |
 | platform | text | direct, youtube, tiktok, etc. |
 | title | text | Media title |
+| uploader | text | Creator/uploader name returned by analysis |
+| source_domain | text | Source domain returned by analysis |
 | thumbnail_url | text | Optional thumbnail |
+| duration_seconds | integer | Media duration in seconds |
 | media_type | text | video, audio, unknown |
 | selected_format_id | text | Selected extractor format |
 | selected_quality | text | Human readable quality |
+| selected_has_audio | boolean | Selected video format already contains audio |
 | output_format | text | mp4, mp3, original |
 | status | text | Job status |
 | progress | integer | 0-100 |
 | error_message | text | Safe error message |
-| storage_bucket | text | Supabase bucket |
-| storage_path | text | Path inside bucket |
+| storage_bucket | text | Optional Supabase bucket for future/cloud mode |
+| storage_path | text | Local temp output path by default; optional Storage path in cloud mode |
 | file_size | bigint | Completed file size |
 | rights_confirmed | boolean | User confirmation |
 | locked_at | timestamptz | Worker lock timestamp |

@@ -2,9 +2,25 @@
 
 **Media Loader** is a personal, rights-aware media workspace for analyzing media URLs, selecting available video/audio quality, downloading allowed media, converting files, and keeping a private download history.
 
-The project is designed for learning modern full-stack development with **Next.js**, **Vercel**, **Supabase**, **FastAPI**, Docker, and a separate Python media worker.
+Built with **Next.js**, **Vercel**, **Supabase**, **FastAPI**, Docker, and a separate Python media worker — intended for **real daily use**, not as a tutorial repo.
 
-> This repository is an AI Agent Work Package. It contains the planning documents, rules, TODO list, setup guide, architecture, and implementation prompts needed for an AI coding agent to build the real project safely and consistently.
+---
+
+## Quick Start
+
+1. Copy `.env.example` to `.env.local` and fill Supabase + Google OAuth values (see `docs/USER_SETUP_GUIDE.md`).
+2. Apply Supabase migrations from `supabase/migrations/`.
+3. Start the API: `docker compose up --build api`
+4. Start the frontend: `cd apps/web && pnpm install && pnpm dev`
+5. Open `http://localhost:3000`, sign in with Google, and use the dashboard.
+
+Start the worker with:
+
+```bash
+docker compose --profile worker up --build
+```
+
+Current shipping status: see `TODO.md`. The core local workflow is implemented; production deployment checks still require the user's actual Vercel/Supabase environment.
 
 ---
 
@@ -21,11 +37,11 @@ Media Loader helps a user:
 - Select audio output such as original audio or MP3 conversion
 - Queue a download/conversion job
 - Track job status and progress
-- Store history in Supabase and use local temporary media output by default
-- Optionally upload small/temporary completed files to Supabase Storage
+- Store history metadata in Supabase and use local temporary media output by default
+- Save finished files through the browser/Explorer dialog, then clear local temp output
 - View private download history
 - Delete history records or stored files
-- Manage personal settings such as default quality and cleanup rules
+- Manage account actions such as sign out and account deletion
 
 ---
 
@@ -78,11 +94,11 @@ Every URL must pass a policy check before analysis or download.
 ### Storage and History
 
 - Supabase PostgreSQL for job records
-- Supabase Storage for optional small/temporary completed files
+- Supabase Storage only as optional future/cloud mode
 - Local Docker backend for FastAPI and media worker
-- Signed URL generation for secure file access
+- Authenticated FastAPI local file delivery
 - Private user history
-- Retry/delete/cleanup workflow
+- Cancel/delete/automatic temp-cleanup workflow
 
 ### Safety and Security
 
@@ -104,14 +120,14 @@ Every URL must pass a policy check before analysis or download.
 | Hosting | Vercel |
 | Auth | Supabase Auth with Google |
 | Database | Supabase PostgreSQL |
-| Storage | Supabase Storage |
+| Storage | Local temp output by default; Supabase Storage optional |
 | Backend API | FastAPI running locally in Docker |
 | Worker | Python worker running locally in Docker |
 | Local Runtime | Docker Compose |
 | Media tools | yt-dlp restricted mode, FFmpeg |
 | UI | Tailwind CSS, shadcn/ui |
 | Icons | Lucide React or Tabler Icons |
-| State/API | TanStack Query |
+| State/API | Typed fetch client |
 
 ---
 
@@ -130,7 +146,7 @@ Next.js Web App on Vercel
 Supabase
   - Auth
   - PostgreSQL
-  - Storage
+  - Optional Storage
   - Optional Realtime
   ↓
 FastAPI
@@ -143,7 +159,7 @@ Python Media Worker
   - Picks queued jobs
   - Downloads allowed media
   - Converts/merges with FFmpeg
-  - Uploads to Supabase Storage
+  - Serves local temp output through FastAPI
   - Updates job status
 ```
 
@@ -154,11 +170,11 @@ Python Media Worker
 | Page | Purpose |
 | --- | --- |
 | Landing | Explain the product and show Google login |
-| Dashboard | Main URL analyzer and quick job view |
+| Dashboard | New load analyzer |
 | Analyze Result | Show metadata, policy result, and available formats |
-| Download Progress | Show queue/download/convert/completed status |
-| History | Show previous downloads and file actions |
-| Settings | Default quality, cleanup, and personal preferences |
+| Queue | Show queued/running jobs, progress, cancel, and delete queue actions |
+| History | Show completed/failed/blocked/cancelled jobs and save finished files |
+| Account | Google profile, sign out, and delete account |
 
 ---
 
@@ -169,7 +185,7 @@ This project is set up as a monorepo using **pnpm workspaces** directly in the w
 ```text
 media-loader/
 ├─ README.md
-├─ AGENTS.md               # Central rules for AI agents
+├─ AGENTS.md               # Project rules for contributors and agents
 ├─ TODO.md                 # Master implementation checklist
 ├─ .gitignore
 ├─ .editorconfig
@@ -192,7 +208,7 @@ media-loader/
 │  ├─ FASTAPI_WORKER_PLAN.md
 │  ├─ GOOGLE_OAUTH_SETUP.md
 │  ├─ LOCAL_DEV_CHECKLIST.md
-│  ├─ PATCH_NOTES_V4.md
+│  ├─ PATCH_NOTES.md
 │  ├─ PROJECT_BRIEF.md
 │  ├─ PROJECT_OUTPUT_LOCATION.md
 │  ├─ ROADMAP.md
@@ -211,7 +227,7 @@ media-loader/
 │  ├─ rls_policies.sql
 │  └─ migrations/
 │     └─ 0001_initial_schema.sql
-├─ prompts/                # Dedicated prompts for various AI Agent roles
+├─ prompts/                # Optional role prompts for coding assistants
 │  ├─ frontend-agent.md
 │  ├─ backend-agent.md
 │  ├─ worker-agent.md
@@ -230,21 +246,16 @@ media-loader/
 
 ---
 
-## For AI Agents
+## Documentation Index
 
-Before writing code, read these files in order:
-
-1. `AGENTS.md`
-2. `PROJECT_BRIEF.md`
-3. `TODO.md`
-4. `ARCHITECTURE.md`
-5. `WORKTREE_STRUCTURE.md`
-6. `docs/PROJECT_OUTPUT_LOCATION.md`
-7. `docs/SECRETS_PROTOCOL.md`
-8. `docs/SECURITY_AND_POLICY.md`
-9. `docs/UI_UX_GUIDE.md`
-
-Do not start implementation before understanding the project rules.
+| Doc | Purpose |
+| --- | --- |
+| `docs/USER_SETUP_GUIDE.md` | First-time setup (Supabase, Google, env) |
+| `docs/LOCAL_DEV_CHECKLIST.md` | Verify local stack before use |
+| `docs/ARCHITECTURE.md` | How frontend, API, worker, and Supabase connect |
+| `docs/API_SPEC.md` | FastAPI endpoints |
+| `TODO.md` | Remaining work to reach full daily use |
+| `AGENTS.md` | Rules for contributors and coding agents |
 
 ---
 
@@ -269,26 +280,22 @@ Agent reports OK / Missing / Invalid only
 
 ---
 
-## Recommended Build Order
+## What Works Today vs. What's Next
 
-1. Create monorepo structure
-2. Initialize Next.js app
-3. Configure dark UI system
-4. Connect Supabase Auth
-5. Create Supabase schema and RLS
-6. Build dashboard and URL analyzer UI
-7. Build FastAPI policy/analyze API in local Docker
-8. Create job records in Supabase
-9. Add Python worker structure
-10. Add yt-dlp/FFmpeg processing safely
-11. Use local temporary output by default; optional Supabase Storage upload later
-12. Add history and signed download links
-13. Add tests and final review
+| Area | Status |
+| --- | --- |
+| Google login, dark app shell, new load analyzer | ✅ Complete |
+| Policy checks, real metadata/format extraction, job creation | ✅ Complete |
+| Worker download/convert, cancellation, local file delivery | ✅ Complete |
+| Queue, history, save-file action, account deletion | ✅ Complete |
+| Production deploy (Vercel) | ⏳ Setup guide complete; live deployment testing still required |
+
+All core features are implemented. See `TODO.md` for deployment testing steps.
 
 ---
 
-## Development Principle
+## Product Principle
 
-Keep the application simple, private, safe, and understandable.
+Keep the application simple, private, safe, and reliable for everyday use.
 
-The goal is not to build the most aggressive downloader. The goal is to build a clean, rights-aware media utility that teaches modern full-stack architecture and AI-assisted development.
+The goal is not the most aggressive downloader. The goal is a rights-aware personal media utility you can actually run and trust.

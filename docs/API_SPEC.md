@@ -1,8 +1,16 @@
 # API Specification
 
-Base API: FastAPI service
+Base API: FastAPI service, normally exposed at `http://localhost:8000` during local development.
 
-All endpoints should return consistent JSON:
+All user-scoped endpoints require:
+
+```http
+Authorization: Bearer <Supabase access token>
+```
+
+Do not log tokens, signed URLs, service role keys, or `.env.local` values.
+
+All endpoints return the same envelope:
 
 ```json
 {
@@ -29,9 +37,7 @@ Error response:
 
 ## GET `/health`
 
-Check API health.
-
-### Response
+Public health check.
 
 ```json
 {
@@ -47,14 +53,13 @@ Check API health.
 
 ## POST `/media/analyze`
 
-Analyze a media URL before download.
+Analyze a media URL before queueing. The API validates the URL, runs the policy check, logs the decision for the signed-in user, then extracts metadata and real source formats when allowed.
 
 ### Request
 
 ```json
 {
-  "url": "https://example.com/video.mp4",
-  "rights_confirmed": true
+  "url": "https://example.com/video"
 }
 ```
 
@@ -66,23 +71,31 @@ Analyze a media URL before download.
   "data": {
     "policy": {
       "decision": "allowed",
-      "reason": "Direct media URL is allowed"
+      "reason": "URL passed domain safety checks"
     },
     "media": {
       "title": "Example Video",
-      "platform": "direct",
-      "thumbnail_url": null,
-      "duration_seconds": null
+      "platform": "youtube",
+      "thumbnail_url": "https://...",
+      "duration_seconds": 125,
+      "uploader": "Creator Name",
+      "source_domain": "youtube.com"
     },
     "formats": [
       {
-        "format_id": "direct-mp4",
+        "format_id": "137",
         "type": "video",
         "extension": "mp4",
-        "resolution": "source",
-        "audio_codec": "unknown",
-        "video_codec": "unknown",
-        "filesize": null
+        "quality_label": "1080p · 30 FPS",
+        "width": 1920,
+        "height": 1080,
+        "fps": 30,
+        "bitrate": null,
+        "video_codec": "avc1",
+        "audio_codec": "none",
+        "filesize": null,
+        "has_video": true,
+        "has_audio": false
       }
     ]
   },
@@ -90,18 +103,23 @@ Analyze a media URL before download.
 }
 ```
 
+Video quality is not fabricated. The API only returns formats found by the extractor. Common heights may include `144`, `240`, `360`, `720`, `1080`, `1440`, `2160`, or any real non-standard height exposed by the source.
+
+Rights confirmation happens after analysis, when the user has inspected the
+metadata and selected a format, and is required by `POST /downloads`.
+
 ---
 
 ## POST `/downloads`
 
-Create a download job.
+Create a download/conversion job. The API reruns URL validation, policy, and analysis server-side before inserting the job, then validates that `selected_format_id` exists in the real analysis result.
 
 ### Request
 
 ```json
 {
-  "url": "https://example.com/video.mp4",
-  "selected_format_id": "direct-mp4",
+  "url": "https://example.com/video",
+  "selected_format_id": "137",
   "output_format": "mp4",
   "rights_confirmed": true
 }
@@ -122,34 +140,9 @@ Create a download job.
 
 ---
 
-## GET `/downloads/{job_id}`
-
-Get a job detail.
-
-### Response
-
-```json
-{
-  "ok": true,
-  "data": {
-    "id": "uuid",
-    "status": "COMPLETED",
-    "progress": 100,
-    "title": "Example Video",
-    "output_format": "mp4",
-    "file_size": 12345678,
-    "created_at": "2026-07-04T00:00:00Z",
-    "completed_at": "2026-07-04T00:05:00Z"
-  },
-  "error": null
-}
-```
-
----
-
 ## GET `/downloads`
 
-List current user's jobs.
+List the signed-in user's jobs.
 
 Query params:
 
@@ -158,41 +151,45 @@ Query params:
 - `limit`
 - `offset`
 
+The frontend uses the same endpoint for:
+
+- queue: active statuses (`PENDING`, `ANALYZING`, `READY`, `QUEUED`, `DOWNLOADING`, `CONVERTING`, `UPLOADING`)
+- history: terminal statuses (`COMPLETED`, `FAILED`, `BLOCKED`, `CANCELLED`)
+
+---
+
+## GET `/downloads/{job_id}`
+
+Get one signed-in user's job. The API never falls back to another profile and never returns another user's row.
+
 ---
 
 ## POST `/downloads/{job_id}/cancel`
 
-Cancel a queued or running job when possible.
-
----
-
-## POST `/downloads/{job_id}/retry`
-
-Retry a failed job.
+Cancel a cancellable job. Cancellable statuses are `PENDING`, `ANALYZING`, `READY`, `QUEUED`, `DOWNLOADING`, `CONVERTING`, and `UPLOADING`.
 
 ---
 
 ## DELETE `/downloads/{job_id}`
 
-Delete job history. Optional query can delete file too.
+Delete a queued or terminal job and clear its local temporary output when present. Running jobs must be cancelled first.
 
 ---
 
-## POST `/downloads/{job_id}/signed-url`
+## GET `/files/download/{job_id}`
 
-Generate a temporary signed URL for a completed file.
+Authenticated local file delivery for completed jobs.
 
-### Response
+The frontend calls this endpoint with the Supabase access token and opens the browser save dialog when supported. After the response is delivered, FastAPI deletes the local temp file and clears `storage_path`; only metadata/history remains in PostgreSQL.
 
-```json
-{
-  "ok": true,
-  "data": {
-    "signed_url": "https://...",
-    "expires_in": 300
-  },
-  "error": null
-}
-```
+---
 
-Never log signed URLs in production logs.
+## DELETE `/files/delete/{job_id}`
+
+Authenticated cleanup for a completed local temp file. This removes only the temporary output, not the history record.
+
+---
+
+## DELETE `/account`
+
+Delete the signed-in account from Media Loader. The server cancels active jobs, removes local temporary outputs, and deletes the Supabase Auth user through the service role client.

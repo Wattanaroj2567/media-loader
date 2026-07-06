@@ -12,12 +12,12 @@ The system must never become an unrestricted downloader.
 
 1. Validate URLs before network access
 2. Run policy check before analysis
-3. Require rights confirmation when needed
+3. Show analysis results, then require rights confirmation before queueing
 4. Block unsupported or unsafe URLs
 5. Store policy decisions
 6. Keep secrets server-side
 7. Use Supabase RLS
-8. Store completed files privately
+8. Keep completed files owner-scoped and temporary by default
 
 ---
 
@@ -92,7 +92,8 @@ If yt-dlp is used:
 - Enforce max file size
 - Validate MIME type
 - Validate extension
-- Store in user-scoped path
+- Store in a controlled local temp path by default
+- Resolve and validate local paths before serving
 - Do not execute downloaded files
 - Sanitize filenames
 - Clean temp files
@@ -104,8 +105,8 @@ If yt-dlp is used:
 - Enable RLS on all user-owned tables
 - Users can only access their own rows
 - Service role key only in backend/worker
-- Storage bucket private by default
-- Use signed URLs for downloads
+- Storage bucket private if optional cloud mode is enabled
+- Use authenticated FastAPI file delivery for the default local temp mode
 - Avoid public buckets for user media
 
 ---
@@ -123,7 +124,7 @@ Do not log:
 
 - Secrets
 - Access tokens
-- Full signed URLs
+- Local temp output paths when not necessary
 - Service role key
 - User private keys
 
@@ -152,6 +153,6 @@ Request to 192.168.1.1 returned private server headers: ...
 - [ ] Secrets are not printed
 - [ ] Service role key is not in frontend
 - [ ] RLS is enabled
-- [ ] Storage is private
+- [ ] Optional Storage is private if enabled
 - [ ] SSRF protections exist
 - [ ] Platform restrictions are not bypassed

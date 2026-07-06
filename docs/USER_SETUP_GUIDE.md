@@ -1,10 +1,8 @@
 # User Setup Guide
 
-This guide is for the human user.
+First-time setup to run Media Loader for **real use** on your machine.
 
-The Agent should guide you step by step, but you should add all secret values yourself.
-
-Do not paste secret keys into chat.
+Follow these steps once. Add all secret values yourself in `.env.local` — never paste them into chat.
 
 ---
 
@@ -101,12 +99,19 @@ https://your-vercel-domain.vercel.app/auth/callback
 
 Detailed RLS guide: `docs/SUPABASE_RLS_POLICY.md`.
 
-The Agent should provide SQL files:
+Apply every migration in numeric order:
 
 ```text
-supabase/schema.sql
-supabase/rls_policies.sql
+supabase/migrations/0001_initial_schema.sql
+supabase/migrations/0002_create_profile_trigger.sql
+supabase/migrations/0003_job_metadata.sql
+supabase/migrations/0004_lock_server_managed_tables.sql
+supabase/migrations/0005_selected_format_audio_flag.sql
 ```
+
+`DATABASE_URL` must contain one PostgreSQL URI only, for example
+`DATABASE_URL=postgresql://...`; do not paste the variable name inside its own
+value. Percent-encode reserved characters in the database password.
 
 You can apply them through:
 
@@ -117,16 +122,18 @@ You can apply them through:
 After applying, tell the Agent:
 
 ```text
-รัน schema กับ RLS แล้วครับ
+รัน migrations ทั้งหมดแล้วครับ
 ```
 
 The Agent should validate table access safely.
 
 ---
 
-## Step 6 — Create Storage Bucket
+## Step 6 — Optional Storage Bucket
 
-Create a private bucket:
+Local temporary output is the default behavior. You do not need Supabase Storage for the normal local workflow.
+
+If you later enable cloud storage mode, create a private bucket:
 
 ```text
 media-downloads
@@ -139,7 +146,7 @@ Recommended path pattern:
 {user_id}/{job_id}/output.mp3
 ```
 
-After creating the bucket, tell the Agent:
+After creating the optional bucket, tell the Agent:
 
 ```text
 สร้าง Storage bucket แล้วครับ
@@ -169,6 +176,13 @@ Do not add server-only worker secrets to frontend unless specifically needed ser
 
 ## Step 8 — Run Locally
 
+Recommended Docker backend:
+
+```bash
+docker compose up --build api
+docker compose --profile worker up --build worker
+```
+
 Frontend:
 
 ```bash
@@ -176,18 +190,10 @@ cd apps/web
 pnpm dev
 ```
 
-API:
+The frontend calls `NEXT_PUBLIC_FASTAPI_BASE_URL`, defaulting to:
 
-```bash
-cd apps/api
-uvicorn app.main:app --reload
-```
-
-Worker:
-
-```bash
-cd apps/worker
-python -m worker.main
+```text
+http://localhost:8000
 ```
 
 ---

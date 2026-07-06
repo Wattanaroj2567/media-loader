@@ -1,76 +1,53 @@
 # Worktree Structure
 
-This is the recommended final project structure after implementation.
-
-The real project must be generated inside the work package as `./media-loader`. Do not mix generated source code with the planning documents at the work package root.
+Current monorepo layout at the **repository root**:
 
 ```text
-media-loader-agent-workpack/
-└─ media-loader/
-   ├─ docker-compose.yml
-   ├─ .dockerignore
-   ├─ apps/
-   │  ├─ web/
-   │  │  ├─ app/
-   │  │  │  ├─ (auth)/
-   │  │  │  ├─ dashboard/
-   │  │  │  ├─ history/
-   │  │  │  ├─ settings/
-   │  │  │  └─ page.tsx
-   │  │  ├─ components/
-   │  │  │  ├─ ui/
-   │  │  │  ├─ layout/
-   │  │  │  └─ shared/
-   │  │  ├─ features/
-   │  │  │  ├─ auth/
-   │  │  │  ├─ analyzer/
-   │  │  │  ├─ downloads/
-   │  │  │  ├─ history/
-   │  │  │  └─ settings/
-   │  │  ├─ lib/
-   │  │  │  ├─ supabase/
-   │  │  │  ├─ api/
-   │  │  │  ├─ validators/
-   │  │  │  └─ utils/
-   │  │  └─ package.json
-   │  │
-   │  ├─ api/
-   │  │  ├─ app/
-   │  │  │  ├─ main.py
-   │  │  │  ├─ api/
-   │  │  │  │  └─ routes/
-   │  │  │  ├─ core/
-   │  │  │  ├─ schemas/
-   │  │  │  ├─ services/
-   │  │  │  └─ tests/
-   │  │  ├─ Dockerfile
-   │  │  └─ pyproject.toml
-   │  │
-   │  └─ worker/
-   │     ├─ worker/
-   │     │  ├─ main.py
-   │     │  ├─ config.py
-   │     │  ├─ services/
-   │     │  ├─ tasks/
-   │     │  └─ tests/
-   │     ├─ Dockerfile
-   │     └─ pyproject.toml
-   │
-   ├─ supabase/
-   │  ├─ migrations/
-   │  ├─ schema.sql
-   │  └─ rls_policies.sql
-   │
-   ├─ docs/
-   ├─ prompts/
-   ├─ scripts/
-   ├─ examples/
-   ├─ README.md
-   ├─ AGENTS.md
-   ├─ TODO.md
-   ├─ .env.example
-   └─ package.json
+media-loader/
+├─ docker-compose.yml
+├─ .dockerignore
+├─ apps/
+│  ├─ web/                    # Next.js frontend (Vercel)
+│  │  ├─ app/
+│  │  │  ├─ (app)/            # Protected: dashboard, queue, history, account
+│  │  │  ├─ (marketing)/      # Landing page
+│  │  │  └─ auth/             # OAuth callback, signout
+│  │  ├─ components/
+│  │  ├─ lib/
+│  │  └─ utils/supabase/
+│  │
+│  ├─ api/                    # FastAPI (Docker, port 8000)
+│  │  ├─ app/
+│  │  │  ├─ main.py
+│  │  │  ├─ routers/
+│  │  │  ├─ url_policy.py
+│  │  │  ├─ yt_dlp_service.py
+│  │  │  └─ job_service.py
+│  │  ├─ Dockerfile
+│  │  └─ pyproject.toml
+│  │
+│  └─ worker/                 # Python worker (Docker)
+│     ├─ Dockerfile
+│     └─ pyproject.toml
+│
+├─ supabase/
+│  ├─ migrations/
+│  ├─ schema.sql
+│  └─ rls_policies.sql
+│
+├─ docs/
+├─ prompts/                   # Optional role prompts for coding agents
+├─ scripts/
+├─ examples/
+├─ tmp/                       # Local media output (gitignored, Docker volume)
+├─ README.md
+├─ AGENTS.md
+├─ TODO.md
+├─ .env.example
+└─ package.json
 ```
+
+There is no nested `./media-loader` directory. See `docs/PROJECT_OUTPUT_LOCATION.md` if you encounter older docs.
 
 ---
 
@@ -78,30 +55,24 @@ media-loader-agent-workpack/
 
 ### `apps/web`
 
-Only frontend code.
-
-Do not place server secrets here unless they are used in server-only runtime and never exposed to the browser.
+Frontend only. No yt-dlp, FFmpeg, or service role key in browser code.
 
 ### `apps/api`
 
-FastAPI service for API logic. This service runs locally in Docker during development and exposes `http://localhost:8000`.
+Policy, analysis, job creation. Runs in Docker locally; exposes `http://localhost:8000`.
 
 ### `apps/worker`
 
-Media worker only. This service runs locally in Docker and must not be exposed publicly.
+Heavy media processing. Runs in Docker; not exposed publicly. Polls Supabase for `QUEUED` jobs.
 
 ### `supabase`
 
-SQL schema, migrations, seed, and RLS policy files.
+SQL schema, migrations, RLS. Apply to your Supabase project for production use.
 
 ### `docs`
 
-Human and Agent documentation.
-
-### `prompts`
-
-Role-specific AI Agent instructions.
+Setup guides, architecture, API spec, security policy.
 
 ### `docker-compose.yml`
 
-Defines local Docker services for `api` and `worker`. Do not add Supabase keys directly inside this file; read them from `.env.local`.
+Local services for `api` and `worker`. Secrets come from `.env.local`, never baked into images.

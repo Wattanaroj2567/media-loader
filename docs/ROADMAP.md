@@ -6,17 +6,18 @@ Use it as a high-level guide after following `TODO.md`. The detailed work order 
 
 ---
 
-## Milestone 0 — Work Package and Project Foundation
+## Milestone 0 — Repository Foundation
 
-Goal: Prepare the real implementation project in the correct location.
+Goal: Single monorepo at repo root, ready to run locally.
 
-- Confirm the work package root
-- Create the real project inside `./media-loader`
-- Initialize monorepo structure
-- Add base README, AGENTS, TODO, docs, scripts, and env example
-- Confirm no application code is created in the work package root
+- Monorepo at repo root (`apps/web`, `apps/api`, `apps/worker`)
+- Docker Compose for API and worker
+- Base README, AGENTS, TODO, docs, env example
+- Supabase migrations in `supabase/`
 
-Done when: the generated project has a clean folder structure and can be opened independently.
+Done when: `docker compose up api` and `pnpm dev` in `apps/web` both work with configured env.
+
+**Status: complete**
 
 ---
 
@@ -34,6 +35,8 @@ Goal: Build the first usable web shell.
 
 Done when: the user can sign in with Google and reach a protected dashboard.
 
+**Status: complete**
+
 ---
 
 ## Milestone 2 — Supabase Data Layer
@@ -48,6 +51,8 @@ Goal: Prepare persistent user-owned data.
 - Add download job schema
 
 Done when: users can only access their own rows and completed files remain private.
+
+**Status: complete**
 
 ---
 
@@ -65,6 +70,8 @@ Goal: Analyze URLs safely before any processing.
 
 Done when: unsafe URLs are blocked and safe URLs can move to analysis.
 
+**Status: complete**
+
 ---
 
 ## Milestone 4 — Local Docker FastAPI and Job Creation
@@ -81,21 +88,25 @@ Goal: Add server-side API logic.
 
 Done when: the frontend can create a queued download job through FastAPI.
 
+**Status: complete**
+
 ---
 
 ## Milestone 5 — Docker Worker and Media Processing
 
-Goal: Process queued jobs outside the frontend.
+Goal: **Critical path for daily use** — process queued jobs and produce downloadable files.
 
 - Python worker structure
 - Job polling and locking
-- Restricted yt-dlp service
+- Restricted yt-dlp download
 - FFmpeg conversion service
 - Progress updates
-- Temp file cleanup
-- Supabase Storage upload
+- Temp file cleanup in `./tmp`
+- Optional Supabase Storage upload (not default for large files)
 
-Done when: a queued allowed job can produce an output file and update status to `COMPLETED`.
+Done when: a queued allowed job completes and the owner can download the output file.
+
+**Status: complete**
 
 ---
 
@@ -105,28 +116,27 @@ Goal: Make the app feel complete for personal use.
 
 - Download history page
 - Status filters and search
-- Signed download URLs
+- Authenticated local file delivery
 - Delete file/history actions
-- Retry failed jobs
-- Settings page
-- Default quality preferences
-- Auto cleanup rules
+- Account page
+- Account deletion
 
 Done when: the user can manage previous jobs and downloaded files from the dashboard.
 
+**Status: complete**
+
 ---
 
-## Milestone 7 — Deployment and Review
+## Milestone 7 — Deployment and Production Use
 
-Goal: Prepare for real use and handoff.
+Goal: Run the app for real use — frontend on Vercel, backend at home or a trusted host.
 
-- Vercel deployment
+- Vercel deployment for `apps/web`
 - Supabase production callback URLs
 - Environment variable review
-- Security review
-- RLS review
-- UI consistency review
-- Testing checklist
-- Final README update
+- Security and RLS review
+- End-to-end test: login → analyze → download → history
 
-Done when: the project has clear setup instructions, no exposed secrets, and a working deployment path.
+Done when: the owner uses Media Loader outside local dev without manual workarounds.
+
+**Status: setup documented; live production verification still pending**

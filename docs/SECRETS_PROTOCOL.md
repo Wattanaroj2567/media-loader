@@ -35,7 +35,7 @@ The Agent only explains where to get them, where to put them, and how to verify 
 - Commit `.env.local`
 - Put service role key in frontend
 - Put client secret in browser code
-- Log signed download URLs
+- Log signed download URLs if optional cloud mode is enabled
 - Log JWTs or access tokens
 
 ---

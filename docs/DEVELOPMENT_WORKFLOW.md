@@ -2,63 +2,55 @@
 
 ## Working Principle
 
-The user wants to learn while AI Agents help implement the project.
+Ship features the owner will **use in production**, in small steps.
 
-Agents should explain what they are doing, but must avoid exposing secrets or overcomplicating the process.
+Focus on keeping the daily-use flow reliable: Google auth → policy-aware analysis → real formats → queue/worker → local file delivery → history/account. Keep policy and security rules non-negotiable; skip tutorial-only polish unless it unblocks real usage.
 
 ---
 
 ## Recommended Loop
 
 ```text
-1. Agent reads AGENTS.md and TODO.md
-2. Agent selects the next unchecked task
-3. Agent makes a small implementation change
-4. Agent explains what changed
-5. User adds required keys/settings manually when needed
-6. Agent runs validation without printing secrets
-7. Agent updates TODO status
-8. Agent moves to the next task
+1. Read AGENTS.md and TODO.md — pick the next unchecked task toward daily use
+2. Make a small, testable change
+3. Run local verification (docker compose, pnpm dev, curl /health)
+4. Update TODO.md when the task is done
+5. Move to the next task
 ```
+
+When keys or dashboard settings are needed, pause and follow `docs/USER_SETUP_GUIDE.md`. Never paste secrets into chat.
 
 ---
 
 ## When Keys Are Needed
 
-Agent must pause implementation and say:
+Say:
 
 ```text
 This step needs a key or dashboard setting.
 Please follow docs/USER_SETUP_GUIDE.md section X.
-Add the value to the local env file or deployment dashboard.
+Add the value to .env.local or your deployment dashboard.
 After adding it, tell me "added". I will validate without reading the value.
 ```
 
 ---
 
-## What the User Does
+## What the Owner Does
 
-The user is responsible for:
-
-- Creating Supabase project
-- Creating Google OAuth credentials
-- Adding callback URLs
-- Copying keys into `.env.local`
-- Adding Vercel environment variables
-- Confirming when setup is done
+- Create and maintain Supabase project
+- Configure Google OAuth
+- Copy keys into `.env.local` (and Vercel env when deploying)
+- Run Docker and frontend locally
+- Confirm when setup steps are complete
 
 ---
 
-## What the Agent Does
+## What Contributors / Agents Do
 
-The Agent is responsible for:
-
-- Generating code structure
-- Writing setup guides
-- Creating env templates
-- Checking variable presence
-- Running health checks
-- Reporting safe validation results
+- Implement the remaining verified items in `TODO.md`
+- Keep docs accurate when behavior changes
+- Run health checks and safe env validation (OK / Missing / Invalid only)
+- Never print secret values
 
 ---
 
@@ -83,58 +75,42 @@ SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOi...
 
 ## Branching Suggestion
 
-Use simple branches:
-
 ```text
 main
-feature/frontend-foundation
-feature/supabase-auth
-feature/fastapi-core
-feature/worker-core
-feature/history-page
+feature/quality-polish
+feature/deploy-validation
+feature/cloud-storage-optional
 ```
 
 ---
 
 ## Commit Style
 
-Use clear commits:
-
 ```text
-feat(web): add dark dashboard shell
-feat(api): add media analyze endpoint
-feat(worker): add queued job polling
-chore(supabase): add download job schema
+feat(web): refine history save flow
+feat(api): add retry endpoint
+fix(worker): preserve cancelled status during cleanup
 ```
-
 
 ---
 
-## Output Directory Rule
+## Local runtime
 
-The AI Agent must generate the real project inside `./media-loader`.
-
-Do not place implementation files directly in the work package root. The work package root is reserved for planning documents, prompts, examples, and setup references.
-
-Before Phase 0 starts, verify:
-
-```text
-Current directory: media-loader-agent-workpack
-Implementation target: ./media-loader
-```
-
-
----
-
-## Docker backend workflow
-
-When backend phases begin, the Agent must use Docker Compose as the default runtime.
-
-Expected commands:
+Default development stack:
 
 ```bash
-docker compose up --build
-curl http://localhost:8000/health
+# API (required for analyze + jobs)
+docker compose up --build api
+
+# Frontend
+cd apps/web && pnpm dev
+
+# Worker
+docker compose --profile worker up --build
 ```
 
-Do not instruct the user to deploy the backend to Vercel. Vercel is for the Next.js frontend only.
+- Frontend: `http://localhost:3000`
+- API: `http://localhost:8000`
+- Media temp files: `./tmp` (Docker volume)
+
+Do not deploy the backend to Vercel. Vercel is for the Next.js frontend only.

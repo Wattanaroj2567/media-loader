@@ -23,7 +23,8 @@ The worker handles:
 - Download jobs
 - yt-dlp calls
 - FFmpeg conversion
-- Supabase Storage upload
+- Local temp output by default
+- Optional Supabase Storage upload only if cloud mode is enabled later
 - Job progress updates
 
 This should not run inside Vercel frontend functions.

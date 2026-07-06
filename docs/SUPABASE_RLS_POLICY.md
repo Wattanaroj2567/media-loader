@@ -22,7 +22,7 @@ Users should only access their own:
 - media formats
 - policy logs
 - settings
-- storage files
+- optional storage files if cloud mode is enabled
 
 ---
 
@@ -42,11 +42,10 @@ RLS must be enabled on every table above.
 
 ## Policy Pattern
 
-For tables with `user_id`:
+For user-readable tables with `user_id`:
 
 ```sql
 using (auth.uid() = user_id)
-with check (auth.uid() = user_id)
 ```
 
 For `profiles` where `id` references `auth.users(id)`:
@@ -55,6 +54,12 @@ For `profiles` where `id` references `auth.users(id)`:
 using (auth.uid() = id)
 with check (auth.uid() = id)
 ```
+
+`download_jobs`, `media_formats`, and `policy_logs` are server-managed. Browser
+clients may read only their own rows and have no direct `INSERT`, `UPDATE`, or
+`DELETE` policies. FastAPI and the worker mutate these tables with the
+server-only service role after authentication and policy checks. This prevents
+direct Supabase inserts from bypassing the required queue flow.
 
 ---
 
@@ -73,7 +78,9 @@ Therefore:
 
 ## Storage Rule
 
-The storage bucket should be private.
+Local temporary output is the default path, so normal file delivery is protected by FastAPI session validation and user-scoped job lookups.
+
+If optional cloud storage mode is enabled later, the storage bucket should be private.
 
 Recommended bucket:
 
@@ -87,7 +94,7 @@ Recommended path pattern:
 {user_id}/{job_id}/{filename}
 ```
 
-File access should use signed URLs.
+Cloud file access should use short-lived signed URLs and must not be logged. Default local file access uses authenticated FastAPI streaming instead.
 
 ---
 
@@ -95,9 +102,9 @@ File access should use signed URLs.
 
 - [ ] RLS is enabled on all user-owned tables
 - [ ] Select policies are user-scoped
-- [ ] Insert policies prevent writing rows for another user
-- [ ] Update policies are user-scoped
-- [ ] Delete policies are user-scoped where needed
+- [ ] Server-managed tables expose no browser mutation policies
+- [ ] Profile/settings mutations remain user-scoped where needed
 - [ ] Service role key is server/worker-only
-- [ ] Storage bucket is private
-- [ ] Signed URLs are not logged
+- [ ] Optional Storage bucket is private when enabled
+- [ ] Signed URLs are not logged if optional cloud mode is enabled
+- [ ] Default local file endpoint verifies the owner before streaming

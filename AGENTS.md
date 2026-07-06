@@ -8,9 +8,9 @@ All agents must read this file before making changes.
 
 ## Project Identity
 
-Media Loader is a personal, rights-aware media loading web application.
+Media Loader is a personal, rights-aware media loading web application for daily use.
 
-The user wants to learn modern full-stack development while using AI Agents to create the project structure and code.
+The goal is a reliable private tool the owner can run locally and deploy for real downloads, conversion, and history — not a tutorial project.
 
 The application must use:
 
@@ -26,21 +26,21 @@ The application must use:
 
 ---
 
-## Project Output Location
+## Project Root
 
-This work package is not the final application repository.
-
-The AI Agent must create the real implementation project in this child directory:
+This repository **is** the application. Source code lives at the repo root:
 
 ```text
-./media-loader
+apps/web/      → Next.js frontend
+apps/api/      → FastAPI backend
+apps/worker/   → Python media worker
+supabase/      → schema and migrations
+docs/          → architecture and setup guides
 ```
 
-Do not create application source code directly in the work package root.
+Do not create a nested `./media-loader` copy. Edit files in place under this repo root.
 
-The work package root contains planning documents, instructions, prompts, examples, and SQL references. Generated code belongs inside `./media-loader`.
-
-Before creating files, confirm the current directory and ensure the output path is `./media-loader`.
+Before making changes, confirm you are in the repository root and that `apps/` exists.
 
 ---
 
@@ -215,7 +215,7 @@ Supabase handles:
 
 Before coding:
 
-1. Read the relevant docs, including `docs/PROJECT_OUTPUT_LOCATION.md` before Phase 0
+1. Read the relevant docs, including `docs/USER_SETUP_GUIDE.md` and `TODO.md` for current shipping status
 2. Inspect the existing structure
 3. Identify the smallest useful change
 4. Update the TODO status after finishing
@@ -292,9 +292,9 @@ A task is done only when:
 
 ## Final Reminder
 
-This project is for personal learning and safe media management.
+This project is for personal daily use and safe media management.
 
-Do not turn it into a generic unrestricted downloader.
+Prioritize features that make the app usable end-to-end (worker, downloads, history). Do not turn it into a generic unrestricted downloader.
 
 
 ---

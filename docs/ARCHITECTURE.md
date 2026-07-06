@@ -16,13 +16,13 @@ supabase      → Auth, PostgreSQL, Storage, RLS
 
 ## Local Docker Backend
 
-During development, the backend API and worker are expected to run through Docker Compose from the real project root `./media-loader`.
+During development, the backend API and worker run through Docker Compose from the **repository root** (the folder that contains `apps/` and `docker-compose.yml`).
 
 ```text
 Next.js on Vercel or local dev → calls http://localhost:8000
 FastAPI API container          → exposes port 8000
 Worker container               → processes queued jobs and temporary files
-Supabase Cloud                 → Auth, database, RLS, and optional small/temporary storage
+Supabase Cloud                 → Auth, database, RLS, and optional future/cloud storage
 ```
 
 Required files in the implementation project:
@@ -47,7 +47,6 @@ The worker handles:
 - yt-dlp calls
 - FFmpeg processing
 - Temporary files
-- Uploading completed files when cloud storage mode is enabled
 - Serving or preparing local temporary outputs for download
 - Progress updates
 
@@ -79,6 +78,8 @@ FastAPI extracts safe metadata when allowed
 FastAPI returns metadata and format options
 ```
 
+The frontend must send the current Supabase access token. FastAPI verifies it and scopes analysis logs, queue actions, file access, and account deletion to that user.
+
 ### Create Job
 
 ```text
@@ -102,7 +103,7 @@ Worker downloads allowed media
   ↓
 Worker converts/merges with FFmpeg
   ↓
-Worker writes output to local temp storage by default; optional cloud mode uploads to Supabase Storage
+Worker writes output to local temp storage by default
   ↓
 Worker updates job status to COMPLETED
 ```
@@ -112,11 +113,13 @@ Worker updates job status to COMPLETED
 ```text
 User clicks download
   ↓
-Next.js requests a download action
+Next.js requests `/files/download/{job_id}` with the Supabase access token
   ↓
-FastAPI returns a local download response or optional signed Storage URL
+FastAPI streams the local temp file
   ↓
-User downloads file to device
+User saves through the browser/Explorer dialog
+  ↓
+FastAPI deletes the temp file and clears the file path; history metadata remains
 ```
 
 ---
@@ -144,7 +147,8 @@ Responsibilities:
 - Run policy decision
 - Normalize metadata
 - Create download jobs
-- Generate signed file access helpers if needed
+- Stream completed local temp files to the signed-in owner
+- Delete account data and local temporary outputs
 
 ### Worker
 
@@ -154,7 +158,6 @@ Responsibilities:
 - Process one job safely
 - Update progress
 - Save output file to local temp storage by default
-- Upload output file only if cloud storage mode is enabled
 - Clean temporary files
 
 ### Supabase
@@ -166,7 +169,7 @@ Responsibilities:
 - Job records
 - Policy logs
 - Media format records
-- Storage bucket
+- Optional Storage bucket for future/cloud mode
 - RLS policies
 
 ---
@@ -175,7 +178,9 @@ Responsibilities:
 
 Every user-owned row must include `user_id`.
 
-RLS must ensure users can only read and modify their own records.
+RLS lets users read only their own server-managed records. Queue, format, and
+policy-log mutations are intentionally denied to browser clients so they cannot
+bypass FastAPI policy checks; trusted API/worker services perform those writes.
 
 The service role key may bypass RLS but must only exist in trusted server-side contexts.
 
@@ -204,6 +209,6 @@ QUEUED/DOWNLOADING/CONVERTING → CANCELLED
 - Worker must not run inside browser
 - URLs must be validated before network access
 - Policy decision must be stored for auditability
-- Completed files should be private by default
+- Completed files are local temporary files by default and must be owner-scoped
 - Permanent cloud media storage must not be the Free tier default
 - Local Docker backend must handle media processing and temporary files

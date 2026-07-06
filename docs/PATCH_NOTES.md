@@ -1,6 +1,8 @@
-# Patch Notes v4
+# Patch Notes
 
-This version updates the work package to use a local Docker backend runtime.
+> **Historical.** The repo now lives at the root; nested `./media-loader` is deprecated. See `docs/PROJECT_OUTPUT_LOCATION.md` and ADR 02 in `docs/DECISION_LOG.md`.
+
+These notes cover the shift to a local Docker backend runtime.
 
 ## Main Changes
 
@@ -21,6 +23,4 @@ This version updates the work package to use a local Docker backend runtime.
 
 ## Safe Upgrade Note
 
-If an Agent has already created `./media-loader`, do not delete that folder.
-
-Copy updated planning docs into the existing workspace or ask the Agent to sync the v4 docs carefully.
+If you still have an old nested `./media-loader` copy from earlier layouts, migrate any local changes into the repo root and remove the duplicate. The canonical project is the repository root.

@@ -61,7 +61,10 @@
 - `/media/analyze` returns policy result
 - `/downloads` creates queued job
 - `/downloads/{id}` returns only owner's job
-- Signed URL endpoint only works for completed owned jobs
+- `/downloads/{id}/cancel` cancels only owned cancellable jobs
+- `DELETE /downloads/{id}` deletes only owned queued/terminal jobs
+- `/files/download/{id}` streams only completed owned local temp outputs
+- `DELETE /account` cancels jobs, cleans temp files, and deletes the signed-in user
 
 ---
 
@@ -72,7 +75,8 @@
 - Worker updates status
 - Worker handles failure
 - Worker cleans temp files
-- Worker uploads completed file
+- Worker writes completed output to local temp storage by default
+- Worker respects cancellation while downloading/converting
 - Worker does not log secrets
 
 ---
@@ -87,6 +91,7 @@
 - Format selection is readable
 - Progress states are clear
 - History page is usable on mobile and desktop
+- Account page can sign out and delete account after typed confirmation
 - No emoji icons are used
 
 ---
@@ -111,7 +116,7 @@
 
 - [ ] `docker compose config` passes
 - [ ] `docker compose up --build` starts API and worker services
-- [ ] `curl http://localhost:8000/health` returns `{"status":"ok"}`
+- [ ] `curl http://localhost:8000/health` returns `{"ok":true,"data":{"status":"healthy"},"error":null}`
 - [ ] API logs do not print secrets
 - [ ] Worker logs do not print secrets
 - [ ] Temporary media directory is mounted and ignored by Git

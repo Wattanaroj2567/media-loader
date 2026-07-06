@@ -23,7 +23,7 @@ Enable Google login through Supabase Auth so the Next.js app can authenticate th
 
 ## Step 2 — Configure OAuth Consent Screen
 
-Recommended for learning/personal use:
+Recommended for personal use:
 
 - App name: `Media Loader`
 - User support email: your own email

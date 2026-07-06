@@ -32,7 +32,11 @@ Use `supabase/rls_policies.sql` as the starting policy file.
 
 ---
 
-## Storage Bucket
+## Optional Storage Bucket
+
+Local temporary output is the default Free tier behavior. Normal file delivery streams through FastAPI after checking the signed-in owner.
+
+Use Supabase Storage only if optional cloud storage mode is enabled later.
 
 Create a private bucket:
 
@@ -46,7 +50,7 @@ Files should be stored under:
 {user_id}/{job_id}/{filename}
 ```
 
-Access should happen through signed URLs.
+Cloud access should happen through short-lived signed URLs. Do not use public buckets for user media.
 
 ---
 

@@ -36,3 +36,23 @@ We choose **Supabase JS Client** (frontend) and **Raw SQL schema migrations** (d
   npx supabase gen types typescript --project-id YOUR_PROJECT_ID > types/supabase.ts
   ```
   This yields type safety identical to Prisma without connection or runtime overhead.
+
+---
+
+## ADR 02: Product focus — daily use over learning scaffold
+
+### Context
+
+Early docs described Media Loader as a learning project with a separate "work package" generating code into `./media-loader`. The repo now holds the full app at the root; the owner wants to **use the app**, not treat it as a tutorial.
+
+### Decision
+
+- Repo root is the single source of truth (`apps/` at root).
+- Documentation prioritizes setup, daily-use checklist, and production validation after the local workflow is implemented.
+- Deprecate nested work-package layout and "AI Agent Work Package" framing in user-facing README content.
+
+### Consequences
+
+- `docs/PROJECT_OUTPUT_LOCATION.md` documents repo-root layout only.
+- `TODO.md` and `ROADMAP.md` mark the core local workflow complete and leave live deployment checks explicit.
+- Contributors should keep policy, auth, worker, local delivery, and docs aligned before cosmetic or experimental work.
