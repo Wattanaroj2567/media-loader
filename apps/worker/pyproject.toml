@@ -1,0 +1,19 @@
+[project]
+name = "media-loader-worker"
+version = "0.1.0"
+description = "Python media worker for Media Loader — queue polling, download, conversion, and upload"
+requires-python = ">=3.12"
+
+[tool.setuptools]
+packages = ["worker"]
+
+dependencies = [
+    "yt-dlp>=2024.03.10",
+    "supabase>=2.0.0",
+    "python-dotenv>=1.0.0",
+    "pydantic>=2.0.0",
+    "pydantic-settings>=2.0.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "pytest-asyncio"]
