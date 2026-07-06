@@ -6,11 +6,13 @@ This directory contains the initial schema structures and Row Level Security (RL
 
 ## SQL Migration Details
 
-- **File:** [`supabase/migrations/0001_initial_schema.sql`](migrations/0001_initial_schema.sql)
-- Contains:
-  - 5 public tables (`profiles`, `download_jobs`, `media_formats`, `policy_logs`, `user_settings`)
-  - Primary database indexes for querying
-  - Authentication checks to verify users only read/write their own records (`auth.uid() = user_id`)
+Apply every file under `supabase/migrations/` in numeric order:
+
+1. `0001_initial_schema.sql` — tables, indexes, RLS
+2. `0002_create_profile_trigger.sql` — Google Auth profile bootstrap
+3. `0003_job_metadata.sql` — analyzer/history metadata
+4. `0004_lock_server_managed_tables.sql` — blocks direct browser queue mutations
+5. `0005_selected_format_audio_flag.sql` — keeps video/audio merge selection faithful
 
 ---
 
@@ -21,10 +23,9 @@ Follow these steps inside your Supabase project dashboard:
 1. Navigate to the **Supabase Dashboard** -> select your project.
 2. Click **SQL Editor** from the left navigation sidebar.
 3. Click **New query** (or **New Blank Query**).
-4. Copy the entire contents of [`supabase/migrations/0001_initial_schema.sql`](migrations/0001_initial_schema.sql).
-5. Paste it directly into the SQL Editor input area.
-6. Click **Run** (or press `Ctrl + Enter` / `Cmd + Enter`).
-7. Confirm that the logs return `Success. No rows returned` or similar success indicators.
+4. Open each migration in numeric order and copy it into the SQL Editor.
+5. Click **Run** (or press `Ctrl + Enter` / `Cmd + Enter`) before moving to the next file.
+6. Confirm that each migration returns `Success. No rows returned` or similar.
 
 ---
 
@@ -62,4 +63,7 @@ WHERE schemaname = 'public';
 
 Expected output:
 
-- You should see user-scoped checks matching `(auth.uid() = user_id)` (or `id` for profiles) for `SELECT`, `INSERT`, `UPDATE`, and `DELETE` commands.
+- `download_jobs`, `media_formats`, and `policy_logs` expose user-scoped
+  `SELECT` policies only. Their mutations run through FastAPI/worker.
+- `profiles` and `user_settings` keep user-scoped policies for the operations
+  their browser-facing settings flows require.

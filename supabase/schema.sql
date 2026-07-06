@@ -20,10 +20,14 @@ create table if not exists public.download_jobs (
   original_url text not null,
   platform text not null default 'unknown',
   title text,
+  uploader text,
+  source_domain text,
   thumbnail_url text,
+  duration_seconds integer,
   media_type text not null default 'unknown',
   selected_format_id text,
   selected_quality text,
+  selected_has_audio boolean not null default false,
   output_format text,
   status text not null default 'PENDING',
   progress integer not null default 0 check (progress >= 0 and progress <= 100),
@@ -36,7 +40,8 @@ create table if not exists public.download_jobs (
   locked_by text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  completed_at timestamptz
+  completed_at timestamptz,
+  download_speed bigint
 );
 
 -- Media formats
@@ -66,17 +71,6 @@ create table if not exists public.policy_logs (
   decision text not null,
   reason text not null,
   created_at timestamptz not null default now()
-);
-
--- User settings
-create table if not exists public.user_settings (
-  user_id uuid primary key references auth.users(id) on delete cascade,
-  default_video_quality text default '720p',
-  default_audio_quality text default '192kbps',
-  auto_cleanup_days integer default 7,
-  max_file_size_mb integer default 500,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
 );
 
 -- Helpful indexes

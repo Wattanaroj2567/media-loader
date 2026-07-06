@@ -1,5 +1,6 @@
 -- Initial Schema & RLS Policies combined migration
 -- Source: supabase/schema.sql and supabase/rls_policies.sql
+-- Consolidates all tables, trigger functions, security locks, and updates.
 
 create extension if not exists "pgcrypto";
 
@@ -24,10 +25,14 @@ create table if not exists public.download_jobs (
   original_url text not null,
   platform text not null default 'unknown',
   title text,
+  uploader text,
+  source_domain text,
   thumbnail_url text,
+  duration_seconds integer,
   media_type text not null default 'unknown',
   selected_format_id text,
   selected_quality text,
+  selected_has_audio boolean not null default false,
   output_format text,
   status text not null default 'PENDING',
   progress integer not null default 0 check (progress >= 0 and progress <= 100),
@@ -40,7 +45,8 @@ create table if not exists public.download_jobs (
   locked_by text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  completed_at timestamptz
+  completed_at timestamptz,
+  download_speed bigint
 );
 
 -- Media formats
@@ -72,17 +78,6 @@ create table if not exists public.policy_logs (
   created_at timestamptz not null default now()
 );
 
--- User settings
-create table if not exists public.user_settings (
-  user_id uuid primary key references auth.users(id) on delete cascade,
-  default_video_quality text default '720p',
-  default_audio_quality text default '192kbps',
-  auto_cleanup_days integer default 7,
-  max_file_size_mb integer default 500,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
-
 -- ==========================================
 -- 2. Indexes
 -- ==========================================
@@ -99,9 +94,8 @@ alter table public.profiles enable row level security;
 alter table public.download_jobs enable row level security;
 alter table public.media_formats enable row level security;
 alter table public.policy_logs enable row level security;
-alter table public.user_settings enable row level security;
 
--- Profiles
+-- Profiles Policies
 drop policy if exists "Users can read own profile" on public.profiles;
 create policy "Users can read own profile"
 on public.profiles
@@ -124,7 +118,7 @@ for insert
 to authenticated
 with check (auth.uid() = id);
 
--- Download jobs
+-- Download Jobs Policies (Read Only for Users, Mutated via Server-side/Service Role)
 drop policy if exists "Users can read own download jobs" on public.download_jobs;
 create policy "Users can read own download jobs"
 on public.download_jobs
@@ -132,29 +126,7 @@ for select
 to authenticated
 using (auth.uid() = user_id);
 
-drop policy if exists "Users can insert own download jobs" on public.download_jobs;
-create policy "Users can insert own download jobs"
-on public.download_jobs
-for insert
-to authenticated
-with check (auth.uid() = user_id);
-
-drop policy if exists "Users can update own download jobs" on public.download_jobs;
-create policy "Users can update own download jobs"
-on public.download_jobs
-for update
-to authenticated
-using (auth.uid() = user_id)
-with check (auth.uid() = user_id);
-
-drop policy if exists "Users can delete own download jobs" on public.download_jobs;
-create policy "Users can delete own download jobs"
-on public.download_jobs
-for delete
-to authenticated
-using (auth.uid() = user_id);
-
--- Media formats
+-- Media Formats Policies (Read Only for Users, Mutated via Server-side/Service Role)
 drop policy if exists "Users can read own media formats" on public.media_formats;
 create policy "Users can read own media formats"
 on public.media_formats
@@ -162,21 +134,7 @@ for select
 to authenticated
 using (auth.uid() = user_id);
 
-drop policy if exists "Users can insert own media formats" on public.media_formats;
-create policy "Users can insert own media formats"
-on public.media_formats
-for insert
-to authenticated
-with check (auth.uid() = user_id);
-
-drop policy if exists "Users can delete own media formats" on public.media_formats;
-create policy "Users can delete own media formats"
-on public.media_formats
-for delete
-to authenticated
-using (auth.uid() = user_id);
-
--- Policy logs
+-- Policy Logs Policies (Read Only for Users, Mutated via Server-side/Service Role)
 drop policy if exists "Users can read own policy logs" on public.policy_logs;
 create policy "Users can read own policy logs"
 on public.policy_logs
@@ -184,32 +142,27 @@ for select
 to authenticated
 using (auth.uid() = user_id);
 
-drop policy if exists "Users can insert own policy logs" on public.policy_logs;
-create policy "Users can insert own policy logs"
-on public.policy_logs
-for insert
-to authenticated
-with check (auth.uid() = user_id);
+-- ==========================================
+-- 4. User Registration Profile Trigger
+-- ==========================================
 
--- User settings
-drop policy if exists "Users can read own settings" on public.user_settings;
-create policy "Users can read own settings"
-on public.user_settings
-for select
-to authenticated
-using (auth.uid() = user_id);
+-- Function to handle new user registration and insert into public.profiles
+create or replace function public.handle_new_user()
+returns trigger as $$
+begin
+  insert into public.profiles (id, email, full_name, avatar_url)
+  values (
+    new.id,
+    new.email,
+    coalesce(new.raw_user_meta_data->>'full_name', new.raw_user_meta_data->>'name', ''),
+    coalesce(new.raw_user_meta_data->>'avatar_url', '')
+  );
+  return new;
+end;
+$$ language plpgsql security definer;
 
-drop policy if exists "Users can insert own settings" on public.user_settings;
-create policy "Users can insert own settings"
-on public.user_settings
-for insert
-to authenticated
-with check (auth.uid() = user_id);
-
-drop policy if exists "Users can update own settings" on public.user_settings;
-create policy "Users can update own settings"
-on public.user_settings
-for update
-to authenticated
-using (auth.uid() = user_id)
-with check (auth.uid() = user_id);
+-- Trigger to run handle_new_user on sign up
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute procedure public.handle_new_user();
