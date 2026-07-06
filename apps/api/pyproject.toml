@@ -1,0 +1,20 @@
+[project]
+name = "media-loader-api"
+version = "0.1.0"
+description = "FastAPI backend for Media Loader — policy checks, URL analysis, and job creation"
+requires-python = ">=3.12"
+
+[tool.setuptools]
+packages = ["app"]
+
+dependencies = [
+    "yt-dlp>=2024.03.10"
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "pytest-asyncio", "httpx"]
+
+[tool.pytest.ini_options]
+filterwarnings = [
+  "ignore:Using `httpx` with `starlette.testclient` is deprecated:Warning"
+]
