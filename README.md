@@ -1,301 +1,174 @@
 # Media Loader
 
-**Media Loader** is a personal, rights-aware media workspace for analyzing media URLs, selecting available video/audio quality, downloading allowed media, converting files, and keeping a private download history.
+[![Next.js](https://img.shields.io/badge/Frontend-Next.js%2016-black?style=flat-square&logo=next.dot.js)](https://nextjs.org)
+[![FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688?style=flat-square&logo=fastapi)](https://fastapi.tiangolo.com)
+[![Supabase](https://img.shields.io/badge/Database-Supabase-3ECF8E?style=flat-square&logo=supabase)](https://supabase.com)
+[![Docker](https://img.shields.io/badge/Runtime-Docker%20Compose-2496ED?style=flat-square&logo=docker)](https://www.docker.com)
+[![License](https://img.shields.io/badge/License-Private-red?style=flat-square)](#)
 
-Built with **Next.js**, **Vercel**, **Supabase**, **FastAPI**, Docker, and a separate Python media worker — intended for **real daily use**, not as a tutorial repo.
+A premium, private, rights-aware media utility workspace built for personal daily use. Analyze media URLs, select quality/formats, queue download/conversion tasks, and manage files securely via a modern command-center dark interface.
+
+This application is architected with a decoupled monorepo approach: Next.js on Vercel, Supabase for auth/data, and Python backend services (FastAPI & Worker) running inside Docker.
 
 ---
 
-## Quick Start
+## Architecture Flow
 
-1. Copy `.env.example` to `.env.local` and fill Supabase + Google OAuth values (see `docs/USER_SETUP_GUIDE.md`).
-2. Apply Supabase migrations from `supabase/migrations/`.
-3. Start the API: `docker compose up --build api`
-4. Start the frontend: `cd apps/web && pnpm install && pnpm dev`
-5. Open `http://localhost:3000`, sign in with Google, and use the dashboard.
-
-Start the worker with:
-
-```bash
-docker compose --profile worker up --build
+```mermaid
+graph TD
+    User([User]) <--> WebApp[Next.js Frontend on Vercel]
+    WebApp <--> Supabase[Supabase Auth / PostgreSQL / Storage]
+    WebApp <--> API[FastAPI API on Docker]
+    API <--> Supabase
+    API <--> Queue[(Job Queue / DB)]
+    Queue <--> Worker[Python Media Worker on Docker]
+    Worker <--> Tooling[yt-dlp / FFmpeg]
+    Worker --> Supabase
 ```
 
-Current shipping status: see `TODO.md`. The core local workflow is implemented; production deployment checks still require the user's actual Vercel/Supabase environment.
+---
+
+## Core Product Flow
+
+Every media request must pass through a strict security and policy layer before execution:
+
+```text
+URL Input ──> URL Validation ──> Policy Check ──> Analysis ──> Rights Confirmation ──> Job Queue ──> Worker Processing
+```
+
+> [!IMPORTANT]
+> **No Bypass Policy**: Media Loader does NOT bypass DRM, login walls, or platform protections. It enforces rights checking at the policy layer.
 
 ---
 
-## What This Project Does
+## Key Features
 
-Media Loader helps a user:
+### 💻 User Command Center
+* **Modern Dark UI**: Clean, minimal, dashboard-style interface with sharp typography (Inter/Outfit) and responsive layouts.
+* **Google OAuth**: Integrated authentication flow utilizing Supabase Auth.
+* **Workspace Navigation**: Dashboard, Job Queue Tracker, Download History, and Account Management.
 
-- Sign in with Google using Supabase Auth
-- Paste a media URL for analysis
-- Check whether the URL is allowed by the project policy
-- Preview basic media metadata when available
-- View available video/audio formats when supported
-- Select video quality such as 1080p, 720p, or lower formats when available
-- Select audio output such as original audio or MP3 conversion
-- Queue a download/conversion job
-- Track job status and progress
-- Store history metadata in Supabase and use local temporary media output by default
-- Save finished files through the browser/Explorer dialog, then clear local temp output
-- View private download history
-- Delete history records or stored files
-- Manage account actions such as sign out and account deletion
+### 🔍 Smart URL Analyzer
+* **SSR-safe Validation**: Protection against server-side request forgery (SSRF).
+* **Metadata Extraction**: Live formatting lists, size estimates, and quality previews.
+* **Platform Parsing**: Automatic domain recognition with localized custom parsers.
 
----
+### ⚡ Distributed Processing
+* **Decoupled Worker**: Heavy operations (downloads, FFmpeg transcoding) run isolated from the web-server.
+* **Format Selector**: Multi-option download target (e.g., 1080p, 720p, or Audio extraction to MP3).
+* **Speed & Progress Logs**: Real-time progress updates with speed tracking (`0002_add_download_speed.sql`).
 
-## What This Project Is Not
-
-Media Loader is **not** a tool for bypassing restrictions.
-
-It must not be used to:
-
-- Bypass DRM
-- Bypass login walls
-- Download private content without permission
-- Scrape protected platform content
-- Circumvent platform protections
-- Use browser cookies to access restricted media
-- Encourage copyright infringement
-
-Every URL must pass a policy check before analysis or download.
-
----
-
-## Core Features
-
-### Account and Dashboard
-
-- Google login through Supabase Auth
-- Protected dashboard route
-- Modern dark UI
-- Simple personal workspace layout
-- Download history per user
-
-### URL Analysis
-
-- URL input with validation
-- Platform/domain detection
-- Rights-aware policy check
-- Direct media URL support
-- Metadata preview when supported
-- Format and quality list when available
-
-### Download and Convert
-
-- Download allowed media only
-- Select video/audio quality when available
-- MP4 output support
-- MP3 conversion support through FFmpeg
-- Separate worker process for heavy media tasks
-- Progress/status tracking
-
-### Storage and History
-
-- Supabase PostgreSQL for job records
-- Supabase Storage only as optional future/cloud mode
-- Local Docker backend for FastAPI and media worker
-- Authenticated FastAPI local file delivery
-- Private user history
-- Cancel/delete/automatic temp-cleanup workflow
-
-### Safety and Security
-
-- Secret-safe setup process
-- No secret printing
-- No `.env.local` commits
-- RLS-first Supabase database design
-- SSRF-aware URL validation
-- Server-side service role only
-- Policy layer before media processing
+### 🔒 Privacy & Safety
+* **Zero-Secret Leakage**: Strict protocol preventing console logs or repository commits of credentials.
+* **RLS Policies**: Postgres-level Row Level Security securing user data.
+* **Automatic Cleanup**: Temporary files are cleared after a safe duration.
 
 ---
 
 ## Tech Stack
 
-| Layer | Technology |
-| --- | --- |
-| Frontend | Next.js, TypeScript |
-| Hosting | Vercel |
-| Auth | Supabase Auth with Google |
-| Database | Supabase PostgreSQL |
-| Storage | Local temp output by default; Supabase Storage optional |
-| Backend API | FastAPI running locally in Docker |
-| Worker | Python worker running locally in Docker |
-| Local Runtime | Docker Compose |
-| Media tools | yt-dlp restricted mode, FFmpeg |
-| UI | Tailwind CSS, shadcn/ui |
-| Icons | Lucide React or Tabler Icons |
-| State/API | Typed fetch client |
+| Component | Technology | Description |
+| :--- | :--- | :--- |
+| **Frontend** | Next.js 16 (App Router), TS, TailwindCSS | Monorepo root `apps/web` |
+| **Styling** | Vanilla CSS Variable Tokens, shadcn/ui | UI component system |
+| **Database** | PostgreSQL (Supabase) | Core schema, profiles, jobs & policies |
+| **Auth** | Supabase Auth (Google Provider) | Secure user access & token session validation |
+| **Backend API** | FastAPI, Uvicorn, Python 3.11 | REST endpoints, token validation, policy execution |
+| **Worker** | Python 3.11, Docker container | Daemon pulling queued jobs |
+| **Media Tools** | yt-dlp (restricted mode), FFmpeg | Core extraction and conversion engines |
+| **Deployment** | Vercel (Frontend), Docker Compose (Backend) | Production Vercel config & Dev setup |
 
 ---
 
-## High-Level Architecture
+## Repository Structure
 
-```text
-User
-  ↓
-Next.js Web App on Vercel
-  - Login
-  - Dashboard
-  - URL analyzer
-  - Format selection
-  - History
-  ↓
-Supabase
-  - Auth
-  - PostgreSQL
-  - Optional Storage
-  - Optional Realtime
-  ↓
-FastAPI
-  - Policy check
-  - URL validation
-  - Metadata analysis
-  - Job creation
-  ↓
-Python Media Worker
-  - Picks queued jobs
-  - Downloads allowed media
-  - Converts/merges with FFmpeg
-  - Serves local temp output through FastAPI
-  - Updates job status
-```
-
----
-
-## Main Pages
-
-| Page | Purpose |
-| --- | --- |
-| Landing | Explain the product and show Google login |
-| Dashboard | New load analyzer |
-| Analyze Result | Show metadata, policy result, and available formats |
-| Queue | Show queued/running jobs, progress, cancel, and delete queue actions |
-| History | Show completed/failed/blocked/cancelled jobs and save finished files |
-| Account | Google profile, sign out, and delete account |
-
----
-
-## Project Structure
-
-This project is set up as a monorepo using **pnpm workspaces** directly in the workspace root:
+This workspace is managed as a **pnpm monorepo**:
 
 ```text
 media-loader/
-├─ README.md
-├─ AGENTS.md               # Project rules for contributors and agents
-├─ TODO.md                 # Master implementation checklist
-├─ .gitignore
-├─ .editorconfig
-├─ .env.example
-├─ .env.local
-├─ package.json
-├─ pnpm-workspace.yaml
-├─ pnpm-lock.yaml
-├─ apps/
-│  ├─ web/                 # Next.js frontend application (Vercel deployment)
-│  ├─ api/                 # FastAPI backend service (Docker runtime)
-│  └─ worker/              # Python-based media worker (Docker runtime)
-├─ docs/                   # Architecture, guidelines, specs and roadmap documentation
-│  ├─ API_SPEC.md
-│  ├─ ARCHITECTURE.md
-│  ├─ DATABASE_SCHEMA.md
-│  ├─ DECISION_LOG.md
-│  ├─ DEVELOPMENT_WORKFLOW.md
-│  ├─ ENVIRONMENT_VARIABLES.md
-│  ├─ FASTAPI_WORKER_PLAN.md
-│  ├─ GOOGLE_OAUTH_SETUP.md
-│  ├─ LOCAL_DEV_CHECKLIST.md
-│  ├─ PATCH_NOTES.md
-│  ├─ PROJECT_BRIEF.md
-│  ├─ PROJECT_OUTPUT_LOCATION.md
-│  ├─ ROADMAP.md
-│  ├─ SECRETS_PROTOCOL.md
-│  ├─ SECURITY_AND_POLICY.md
-│  ├─ SUPABASE_RLS_POLICY.md
-│  ├─ SUPABASE_SETUP.md
-│  ├─ TESTING_PLAN.md
-│  ├─ UI_UX_GUIDE.md
-│  ├─ USER_SETUP_GUIDE.md
-│  ├─ VERCEL_SETUP.md
-│  └─ WORKTREE_STRUCTURE.md
-├─ supabase/               # Supabase database config, migrations, schemas & policies
-│  ├─ README.md
-│  ├─ schema.sql
-│  ├─ rls_policies.sql
-│  └─ migrations/
-│     └─ 0001_initial_schema.sql
-├─ prompts/                # Optional role prompts for coding assistants
-│  ├─ frontend-agent.md
-│  ├─ backend-agent.md
-│  ├─ worker-agent.md
-│  ├─ supabase-agent.md
-│  ├─ uiux-agent.md
-│  ├─ security-agent.md
-│  └─ reviewer-agent.md
-├─ scripts/                # Utility scripts (e.g. check-env.ts)
-└─ examples/               # Reference Docker and environment configuration templates
-   ├─ .dockerignore.example
-   ├─ .env.example
-   ├─ apps-api.Dockerfile
-   ├─ apps-worker.Dockerfile
-   └─ docker-compose.local.yml
+├── apps/
+│   ├── web/                 # Next.js Frontend (Vercel deployment)
+│   ├── api/                 # FastAPI Backend Service (Docker container)
+│   └── worker/              # Python processing worker (Docker container)
+├── supabase/
+│   ├── schema.sql           # Database structures
+│   ├── rls_policies.sql     # Row level security scripts
+│   └── migrations/          # Version-controlled migrations
+├── docs/                    # Technical specs, roadmaps, and guides
+│   ├── ARCHITECTURE.md      # Detailed system blueprint
+│   ├── USER_SETUP_GUIDE.md  # Local and cloud environment instructions
+│   └── VERCEL_SETUP.md      # Step-by-step Vercel host instructions
+├── docker-compose.yml       # Local dev stack orchestra config
+├── pnpm-workspace.yaml      # Monorepo workspace configuration
+├── AGENTS.md                # Agent instruction & project rules
+└── TODO.md                  # Development roadmap and shipping checklist
 ```
 
 ---
 
-## Documentation Index
+## Getting Started
 
-| Doc | Purpose |
-| --- | --- |
-| `docs/USER_SETUP_GUIDE.md` | First-time setup (Supabase, Google, env) |
-| `docs/LOCAL_DEV_CHECKLIST.md` | Verify local stack before use |
-| `docs/ARCHITECTURE.md` | How frontend, API, worker, and Supabase connect |
-| `docs/API_SPEC.md` | FastAPI endpoints |
-| `TODO.md` | Remaining work to reach full daily use |
-| `AGENTS.md` | Rules for contributors and coding agents |
+Follow these steps to run the complete workspace locally.
 
----
+### 1. Prerequisites
+Ensure you have the following installed:
+* [Docker & Docker Compose](https://www.docker.com/)
+* [Node.js & pnpm](https://nodejs.org/)
 
-## Secret Handling
+### 2. Configuration & Secrets
+Copy the environment template and fill in the values:
+```bash
+cp .env.example .env.local
+```
+> [!WARNING]
+> Never commit `.env.local` or raw credentials to the repository. Only write credentials to local config files.
 
-This project never asks the user to paste secrets into chat.
+Refer to [docs/USER_SETUP_GUIDE.md](file:///d:/media-loader/docs/USER_SETUP_GUIDE.md) for generating Supabase & Google OAuth credentials.
 
-The user must manually add keys to local `.env` files or deployment environment variables.
-
-Agents may only check whether required values exist. They must never print secret values.
-
-Correct workflow:
-
-```text
-Agent creates .env.example
-Agent tells user where to get each key
-User adds keys locally
-User says "added"
-Agent runs validation
-Agent reports OK / Missing / Invalid only
+### 3. Deploy Supabase Migrations
+Apply schemas to your Supabase instance:
+```bash
+# Apply migrations located in supabase/migrations/
 ```
 
+### 4. Start Backend Stack (Docker)
+Launch the API and Worker containers:
+```bash
+docker compose up -d --build
+```
+This runs the FastAPI gateway at `http://localhost:8000` and initializes the media worker queue listener.
+
+### 5. Start Frontend Server
+Navigate to the web app, install dependencies, and run the Next.js dev server:
+```bash
+pnpm install
+pnpm run dev:web
+```
+Open `http://localhost:3000` to access the application dashboard.
+
 ---
 
-## What Works Today vs. What's Next
+## Production Deployment
 
-| Area | Status |
-| --- | --- |
-| Google login, dark app shell, new load analyzer | ✅ Complete |
-| Policy checks, real metadata/format extraction, job creation | ✅ Complete |
-| Worker download/convert, cancellation, local file delivery | ✅ Complete |
-| Queue, history, save-file action, account deletion | ✅ Complete |
-| Production deploy (Vercel) | ⏳ Setup guide complete; live deployment testing still required |
+### Frontend (Vercel)
+The root `vercel.json` coordinates monorepo building:
+1. Import repository to Vercel.
+2. Build Settings:
+   - Framework Preset: **Next.js**
+   - Build Command: `cd apps/web && pnpm build`
+   - Output Directory: `apps/web/.next`
+3. Environment Variables:
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - `NEXT_PUBLIC_FASTAPI_BASE_URL` (points to your deployed backend API)
 
-All core features are implemented. See `TODO.md` for deployment testing steps.
+For step-by-step configuration, check [docs/VERCEL_SETUP.md](file:///d:/media-loader/docs/VERCEL_SETUP.md).
+
+### Backend (Docker Container)
+Deploy the `apps/api` and `apps/worker` containers to cloud providers like Railway, Fly.io, or AWS ECS.
 
 ---
 
-## Product Principle
-
-Keep the application simple, private, safe, and reliable for everyday use.
-
-The goal is not the most aggressive downloader. The goal is a rights-aware personal media utility you can actually run and trust.
+## License & Policy
+* **Private Codebase**: Intended for personal use only.
+* **Rights Compliance**: Respect platform Terms of Service. Avoid scraping or accessing restricted materials.
