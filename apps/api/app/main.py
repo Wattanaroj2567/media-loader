@@ -56,7 +56,9 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
         expose_headers=["Content-Disposition"],
+        allow_private_network=True,
     )
+
 
     # Register Exception Handlers
     app.add_exception_handler(AppError, app_error_handler)
