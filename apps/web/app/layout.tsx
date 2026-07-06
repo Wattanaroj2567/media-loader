@@ -1,9 +1,20 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter, Geist_Mono, Kanit } from "next/font/google";
+import { I18nProvider } from "@/lib/i18n/context";
+import { ToastProvider } from "@/components/toast";
+import { ThemeProvider } from "@/components/theme-provider";
+import { cookies } from "next/headers";
+import { Locale } from "@/lib/i18n/config";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-sans",
+const kanit = Kanit({
+  variable: "--font-kanit",
+  weight: ["300", "400", "500", "600", "700"],
+  subsets: ["latin", "thai"],
+});
+
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
 });
 
@@ -21,17 +32,33 @@ export const metadata: Metadata = {
     "Private, rights-aware media loading for personal use. Sign in to queue downloads, track progress, and manage your media history.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const cookieStore = await cookies();
+  const localeCookie = cookieStore.get("media-loader-locale")?.value || "th";
+  const initialLocale = (["en", "th"].includes(localeCookie) ? localeCookie : "th") as Locale;
+
   return (
-    <html lang="en" className="dark">
+    <html lang={initialLocale} suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
+        className={`${kanit.variable} ${inter.variable} ${geistMono.variable} antialiased bg-bg-base text-foreground font-sans`}
+        suppressHydrationWarning
       >
-        {children}
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <I18nProvider initialLocale={initialLocale}>
+            <ToastProvider>
+              {children}
+            </ToastProvider>
+          </I18nProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

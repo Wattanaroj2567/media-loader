@@ -1,0 +1,80 @@
+'use client';
+
+import { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import { X, CheckCircle2, AlertCircle, Info } from 'lucide-react';
+
+type ToastType = 'success' | 'error' | 'info';
+
+interface Toast {
+  id: number;
+  type: ToastType;
+  title: string;
+  description?: string;
+}
+
+interface ToastContextValue {
+  toast: (type: ToastType, title: string, description?: string) => void;
+}
+
+const ToastContext = createContext<ToastContextValue>({ toast: () => {} });
+
+export const useToast = () => useContext(ToastContext);
+
+let nextId = 0;
+
+export function ToastProvider({ children }: { children: ReactNode }) {
+  const [toasts, setToasts] = useState<Toast[]>([]);
+
+  const removeToast = useCallback((id: number) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  }, []);
+
+  const toast = useCallback(
+    (type: ToastType, title: string, description?: string) => {
+      const id = nextId++;
+      setToasts((prev) => [...prev, { id, type, title, description }]);
+      setTimeout(() => removeToast(id), 4000);
+    },
+    [removeToast],
+  );
+
+  const iconMap: Record<ToastType, ReactNode> = {
+    success: <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />,
+    error: <AlertCircle className="h-4 w-4 text-rose-400 shrink-0" />,
+    info: <Info className="h-4 w-4 text-sky-400 shrink-0" />,
+  };
+
+  const borderMap: Record<ToastType, string> = {
+    success: 'border-emerald-500/20',
+    error: 'border-rose-500/20',
+    info: 'border-sky-500/20',
+  };
+
+  return (
+    <ToastContext.Provider value={{ toast }}>
+      {children}
+      <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none">
+        {toasts.map((t) => (
+          <div
+            key={t.id}
+            className={`pointer-events-auto flex items-start gap-3 rounded-xl border ${borderMap[t.type]} bg-bg-elevated/95 backdrop-blur-sm px-4 py-3 shadow-lg animate-in slide-in-from-right-2 fade-in duration-200`}
+          >
+            {iconMap[t.type]}
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-foreground">{t.title}</p>
+              {t.description && (
+                <p className="text-xs text-text-muted mt-0.5">{t.description}</p>
+              )}
+            </div>
+            <button
+              onClick={() => removeToast(t.id)}
+              className="shrink-0 text-text-dim hover:text-foreground transition-colors p-0.5"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        ))}
+      </div>
+    </ToastContext.Provider>
+  );
+}

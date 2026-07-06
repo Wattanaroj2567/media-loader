@@ -38,6 +38,7 @@ export async function updateSession(request: NextRequest) {
   const isProtectedRoute =
     path.startsWith("/dashboard") ||
     path.startsWith("/history") ||
+    path.startsWith("/downloads") ||
     path.startsWith("/settings");
 
   // If trying to access a protected route and not logged in, redirect to landing page

@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 import path from "path";
 import fs from "fs";
+import os from "os";
 
 // Load monorepo root .env.local manually to populate process.env in the monorepo context
 const rootEnvPath = path.resolve(__dirname, "../../.env.local");
@@ -19,10 +20,32 @@ if (fs.existsSync(rootEnvPath)) {
   }
 }
 
+// Dynamically resolve local network IPv4 addresses to allow local network devices
+// or dynamic hosts to connect to Next.js dev resources without CORS block warnings.
+const devOrigins = ["localhost", "127.0.0.1"];
+try {
+  const interfaces = os.networkInterfaces();
+  for (const devName in interfaces) {
+    const iface = interfaces[devName];
+    if (iface) {
+      for (const alias of iface) {
+        if (alias.family === "IPv4" && !alias.internal) {
+          devOrigins.push(alias.address);
+          // Also add with port variations if needed, though Next.js generally checks the hostname/IP.
+          devOrigins.push(`${alias.address}:3000`);
+        }
+      }
+    }
+  }
+} catch {
+  // Silent fallback
+}
+
 const nextConfig: NextConfig = {
   turbopack: {
     root: path.resolve(__dirname, "../../"),
   },
+  allowedDevOrigins: devOrigins,
 };
 
 export default nextConfig;

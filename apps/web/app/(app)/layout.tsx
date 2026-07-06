@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
-import { AppSidebar } from "@/components/app-sidebar";
+import { TopNav } from "@/components/top-nav";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -12,24 +12,28 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     redirect("/");
   }
 
-  // Retrieve public profile info
   const { data: profile } = await supabase
     .from("profiles")
     .select("*")
     .eq("id", user.id)
     .single();
 
-  const sidebarUser = {
-    name: profile?.full_name || user.user_metadata?.full_name || user.email?.split("@")[0] || "User",
+  const navUser = {
+    name:
+      profile?.full_name ||
+      user.user_metadata?.full_name ||
+      user.email?.split("@")[0] ||
+      "User",
     email: profile?.email || user.email || "",
     avatar_url: profile?.avatar_url || user.user_metadata?.avatar_url || "",
   };
 
   return (
-    <div className="flex h-screen overflow-hidden">
-      <AppSidebar user={sidebarUser} />
-      <main className="flex-1 overflow-y-auto">{children}</main>
+    <div className="flex min-h-dvh flex-col">
+      <TopNav user={navUser} />
+      <main className="flex-1">
+        {children}
+      </main>
     </div>
   );
 }
-

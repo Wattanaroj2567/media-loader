@@ -1,138 +1,216 @@
-import type { Metadata } from "next";
-import { Settings, User, Shield, Cpu, AlertTriangle, Sliders } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
+"use client";
 
-export const metadata: Metadata = { title: "Settings" };
+import { useEffect, useState } from "react";
+import {
+  AlertTriangle,
+  CircleUserRound,
+  Loader2,
+  ShieldCheck,
+  Trash2,
+  ChevronDown,
+  ChevronRight,
+} from "lucide-react";
 
-export default function SettingsPage() {
-  return (
-    <div className="flex-1 w-full max-w-4xl mx-auto p-6 md:p-8 space-y-8 bg-background">
-      {/* Page Header */}
-      <div>
-        <h1 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
-          <Settings className="h-5 w-5 text-primary" />
-          System Preferences
-        </h1>
-        <p className="mt-1 text-xs text-muted-foreground">
-          View execution settings, local Docker ports, and client policy limits.
-        </p>
-      </div>
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/components/toast";
+import { apiClient } from "@/lib/api-client";
+import { useT } from "@/lib/i18n/context";
+import { createClient } from "@/utils/supabase/client";
+import { useRouter } from "next/navigation";
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Left Column Settings */}
-        <div className="space-y-6">
-          {/* Account Detail Card */}
-          <Card className="border-border bg-card shadow-sm">
-            <CardHeader className="pb-3 border-b border-border/40">
-              <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-                <User className="h-4 w-4 text-primary" />
-                Session Account
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-4 space-y-3">
-              <SettingRow label="Auth User" value="user@example.com" />
-              <Separator className="opacity-60" />
-              <SettingRow label="Auth Provider" value="Google OAuth (Supabase)" />
-              <Separator className="opacity-60" />
-              <div className="flex items-center justify-between">
-                <p className="text-xs text-muted-foreground">Session Token</p>
-                <Badge variant="outline" className="text-[10px] font-mono text-emerald-400 bg-emerald-400/5 border-emerald-400/20 px-2.5">
-                  Mock Active
-                </Badge>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Docker Local Runtime Configuration Card */}
-          <Card className="border-border bg-card shadow-sm">
-            <CardHeader className="pb-3 border-b border-border/40">
-              <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-                <Cpu className="h-4 w-4 text-primary" />
-                Docker Runtime
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-4 space-y-3">
-              <SettingRow label="FastAPI (Backend)" value="http://localhost:8000" />
-              <Separator className="opacity-60" />
-              <SettingRow label="Worker Container" value="Local Daemon Polling" />
-              <Separator className="opacity-60" />
-              <SettingRow label="Shared Volumes" value="./tmp mounted cache" />
-            </CardContent>
-          </Card>
-
-          {/* Warning: Optional Supabase Storage Bucket card */}
-          <Card className="border-amber-500/20 bg-amber-500/5 text-amber-500/90 shadow-sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider">
-                <AlertTriangle className="h-4 w-4 shrink-0 text-amber-500" />
-                Storage Architecture Info
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="text-[11px] leading-relaxed space-y-2">
-              <p>
-                By default, files are saved to the <b>Local Temp Output mode</b> inside the mounted Docker directory. This is optimal for local execution.
-              </p>
-              <p>
-                Cloud-based Supabase Storage configuration is optional for this stack. To configure, check environment guides in <b>.env.example</b>.
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Right Column Settings */}
-        <div className="space-y-6">
-          {/* Policy Constraints Card */}
-          <Card className="border-border bg-card shadow-sm">
-            <CardHeader className="pb-3 border-b border-border/40">
-              <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-                <Shield className="h-4 w-4 text-primary" />
-                Content Protection Policy
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-4 space-y-3">
-              <SettingRow label="Bypass DRMs" value="Blocked" />
-              <Separator className="opacity-60" />
-              <SettingRow label="Bypass Paywalls" value="Blocked" />
-              <Separator className="opacity-60" />
-              <SettingRow label="Internal Extractor Logs" value="Sanitized" />
-              <Separator className="opacity-60" />
-              <SettingRow label="Rights Confirmation" value="Always Required" />
-            </CardContent>
-          </Card>
-
-          {/* Strategy & Default Settings Card */}
-          <Card className="border-border bg-card shadow-sm">
-            <CardHeader className="pb-3 border-b border-border/40">
-              <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-                <Sliders className="h-4 w-4 text-primary" />
-                Client Defaults
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-4 space-y-3">
-              <SettingRow label="Default Video Format" value="1080p MP4 (Direct)" />
-              <Separator className="opacity-60" />
-              <SettingRow label="Default Audio Codec" value="MP3 conversion target: 192kbps/320kbps mock" />
-              <Separator className="opacity-60" />
-              <SettingRow label="Max File Buffer Size" value="500 MB limit" />
-              <Separator className="opacity-60" />
-              <p className="text-[10px] text-zinc-400 leading-normal">
-                Note: Free tier configurations do not upload large media files directly to Supabase Storage by default. Local temp mode is preferred.
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    </div>
-  );
+interface AccountUser {
+  email?: string;
+  full_name?: string;
+  avatar_url?: string;
 }
 
-function SettingRow({ label, value }: { label: string; value: string }) {
+export default function AccountPage() {
+  const router = useRouter();
+  const { t } = useT();
+  const { toast } = useToast();
+  const [user, setUser] = useState<AccountUser | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [confirmText, setConfirmText] = useState("");
+  const [deleting, setDeleting] = useState(false);
+  const [showDangerZone, setShowDangerZone] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadUser() {
+      const supabase = createClient();
+      const {
+        data: { user: currentUser },
+      } = await supabase.auth.getUser();
+      if (cancelled) return;
+      setUser(
+        currentUser
+          ? {
+              email: currentUser.email,
+              full_name: currentUser.user_metadata?.full_name,
+              avatar_url: currentUser.user_metadata?.avatar_url,
+            }
+          : null,
+      );
+      setLoading(false);
+    }
+    void loadUser();
+    return () => { cancelled = true; };
+  }, []);
+
+  const isConfirmValid = (text: string) => {
+    const trimmed = text.trim();
+    return trimmed.toUpperCase() === "DELETE" || trimmed === "ลบ";
+  };
+
+  const deleteAccount = async () => {
+    if (!isConfirmValid(confirmText)) return;
+    if (!window.confirm(t("account.deleteConfirm"))) return;
+    setDeleting(true);
+    try {
+      await apiClient.deleteAccount();
+      await createClient().auth.signOut();
+      toast("success", t("account.deleteSuccess"));
+      router.replace("/");
+    } catch (error) {
+      console.warn("[Delete Account Error]:", error);
+      toast(
+        "error",
+        t("account.deleteError"),
+        t("error.genericDesc"),
+      );
+      setDeleting(false);
+    }
+  };
+
   return (
-    <div className="flex items-center justify-between gap-4">
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="text-xs font-mono font-medium text-foreground tracking-tight">{value}</p>
-    </div>
+    <main className="mx-auto max-w-3xl px-4 py-8 lg:px-6">
+      {/* Page title */}
+      <div className="mb-6">
+        <h1 className="text-2xl font-semibold text-text">
+          {t("account.title", {}, "บัญชี")}
+        </h1>
+      </div>
+
+      {loading ? (
+        <div className="grid min-h-48 place-items-center">
+          <Loader2 className="size-5 animate-spin text-text-dim" />
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {/* Profile card */}
+          <section className="rounded-2xl border border-border bg-bg-surface/50 p-5">
+            <div className="flex items-start justify-between">
+              <h2 className="text-base font-semibold text-text">
+                {t("account.profile", {}, "โปรไฟล์ Google")}
+              </h2>
+              <span className="flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-0.5 text-xs text-emerald-800 dark:text-emerald-300">
+                <ShieldCheck className="size-3" />
+                {t("account.active", {}, "ใช้งานอยู่")}
+              </span>
+            </div>
+
+            <div className="mt-4 flex items-center gap-4">
+              <div
+                role={user?.avatar_url ? "img" : undefined}
+                aria-label={user?.full_name || user?.email || "User"}
+                className="grid size-14 shrink-0 place-items-center overflow-hidden rounded-2xl border border-border bg-bg-surface bg-cover bg-center"
+                style={
+                  user?.avatar_url
+                    ? { backgroundImage: `url("${user.avatar_url}")` }
+                    : undefined
+                }
+              >
+                {!user?.avatar_url && (
+                  <CircleUserRound className="size-7 text-text-dim" />
+                )}
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <p className="truncate text-base font-semibold text-text">
+                    {user?.full_name || user?.email?.split("@")[0] || "User"}
+                  </p>
+                  <span className="rounded-lg bg-bg-surface border border-border px-2 py-0.5 text-[10px] font-medium text-text-muted">
+                    Google
+                  </span>
+                </div>
+                <p className="mt-0.5 truncate text-sm text-text-muted">
+                  {user?.email}
+                </p>
+              </div>
+            </div>
+
+            <p className="mt-5 text-xs text-text-dim">
+              {t("account.signoutNote", {}, "ออกจากระบบได้จากเมนู avatar มุมบนขวา")}
+            </p>
+          </section>
+
+          {/* Danger zone collapsible */}
+          <div className="rounded-2xl border border-border bg-card">
+            <button
+              type="button"
+              onClick={() => setShowDangerZone(!showDangerZone)}
+            className="flex w-full items-center justify-between px-5 py-4 text-left text-sm font-medium text-text-muted transition-colors hover:text-text"
+            >
+              <span className="flex items-center gap-2">
+                <AlertTriangle className="size-4 text-text-dim" />
+                {t("account.dangerTitle", {}, "ลบบัญชี")}
+              </span>
+              {showDangerZone ? (
+                <ChevronDown className="size-4 text-text-dim" />
+              ) : (
+                <ChevronRight className="size-4 text-text-dim" />
+              )}
+            </button>
+
+            {showDangerZone && (
+              <div className="border-t border-border bg-rose-500/5 p-5">
+                <div className="flex items-start gap-3">
+                  <div className="grid size-9 shrink-0 place-items-center rounded-xl border border-rose-500/20 bg-rose-500/10">
+                    <AlertTriangle className="size-4 text-rose-500 dark:text-rose-300" />
+                  </div>
+                  <div>
+                    <h2 className="text-base font-semibold text-rose-800 dark:text-rose-100">
+                      {t("account.dangerTitle", {}, "ลบบัญชี")}
+                    </h2>
+                    <p className="mt-1 text-sm leading-6 text-rose-700/80 dark:text-rose-200/60">
+                      {t("account.dangerDesc")}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-5 space-y-3">
+                  <Label htmlFor="delete-account" className="text-sm text-rose-800 dark:text-rose-200">
+                    {t("account.confirmLabel")}
+                  </Label>
+                  <Input
+                    id="delete-account"
+                    value={confirmText}
+                    onChange={(e) => setConfirmText(e.target.value)}
+                    placeholder={t("account.confirmPlaceholder", {}, "DELETE")}
+                    className="h-10 border-rose-500/30 bg-bg-base/30 text-text placeholder:text-text-dim focus-visible:ring-rose-500/20"
+                  />
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    disabled={!isConfirmValid(confirmText) || deleting}
+                    onClick={() => void deleteAccount()}
+                    className="w-full"
+                  >
+                    {deleting ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="size-4" />
+                    )}
+                    {deleting ? t("account.deleting") : t("account.delete")}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </main>
   );
 }
