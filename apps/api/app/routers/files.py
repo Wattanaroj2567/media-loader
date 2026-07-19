@@ -5,6 +5,9 @@ Handles file download and deletion from local temp storage.
 """
 
 import logging
+import re
+import unicodedata
+from pathlib import Path
 
 from fastapi import APIRouter, Depends, Response
 from fastapi.responses import FileResponse
@@ -21,6 +24,27 @@ logger = logging.getLogger("media_loader_api.files")
 router = APIRouter(prefix="/files", tags=["files"])
 
 settings = get_settings()
+
+
+def build_download_filename(job: dict, file_path: Path) -> str:
+    """Build the user-facing filename without exposing the restricted temp name."""
+    title = unicodedata.normalize("NFC", str(job.get("title") or "").strip())
+    if not title:
+        return str(job.get("output_filename") or file_path.name)
+
+    safe_title = re.sub(r'[<>:"/\\|?*\x00-\x1f\x7f]', "_", title).rstrip(" .")
+    if not safe_title:
+        return str(job.get("output_filename") or file_path.name)
+
+    extension = file_path.suffix
+    if not extension:
+        output_format = str(job.get("output_format") or "").lower()
+        if re.fullmatch(r"[a-z0-9]{1,8}", output_format):
+            extension = f".{output_format}"
+
+    if extension and safe_title.casefold().endswith(extension.casefold()):
+        return safe_title
+    return f"{safe_title}{extension}"
 
 
 @router.get("/download/{job_id}")
@@ -59,7 +83,7 @@ async def download_file(
         clear_job_output(job_id, user_id=current_user.id)
         raise AppError(410, "FILE_NO_LONGER_AVAILABLE", "ไม่พบไฟล์ชั่วคราวนี้แล้ว")
 
-    output_filename = job.get("output_filename", file_path.name)
+    output_filename = build_download_filename(job, file_path)
 
     logger.info("Serving local output for job %s", job_id)
 

@@ -56,20 +56,20 @@ export function ConfirmDialog({
   return (
     <div
       ref={overlayRef}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-[2px] transition-opacity duration-200 animate-in fade-in"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm transition-opacity duration-200 animate-in fade-in"
       onClick={(e) => {
         if (e.target === overlayRef.current) onCancel();
       }}
     >
       <div
-        className="w-full max-w-md scale-95 overflow-hidden rounded-2xl border border-border bg-popover p-5 shadow-2xl transition-all duration-200 animate-in zoom-in-95"
+        className="ui-panel w-full max-w-md overflow-hidden rounded-3xl p-5 transition-all duration-200 sm:p-6 animate-in zoom-in-95"
         role="alertdialog"
         aria-modal="true"
         aria-labelledby="dialog-title"
         aria-describedby="dialog-desc"
       >
         <div className="flex items-start gap-3.5">
-          <div className={`grid size-10 shrink-0 place-items-center rounded-xl border ${accentColor}`}>
+          <div className={`grid size-11 shrink-0 place-items-center rounded-2xl border ${accentColor}`}>
             <AlertTriangle className="size-5" />
           </div>
           <div className="min-w-0 flex-1">
@@ -82,17 +82,17 @@ export function ConfirmDialog({
           </div>
         </div>
 
-        <div className="mt-6 flex justify-end gap-2.5">
+        <div className="mt-6 flex flex-col-reverse gap-2.5 sm:flex-row sm:justify-end">
           <button
             type="button"
             onClick={onCancel}
-            className="h-10 px-4 rounded-xl text-sm font-medium border border-border bg-bg-surface/50 hover:bg-bg-surface text-text-muted hover:text-text cursor-pointer"
+            className="h-11 w-full rounded-xl border border-border bg-bg-surface/50 px-4 text-sm font-medium text-text-muted hover:bg-bg-surface hover:text-text sm:h-10 sm:w-auto cursor-pointer"
           >
             {cancelText}
           </button>
           <Button
             onClick={onConfirm}
-            className={`h-10 px-4 rounded-xl text-sm font-medium ${confirmBtnClass}`}
+            className={`h-11 w-full rounded-xl px-4 text-sm font-medium sm:h-10 sm:w-auto ${confirmBtnClass}`}
           >
             {confirmText}
           </Button>

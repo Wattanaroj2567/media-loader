@@ -1,8 +1,13 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
-import { TopNav } from "@/components/top-nav";
+import { AppShell } from "@/components/app-shell";
+import { GlobalJobNotifier } from "@/components/global-job-notifier";
 
-export default async function AppLayout({ children }: { children: React.ReactNode }) {
+export default async function AppLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -29,11 +34,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   };
 
   return (
-    <div className="flex min-h-dvh flex-col">
-      <TopNav user={navUser} />
-      <main className="flex-1">
-        {children}
-      </main>
-    </div>
+    <AppShell user={navUser}>
+      <GlobalJobNotifier />
+      {children}
+    </AppShell>
   );
 }

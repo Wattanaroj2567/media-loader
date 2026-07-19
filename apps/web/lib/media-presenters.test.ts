@@ -57,5 +57,12 @@ test("download filename prefers content-disposition and stays filesystem safe", 
     ),
     "A clip_ 1080p.mp4",
   );
+  assert.equal(
+    getDownloadFilename(
+      "attachment; filename*=UTF-8''%E0%B9%81%E0%B8%84%E0%B8%99%20Ft.%20Official.mp4",
+      "fallback.mp4",
+    ),
+    "แคน Ft. Official.mp4",
+  );
   assert.equal(getDownloadFilename(null, "fallback.mp4"), "fallback.mp4");
 });

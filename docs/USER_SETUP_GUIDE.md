@@ -196,6 +196,26 @@ The frontend calls `NEXT_PUBLIC_FASTAPI_BASE_URL`, defaulting to:
 http://localhost:8000
 ```
 
+### Download behavior
+
+The normal local flow is:
+
+```text
+Paste URL (auto-analyze) → choose quality → Download (confirms rights)
+```
+
+Clicking **Download** starts the Docker worker without opening a file picker first. When processing finishes, the browser download starts automatically. If the browser setting to ask where each file should be saved is enabled, the save-location dialog opens at that point; otherwise the file goes to the browser's default Downloads folder.
+
+The compact queue appears only while a job is active. History contains completed downloads and provides **Download again** and **Clear history** actions. **Download again** returns to the analyzer with the original URL and lets you choose a new video or audio quality before starting. Media files are still temporary server output; history stores job metadata, not a permanent media copy.
+
+---
+
+### Interface layout
+
+On desktop, the signed-in app uses a persistent sidebar for **New load** and **History**. Account settings open by clicking the profile at the bottom of the sidebar. On phones and tablets, New load and History move to the bottom navigation while the profile avatar opens Account. Queue is contextual rather than a separate destination: it appears beside or below the analyzer only while a job is active.
+
+The interface supports light and dark themes, Thai and English, keyboard focus indicators, reduced-motion preferences, and responsive layouts down to a 320px viewport.
+
 ---
 
 ## Step 9 — Safe Check Message

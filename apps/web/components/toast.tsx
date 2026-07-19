@@ -53,11 +53,13 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={{ toast }}>
       {children}
-      <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none">
+      <div className="pointer-events-none fixed inset-x-4 bottom-4 z-50 flex flex-col gap-2 sm:left-auto sm:right-4 sm:w-full sm:max-w-sm">
         {toasts.map((t) => (
           <div
             key={t.id}
-            className={`pointer-events-auto flex items-start gap-3 rounded-xl border ${borderMap[t.type]} bg-bg-elevated/95 backdrop-blur-sm px-4 py-3 shadow-lg animate-in slide-in-from-right-2 fade-in duration-200`}
+            role="status"
+            aria-live="polite"
+            className={`pointer-events-auto flex items-start gap-3 rounded-2xl border ${borderMap[t.type]} bg-bg-elevated/92 px-4 py-3.5 shadow-[0_18px_55px_rgba(0,0,0,0.25)] backdrop-blur-xl animate-in slide-in-from-right-2 fade-in duration-200`}
           >
             {iconMap[t.type]}
             <div className="flex-1 min-w-0">
@@ -67,8 +69,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               )}
             </div>
             <button
+              type="button"
               onClick={() => removeToast(t.id)}
-              className="shrink-0 text-text-dim hover:text-foreground transition-colors p-0.5"
+              aria-label="Close notification"
+              className="-mr-2 -mt-2 grid size-11 shrink-0 place-items-center rounded-lg text-text-dim transition-colors hover:bg-bg-surface hover:text-foreground sm:size-9"
             >
               <X className="h-3.5 w-3.5" />
             </button>

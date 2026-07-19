@@ -112,16 +112,15 @@ export default function LandingPage() {
   ];
 
   return (
-    <main className="relative min-h-dvh overflow-hidden bg-bg-base px-4 py-4 text-foreground sm:px-6 lg:px-8">
-      {/* Dynamic background glow pulsing */}
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_25%_20%,rgba(14,165,233,0.12),transparent_32%),radial-gradient(circle_at_80%_10%,rgba(34,211,238,0.08),transparent_30%)] animate-pulse-slow" />
+    <main className="relative min-h-dvh overflow-hidden bg-bg-base px-4 py-5 text-foreground sm:px-6 lg:px-10">
       
-      <div className="relative mx-auto grid min-h-[calc(100dvh-2rem)] max-w-7xl items-center gap-10 lg:grid-cols-[1.05fr_0.95fr]">
+      <div className="relative mx-auto grid min-h-[calc(100dvh-2.5rem)] max-w-7xl items-center gap-12 lg:grid-cols-[1.02fr_0.98fr] lg:gap-16">
         <section className="max-w-3xl">
           {/* 1. Header (delay 100ms) */}
-          <div className="mb-8 flex items-center gap-3 animate-fade-in-up [animation-delay:100ms]">
-            <div className="grid size-11 place-items-center rounded-2xl border border-primary/25 bg-primary/10">
+          <div className="mb-10 flex items-center gap-3 animate-fade-in-up [animation-delay:100ms]">
+            <div className="relative grid size-11 place-items-center rounded-2xl border border-primary/25 bg-primary/10">
               <Download className="size-5 text-primary" />
+              <span className="absolute -right-0.5 -top-0.5 size-2.5 rounded-full border-2 border-bg-base bg-emerald-400" />
             </div>
             <div>
               <p className="font-heading text-sm font-semibold tracking-tight">
@@ -134,14 +133,14 @@ export default function LandingPage() {
           <div className="animate-fade-in-up [animation-delay:200ms]">
             <Badge
               variant="outline"
-              className="border-primary/20 bg-primary/10 text-primary"
+              className="rounded-full border-primary/20 bg-primary/10 px-3 py-1 text-primary"
             >
               {t("landing.eyebrow")}
             </Badge>
           </div>
 
           {/* 3. Main title (delay 300ms) */}
-          <h1 className="mt-6 max-w-3xl font-heading text-4xl font-semibold tracking-tight text-text sm:text-5xl lg:text-6xl animate-fade-in-up [animation-delay:300ms]">
+          <h1 className="mt-6 max-w-3xl font-heading text-4xl font-semibold leading-[1.08] tracking-[-0.035em] text-text sm:text-5xl lg:text-6xl xl:text-7xl animate-fade-in-up [animation-delay:300ms]">
             {t("landing.title")}
           </h1>
 
@@ -157,7 +156,7 @@ export default function LandingPage() {
               size="lg"
               onClick={handleLogin}
               disabled={loading}
-              className="h-12 rounded-xl px-6 text-sm font-semibold transition-all hover:scale-[1.02] active:scale-[0.98] duration-300 shadow-md shadow-primary/10"
+              className="h-12 rounded-xl px-6 text-sm font-semibold transition-colors duration-200"
             >
               {loading ? (
                 <Loader2 className="size-4 animate-spin" />
@@ -196,7 +195,7 @@ export default function LandingPage() {
             {assurances.map((item, index) => (
               <div
                 key={item}
-                className="flex items-center gap-3 rounded-2xl border border-border bg-bg-surface/50 p-3 sm:flex-col sm:items-start sm:p-4 animate-fade-in-up shadow-xs"
+                className="flex items-center gap-3 rounded-2xl border border-border bg-bg-elevated/45 p-3 shadow-[inset_0_1px_0_var(--panel-highlight)] backdrop-blur sm:flex-col sm:items-start sm:p-4 animate-fade-in-up"
                 style={{ animationDelay: `${700 + index * 100}ms` }}
               >
                 <ShieldCheck className="size-5 shrink-0 text-primary" />
@@ -207,18 +206,19 @@ export default function LandingPage() {
         </section>
 
         {/* 7. Right flow card (delay 900ms) */}
-        <section className="rounded-4xl border border-border bg-card/80 p-3 sm:p-5 shadow-2xl shadow-black/10 dark:shadow-black/30 backdrop-blur animate-fade-in-up [animation-delay:900ms]">
-          <div className="rounded-3xl border border-border bg-bg-base/30 p-3 sm:p-5">
+        <section className="ui-panel relative rounded-[2rem] p-3 sm:p-4 animate-fade-in-up [animation-delay:900ms]">
+          <div className="absolute inset-x-12 -top-px h-px bg-gradient-to-r from-transparent via-primary/70 to-transparent" />
+          <div className="rounded-[1.5rem] border border-border bg-bg-base/35 p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-medium uppercase tracking-[0.2em] text-text-dim">
-                  Command flow
+                  {t("landing.howItWorks", {}, "ใช้งานง่ายใน 4 ขั้นตอน")}
                 </p>
                 <h2 className="mt-2 font-heading text-xl font-semibold text-text">
                   {t("landing.panelTitle")}
                 </h2>
               </div>
-              <div className="grid size-10 place-items-center rounded-2xl border border-emerald-500/20 bg-emerald-500/10 animate-pulse">
+              <div className="grid size-10 place-items-center rounded-2xl border border-emerald-500/20 bg-emerald-500/10">
                 <CheckCircle2 className="size-5 text-emerald-600 dark:text-emerald-300" />
               </div>
             </div>
@@ -237,7 +237,7 @@ export default function LandingPage() {
                     <p className="text-sm font-medium text-text">{step}</p>
                     <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-bg-base/40">
                       <div
-                        className="h-full rounded-full bg-primary transition-all ease-out duration-1000"
+                    className="h-full rounded-full bg-primary transition-all ease-out duration-700"
                         style={{
                           width: isMounted ? `${(index + 1) * 24}%` : "0%",
                           transitionDelay: `${1100 + index * 200}ms`,

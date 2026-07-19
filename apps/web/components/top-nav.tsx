@@ -18,7 +18,6 @@ interface TopNavProps {
 
 const TABS = [
   { href: "/dashboard", labelKey: "nav.dashboard" },
-  { href: "/queue", labelKey: "nav.queue" },
   { href: "/history", labelKey: "nav.history" },
 ];
 
@@ -59,7 +58,7 @@ function AccountDropdown({
   };
 
   return (
-    <div className="absolute right-0 top-full mt-2 w-72 overflow-hidden rounded-xl border border-border bg-popover shadow-2xl shadow-black/15 dark:shadow-black/90 z-50">
+    <div className="absolute right-0 top-full z-50 mt-2 w-[calc(100vw-1.5rem)] max-w-72 overflow-hidden rounded-xl border border-border bg-popover shadow-2xl shadow-black/15 dark:shadow-black/90">
       {/* Section Label: Profile */}
       <div className="px-4 pt-3.5 pb-1 text-[10px] font-bold tracking-wider text-text-dim uppercase">
         {t("nav.account", {}, "PROFILE")}
@@ -160,7 +159,7 @@ export function TopNav({ user }: TopNavProps) {
             type="button"
             onClick={() => setLocale(locale === "th" ? "en" : "th")}
             title={locale === "th" ? "Switch to English" : "เปลี่ยนเป็นภาษาไทย"}
-            className="flex items-center justify-center gap-1.5 h-9 rounded-lg border border-border bg-bg-surface/30 px-2.5 sm:px-3 text-sm font-medium text-text-muted transition-colors hover:border-primary/40 hover:bg-bg-surface hover:text-primary cursor-pointer"
+            className="flex size-11 items-center justify-center gap-1.5 rounded-lg border border-border bg-bg-surface/30 p-0 text-sm font-medium text-text-muted transition-colors hover:border-primary/40 hover:bg-bg-surface hover:text-primary sm:h-9 sm:w-auto sm:px-3 cursor-pointer"
           >
             <Languages className="size-4 shrink-0" />
             <span className="hidden sm:inline">{locale === "th" ? "EN" : "TH"}</span>
@@ -174,7 +173,7 @@ export function TopNav({ user }: TopNavProps) {
             <button
               type="button"
               onClick={() => setAccountOpen((v) => !v)}
-              className="flex items-center justify-center gap-1.5 h-9 rounded-lg border border-border bg-bg-surface/30 px-2 sm:pl-2.5 sm:pr-2 transition-colors hover:border-primary/40 hover:bg-bg-surface cursor-pointer"
+              className="flex size-11 items-center justify-center gap-1.5 rounded-lg border border-border bg-bg-surface/30 p-0 transition-colors hover:border-primary/40 hover:bg-bg-surface sm:h-9 sm:w-auto sm:pl-2.5 sm:pr-2 cursor-pointer"
               aria-expanded={accountOpen}
               aria-label="บัญชีของฉัน"
             >

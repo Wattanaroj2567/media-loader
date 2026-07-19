@@ -187,7 +187,7 @@ All phases of the local workflow are implemented. The rebuild plan from 2026-07-
 - [x] Upload completed output to Supabase Storage only as optional cloud mode
 - [x] Save local temp output path to `download_jobs.storage_path`
 - [x] Serve completed local temp file through authenticated FastAPI endpoint
-- [x] Add frontend download button (save-to-device via File System Access API)
+- [x] Add frontend download button that queues processing and starts the browser download automatically when complete
 - [x] Add delete file action
 - [x] Add local temp storage usage summary
 - [x] Add cleanup policy
@@ -197,13 +197,31 @@ All phases of the local workflow are implemented. The rebuild plan from 2026-07-
 ## Phase 12 — Download History
 
 - [x] Create history page
-- [x] List user jobs
-- [x] Add filter by status
+- [x] List completed user downloads only
+- [x] Remove terminal-status filters from the simplified history flow (2026-07-18)
 - [x] Add search by title/domain
 - [ ] Add retry failed job action (not part of the current requested rebuild)
-- [x] Add delete history action
-- [x] Add file download action
+- [x] Use one clear-history action; remove delete buttons from individual history cards (2026-07-18)
+- [x] Add download-again action from the original source and selected format
+- [x] Add clear-all history action with confirmation
 - [x] Add responsive table/card view
+
+## Simplified Download UX (2026-07-18)
+
+- [x] Remove the dedicated queue navigation/page
+- [x] Show the compact queue only while a job is active
+- [x] Start processing without opening a file picker first
+- [x] Trigger the browser file download automatically when the worker completes
+- [x] Keep history focused on completed downloads; do not show a separate Save file action
+- [x] Auto-analyze pasted URLs and remove the redundant analyze arrow button
+- [x] Replace the separate rights checkbox with concise consent attached to the Download action
+- [x] Make Download again reopen the original URL analyzer so quality can be selected again
+- [x] Rebalance the dashboard when a queue is active so the analyzer contracts and queue details fit comfortably
+- [x] Make Clear history open a selectable mode with per-item checkboxes, Select all, and Delete selected
+- [x] Polish the download and history screens for 320–390px phones with stacked card actions, touch-friendly controls, and viewport-safe overlays
+- [x] Preserve the complete Unicode media title in the browser download filename while keeping restricted temporary filenames internally
+- [x] Rebuild the full frontend visual system with a calm media theme, contextual queue, responsive navigation, and unified dashboard/history/account surfaces
+- [x] Remove duplicate account navigation and profile metadata; open Account directly from the clickable profile/avatar
 
 ---
 

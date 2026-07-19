@@ -169,14 +169,20 @@ Something weird happened.
 
 Desktop:
 
-- Sidebar + main workspace
-- Table for history
+- Sidebar + clear page content
+- Readable cards for history
 
 Mobile:
 
-- Top nav
+- Compact top bar + bottom navigation
 - Cards instead of dense tables
 - Large tap targets
+
+Visual tone:
+
+- Calm, flat surfaces with restrained shadows
+- No ambient glow effects
+- Use plain language that describes the user action; avoid technical labels such as “workspace” or “command flow”
 
 ---
 

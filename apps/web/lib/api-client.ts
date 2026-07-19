@@ -65,6 +65,10 @@ interface ApiEnvelope<T> {
 type TokenProvider = () => Promise<string | null>;
 type Fetcher = typeof fetch;
 
+export interface FileDestination {
+  createWritable: () => Promise<WritableStream<Uint8Array>>;
+}
+
 async function currentAccessToken(): Promise<string | null> {
   const { createClient } = await import("./supabase/client");
   const {
@@ -234,25 +238,30 @@ export class ApiClient {
     return response;
   }
 
-  async saveJobFile(
-    jobId: string,
+  async chooseFileDestination(
     preferredFilename: string,
-  ): Promise<"picker" | "download"> {
+  ): Promise<FileDestination | null> {
     const pickerWindow = window as Window & {
       showSaveFilePicker?: (options: {
         suggestedName: string;
-      }) => Promise<{
-        createWritable: () => Promise<WritableStream<Uint8Array>>;
-      }>;
+      }) => Promise<FileDestination>;
     };
 
-    if (pickerWindow.showSaveFilePicker) {
-      const handle = await pickerWindow.showSaveFilePicker({
-        suggestedName: preferredFilename,
-      });
+    if (!pickerWindow.showSaveFilePicker) return null;
+    return pickerWindow.showSaveFilePicker({
+      suggestedName: preferredFilename,
+    });
+  }
+
+  async downloadJobFile(
+    jobId: string,
+    preferredFilename: string,
+    destination: FileDestination | null = null,
+  ): Promise<"picker" | "download"> {
+    if (destination) {
       const response = await this.fileResponse(jobId);
       if (!response.body) throw new Error("ไม่พบข้อมูลไฟล์");
-      const writable = await handle.createWritable();
+      const writable = await destination.createWritable();
       await response.body.pipeTo(writable);
       return "picker";
     }
@@ -272,6 +281,7 @@ export class ApiClient {
     URL.revokeObjectURL(objectUrl);
     return "download";
   }
+
 }
 
 export const apiClient = new ApiClient();

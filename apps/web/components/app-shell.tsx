@@ -3,17 +3,15 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  CircleUserRound,
-  Download,
-  History,
+  ArrowDownToLine,
+  Clock3,
   Languages,
-  ListTodo,
   LogOut,
-  Plus,
   WifiOff,
 } from "lucide-react";
+import { useEffect, useState } from "react";
 
-import { useState, useEffect } from "react";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { useT } from "@/lib/i18n/context";
 
 interface AppShellProps {
@@ -26,36 +24,34 @@ interface AppShellProps {
 }
 
 const navigation = [
-  { href: "/dashboard", label: "nav.newDownload", icon: Plus },
-  { href: "/downloads", label: "nav.queue", icon: ListTodo },
-  { href: "/history", label: "nav.history", icon: History },
-  { href: "/settings", label: "nav.account", icon: CircleUserRound },
+  { href: "/dashboard", label: "nav.newDownload", icon: ArrowDownToLine },
+  { href: "/history", label: "nav.history", icon: Clock3 },
 ];
 
 function UserAvatar({
   name,
   avatarUrl,
-  compact = false,
+  className = "size-9",
 }: {
   name: string;
   avatarUrl?: string;
-  compact?: boolean;
+  className?: string;
 }) {
+  const initials = name
+    .split(" ")
+    .map((part) => part[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+
   return (
     <div
       role={avatarUrl ? "img" : undefined}
-      aria-label={avatarUrl ? name : undefined}
-      className={`grid shrink-0 place-items-center overflow-hidden rounded-full border border-border bg-bg-surface bg-cover bg-center ${
-        compact ? "size-8" : "size-10"
-      }`}
+      aria-label={name}
+      className={`grid shrink-0 place-items-center overflow-hidden rounded-xl border border-border bg-bg-elevated bg-cover bg-center text-xs font-semibold text-primary ${className}`}
       style={avatarUrl ? { backgroundImage: `url("${avatarUrl}")` } : undefined}
     >
-      {!avatarUrl && (
-        <CircleUserRound
-          aria-hidden="true"
-          className={compact ? "size-4 text-text-muted" : "size-5 text-text-muted"}
-        />
-      )}
+      {!avatarUrl && initials}
     </div>
   );
 }
@@ -63,156 +59,159 @@ function UserAvatar({
 export function AppShell({ children, user }: AppShellProps) {
   const pathname = usePathname();
   const { t, locale, setLocale } = useT();
-
   const [isOffline, setIsOffline] = useState(false);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    const handleOnline = () => setIsOffline(false);
-    const handleOffline = () => setIsOffline(true);
-    setIsOffline(!window.navigator.onLine);
-    window.addEventListener("online", handleOnline);
-    window.addEventListener("offline", handleOffline);
+    const syncConnection = () => setIsOffline(!window.navigator.onLine);
+    syncConnection();
+    window.addEventListener("online", syncConnection);
+    window.addEventListener("offline", syncConnection);
     return () => {
-      window.removeEventListener("online", handleOnline);
-      window.removeEventListener("offline", handleOffline);
+      window.removeEventListener("online", syncConnection);
+      window.removeEventListener("offline", syncConnection);
     };
   }, []);
 
-
+  const toggleLocale = () => setLocale(locale === "th" ? "en" : "th");
 
   return (
     <div className="min-h-dvh bg-bg-base text-foreground">
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-border bg-sidebar lg:flex">
-        <div className="flex h-20 items-center gap-3 border-b border-border px-6">
-          <div className="grid size-10 place-items-center rounded-xl border border-primary/25 bg-primary/10">
-            <Download aria-hidden="true" className="size-5 text-primary" />
-          </div>
-          <div className="min-w-0">
-            <p className="font-heading text-[15px] font-semibold tracking-tight">
-              {t("app.name")}
-            </p>
-            <p className="mt-0.5 text-[11px] text-text-dim">
-              {t("app.localWorkspace")}
-            </p>
-          </div>
-        </div>
+      <a
+        href="#main-content"
+        className="fixed left-4 top-3 z-50 -translate-y-20 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-transform focus:translate-y-0"
+      >
+        Skip to content
+      </a>
 
-        <nav
-          aria-label={t("nav.primary")}
-          className="flex-1 space-y-1 px-3 py-5"
-        >
-          <p className="px-3 pb-2 font-mono text-[10px] font-semibold uppercase tracking-[0.2em] text-text-dim">
+      <aside className="fixed inset-y-0 left-0 z-40 hidden w-68 flex-col border-r border-sidebar-border bg-sidebar/92 backdrop-blur-2xl lg:flex">
+        <Link href="/dashboard" className="flex h-21 items-center gap-3.5 border-b border-sidebar-border px-5">
+          <span className="relative grid size-11 place-items-center rounded-2xl border border-primary/25 bg-primary/10 text-primary">
+            <ArrowDownToLine aria-hidden="true" className="size-5" />
+            <span className="absolute -right-0.5 -top-0.5 size-2.5 rounded-full border-2 border-sidebar bg-emerald-400" />
+          </span>
+          <span className="min-w-0">
+            <span className="block text-[15px] font-semibold tracking-tight text-text">{t("app.name")}</span>
+            <span className="mt-0.5 block text-[11px] text-text-dim">{t("app.localWorkspace")}</span>
+          </span>
+        </Link>
+
+        <div className="px-4 pb-3 pt-6">
+          <p className="px-3 font-mono text-[10px] font-semibold uppercase tracking-[0.22em] text-text-dim">
             {t("nav.workspace")}
           </p>
+        </div>
+        <nav aria-label={t("nav.primary")} className="flex-1 space-y-1.5 px-3">
           {navigation.map(({ href, label, icon: Icon }) => {
-            const active =
-              pathname === href ||
-              (href !== "/dashboard" && pathname.startsWith(`${href}/`));
+            const active = href === "/dashboard" ? pathname === href : pathname.startsWith(href);
             return (
               <Link
                 key={href}
                 href={href}
                 aria-current={active ? "page" : undefined}
-                className={`group flex min-h-11 items-center gap-3 rounded-xl px-3 text-[13px] font-medium transition-colors ${
+                className={`group relative flex min-h-12 items-center gap-3 rounded-xl border px-3.5 text-[13px] font-medium transition-[color,background-color,border-color] duration-200 ${
                   active
-                    ? "border border-primary/20 bg-primary/10 text-primary font-semibold"
-                    : "border border-transparent text-text-muted hover:bg-bg-surface hover:text-text"
+                    ? "border-primary/20 bg-primary/10 text-primary"
+                    : "border-transparent text-text-muted hover:border-border hover:bg-bg-surface/70 hover:text-text"
                 }`}
               >
-                <Icon
-                  aria-hidden="true"
-                  className={`size-4.5 ${
-                    active
-                      ? "text-primary"
-                      : "text-text-dim group-hover:text-text-muted"
-                  }`}
-                />
-                <span className="flex-1">{t(label)}</span>
+                {active && <span className="absolute -left-3 h-6 w-0.5 rounded-r-full bg-primary" />}
+                <Icon aria-hidden="true" className="size-4.5" />
+                <span>{t(label)}</span>
               </Link>
             );
           })}
         </nav>
 
-        <div className="space-y-3 border-t border-border p-4">
-          <div className="flex items-center gap-3 rounded-xl border border-border bg-bg-surface/50 p-3">
-            <UserAvatar name={user.name} avatarUrl={user.avatar_url} />
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-xs font-semibold text-text">
-                {user.name}
-              </p>
-              <p className="mt-1 truncate text-[10px] text-text-dim">
-                {user.email}
-              </p>
-            </div>
+        <div className="m-3 rounded-2xl border border-sidebar-border bg-bg-surface/55 p-3.5">
+          <div>
+            <Link
+              href="/settings"
+              title={t("account.viewProfile", {}, "ดูโปรไฟล์")}
+              className="flex min-w-0 items-center gap-3 rounded-xl p-1 transition-colors hover:bg-bg-elevated/70 outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+            >
+              <UserAvatar name={user.name} avatarUrl={user.avatar_url} className="size-10" />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-xs font-semibold text-text">{user.name}</span>
+                <span className="mt-0.5 block text-[10px] text-text-dim">{t("account.viewProfile", {}, "ดูโปรไฟล์")}</span>
+              </span>
+            </Link>
           </div>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="mt-3 grid grid-cols-3 gap-2 border-t border-border/70 pt-3">
             <button
               type="button"
-              onClick={() => setLocale(locale === "th" ? "en" : "th")}
-              className="flex min-h-10 items-center justify-center gap-2 rounded-lg border border-border text-xs text-text-muted transition-colors hover:bg-bg-surface hover:text-text cursor-pointer"
+              onClick={toggleLocale}
+              title={locale === "th" ? "Switch to English" : "เปลี่ยนเป็นภาษาไทย"}
+              className="grid size-9 place-items-center justify-self-center rounded-lg border border-border text-text-muted transition-colors hover:border-primary/30 hover:bg-primary/10 hover:text-primary cursor-pointer"
             >
               <Languages aria-hidden="true" className="size-4" />
-              {locale === "th" ? "EN" : "ไทย"}
             </button>
+            <div className="grid place-items-center"><ThemeToggle /></div>
             <Link
               href="/auth/signout"
-              className="flex min-h-10 items-center justify-center gap-2 rounded-lg border border-border text-xs text-text-muted transition-colors hover:border-rose-500/20 hover:bg-rose-500/10 hover:text-rose-600 dark:hover:text-rose-400"
+              aria-label={t("nav.signOut")}
+              className="grid size-9 place-items-center justify-self-center rounded-lg border border-border text-text-muted transition-colors hover:border-rose-500/30 hover:bg-rose-500/10 hover:text-rose-400"
             >
               <LogOut aria-hidden="true" className="size-4" />
-              {t("nav.signOut")}
             </Link>
           </div>
         </div>
       </aside>
 
-      <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-sidebar/95 px-4 backdrop-blur-xl lg:hidden">
-        <Link href="/dashboard" className="flex items-center gap-3">
-          <div className="grid size-9 place-items-center rounded-xl border border-primary/25 bg-primary/10">
-            <Download aria-hidden="true" className="size-4.5 text-primary" />
-          </div>
-          <span className="font-heading text-sm font-semibold">{t("app.name")}</span>
-        </Link>
-        <Link
-          href="/settings"
-          aria-label={t("nav.account")}
-          className="rounded-full outline-none ring-offset-2 ring-offset-bg-base focus-visible:ring-2 focus-visible:ring-primary"
-        >
-          <UserAvatar
-            compact
-            name={user.name}
-            avatarUrl={user.avatar_url}
-          />
-        </Link>
-      </header>
+      <div className="lg:ml-68">
+        <header className="sticky top-0 z-30 flex h-16 items-center border-b border-border bg-bg-base/82 px-4 backdrop-blur-2xl sm:px-6 lg:hidden">
+          <Link href="/dashboard" className="flex items-center gap-2.5 lg:hidden">
+            <span className="grid size-9 place-items-center rounded-xl border border-primary/25 bg-primary/10 text-primary">
+              <ArrowDownToLine aria-hidden="true" className="size-4.5" />
+            </span>
+            <span className="text-sm font-semibold tracking-tight">{t("app.name")}</span>
+          </Link>
 
-      <main className="min-h-dvh pb-24 lg:ml-64 lg:pb-0">
+          <div className="ml-auto flex items-center gap-2">
+            <button
+              type="button"
+              onClick={toggleLocale}
+              title={locale === "th" ? "Switch to English" : "เปลี่ยนเป็นภาษาไทย"}
+              className="flex size-11 items-center justify-center gap-2 rounded-xl border border-border bg-bg-surface/55 text-xs font-semibold text-text-muted transition-colors hover:border-primary/30 hover:text-primary sm:w-auto sm:px-3 lg:hidden cursor-pointer"
+            >
+              <Languages aria-hidden="true" className="size-4" />
+              <span className="hidden sm:inline">{locale === "th" ? "EN" : "TH"}</span>
+            </button>
+            <div className="lg:hidden"><ThemeToggle /></div>
+            <Link
+              href="/settings"
+              aria-label={t("nav.account")}
+              className="rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-primary/60 lg:hidden"
+            >
+              <UserAvatar name={user.name} avatarUrl={user.avatar_url} className="size-11" />
+            </Link>
+          </div>
+        </header>
+
         {isOffline && (
-          <div className="bg-amber-500/10 border-b border-amber-500/25 text-amber-500 px-4 py-2.5 text-xs font-medium flex items-center gap-2 animate-pulse justify-center">
-            <WifiOff className="size-4 shrink-0" />
-            <span>{t("common.offlineWarning", {}, "ขาดการเชื่อมต่อเครือข่ายชั่วคราว กำลังพยายามเชื่อมต่อใหม่...")}</span>
+          <div role="status" className="flex items-center justify-center gap-2 border-b border-amber-500/20 bg-amber-500/10 px-4 py-2.5 text-xs font-medium text-amber-600 dark:text-amber-300">
+            <WifiOff aria-hidden="true" className="size-4" />
+            {t("common.offlineWarning", {}, "ขาดการเชื่อมต่อเครือข่ายชั่วคราว")}
           </div>
         )}
-        {children}
-      </main>
+
+        <main id="main-content" className="min-h-[calc(100dvh-4rem)] pb-24 lg:min-h-dvh lg:pb-0">
+          {children}
+        </main>
+      </div>
 
       <nav
         aria-label={t("nav.primary")}
-        className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t border-border bg-sidebar/95 px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur-xl lg:hidden"
+        className="fixed inset-x-3 bottom-3 z-40 grid grid-cols-2 rounded-2xl border border-border bg-sidebar/92 p-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))] shadow-[0_18px_60px_rgba(0,0,0,0.35)] backdrop-blur-2xl lg:hidden"
       >
         {navigation.map(({ href, label, icon: Icon }) => {
-          const active =
-            pathname === href ||
-            (href !== "/dashboard" && pathname.startsWith(`${href}/`));
+          const active = href === "/dashboard" ? pathname === href : pathname.startsWith(href);
           return (
             <Link
               key={href}
               href={href}
               aria-current={active ? "page" : undefined}
-              className={`relative flex min-h-14 flex-col items-center justify-center gap-1 rounded-xl text-[10px] font-medium transition-colors ${
-                active
-                  ? "bg-primary/10 text-primary"
-                  : "text-text-muted hover:text-foreground"
+              className={`flex min-h-14 flex-col items-center justify-center gap-1 rounded-xl text-[10px] font-medium transition-colors ${
+                active ? "bg-primary/12 text-primary" : "text-text-muted hover:bg-bg-surface hover:text-text"
               }`}
             >
               <Icon aria-hidden="true" className="size-4.5" />

@@ -26,7 +26,7 @@ test("ApiClient attaches the current Supabase access token", async () => {
   );
 });
 
-test("ApiClient sends the auto-confirmed rights flag and selected format", async () => {
+test("ApiClient sends the confirmed rights flag and selected format", async () => {
   let body = "";
   const client = new ApiClient(
     "http://api.test",
@@ -56,6 +56,37 @@ test("ApiClient sends the auto-confirmed rights flag and selected format", async
     output_format: "mp4",
     rights_confirmed: true,
   });
+});
+
+test("ApiClient streams a completed job into the preselected destination", async () => {
+  let request: { url: string; init?: RequestInit } | undefined;
+  const chunks: Uint8Array[] = [];
+  const client = new ApiClient(
+    "http://api.test",
+    async () => "access-token",
+    async (url, init) => {
+      request = { url: String(url), init };
+      return new Response("finished media", { status: 200 });
+    },
+  );
+
+  const result = await client.downloadJobFile("job-1", "clip.mp4", {
+    async createWritable() {
+      return new WritableStream<Uint8Array>({
+        write(chunk) {
+          chunks.push(chunk);
+        },
+      });
+    },
+  });
+
+  assert.equal(result, "picker");
+  assert.equal(request?.url, "http://api.test/files/download/job-1");
+  assert.equal(
+    new Headers(request?.init?.headers).get("Authorization"),
+    "Bearer access-token",
+  );
+  assert.equal(new TextDecoder().decode(Buffer.concat(chunks)), "finished media");
 });
 
 test("ApiClient analyzes before rights confirmation", async () => {

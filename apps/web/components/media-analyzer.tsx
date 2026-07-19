@@ -23,6 +23,8 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/toast";
 import { apiClient, type MediaAnalysis } from "@/lib/api-client";
+import { registerPendingDownload } from "@/lib/download-coordinator";
+import { consumeRequestedMediaAnalysis } from "@/lib/analyzer-session";
 import { groupFormats, type MediaFormat } from "@/lib/media-presenters.ts";
 import { useT } from "@/lib/i18n/context";
 import { validateUrl } from "@/lib/url-validation";
@@ -110,17 +112,24 @@ function formatCardMeta(
   return pieces.join(" · ");
 }
 
+function safeDownloadFilename(title: string, extension: "mp4" | "mp3") {
+  return `${title || "media"}.${extension}`.replace(
+    /[<>:"/\\|?*\u0000-\u001F]/g,
+    "_",
+  );
+}
+
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 function AnalyzerSkeleton() {
   const { t } = useT();
   return (
-    <div className="mt-6 space-y-3">
+    <div className="mt-5 space-y-3">
       <div className="flex items-center gap-2 text-sm text-primary">
         <Loader2 className="size-4 animate-spin" />
         <span>{t("download.analyzing", {}, "กำลังวิเคราะห์...")}</span>
       </div>
-      <div className="grid gap-3 rounded-2xl border border-border bg-bg-surface p-4 shadow-sm sm:grid-cols-[280px_1fr]">
+      <div className="grid gap-4 rounded-2xl border border-border bg-bg-surface/55 p-4 sm:grid-cols-[240px_1fr]">
         <Skeleton className="aspect-video w-full rounded-xl bg-bg-base/80" />
         <div className="space-y-3 py-1">
           <Skeleton className="h-5 w-3/4 rounded-lg bg-bg-base/80" />
@@ -154,10 +163,10 @@ function FormatCard({
     <button
       type="button"
       onClick={onSelect}
-      className={`group flex items-center gap-3 rounded-xl border p-3 text-left transition-all ${
+      className={`group flex min-h-18 items-center gap-3 rounded-xl border p-3 text-left transition-[border-color,background-color,box-shadow] duration-200 focus-visible:ring-2 focus-visible:ring-primary/50 ${
         selected
-          ? "border-primary/40 bg-primary/8"
-          : "border-border bg-bg-surface/60 hover:border-primary/30 hover:bg-bg-surface shadow-xs"
+          ? "border-primary/45 bg-primary/10"
+          : "border-border bg-bg-base/30 hover:border-primary/30 hover:bg-bg-surface/80"
       }`}
     >
       <span
@@ -215,6 +224,7 @@ export function MediaAnalyzer() {
   const [errorMessage, setErrorMessage] = useState("");
   const [queueing, setQueueing] = useState(false);
   const [showLightbox, setShowLightbox] = useState(false);
+  const [requestedAnalysisUrl, setRequestedAnalysisUrl] = useState("");
 
   const [isLoaded, setIsLoaded] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -230,6 +240,13 @@ export function MediaAnalyzer() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
+      const requestedUrl = consumeRequestedMediaAnalysis();
+      if (requestedUrl) {
+        setUrl(requestedUrl);
+        setRequestedAnalysisUrl(requestedUrl);
+        return;
+      }
+
       const savedUrl = sessionStorage.getItem("media_loader_analyzer_url");
       const savedAnalyzedUrl = sessionStorage.getItem("media_loader_analyzer_analyzed_url");
       const savedState = sessionStorage.getItem("media_loader_analyzer_state");
@@ -304,6 +321,7 @@ export function MediaAnalyzer() {
     abortControllerRef.current?.abort();
     abortControllerRef.current = null;
 
+    setUrl("");
     setState("idle");
     setAnalysis(null);
     setAnalyzedUrl("");
@@ -391,39 +409,52 @@ export function MediaAnalyzer() {
     }
   }, [url, toast, t]);
 
-  const queueJob = useCallback(async () => {
-    if (!analyzedUrl || !selectedFormat) return;
+  useEffect(() => {
+    if (!isLoaded || !requestedAnalysisUrl) return;
+    setRequestedAnalysisUrl("");
+    void analyze(requestedAnalysisUrl);
+  }, [analyze, isLoaded, requestedAnalysisUrl]);
+
+  const startDownload = useCallback(async () => {
+    if (!analyzedUrl || !selectedFormat || !media) return;
+
+    const outputFormat = selectedFormat.type === "audio" ? "mp3" : "mp4";
+    const filename = safeDownloadFilename(media.title, outputFormat);
     setQueueing(true);
     try {
-      const ok = await apiClient.createJob({
+      const job = await apiClient.createJob({
         url: analyzedUrl,
         selected_format_id: selectedFormat.format_id,
-        output_format: selectedFormat.type === "audio" ? "mp3" : "mp4",
+        output_format: outputFormat,
         rights_confirmed: true,
       });
-      if (ok) {
-        toast("success", t("download.queued"), t("download.queuedDesc"));
+      if (job) {
+        registerPendingDownload(job.job_id, filename, null);
+        window.dispatchEvent(new CustomEvent("media-loader:jobs-changed"));
+        toast("success", t("download.started"), t("download.startedDesc"));
         reset();
       } else {
         toast("error", t("download.failed"), t("download.failedDesc"));
       }
     } catch (err) {
-      console.warn("[Queue Job Error]:", err);
+      console.warn("[Start Download Error]:", err);
       toast("error", t("download.failed"), t("error.genericDesc"));
     } finally {
       setQueueing(false);
     }
-  }, [analyzedUrl, selectedFormat, toast, t, reset]);
+  }, [analyzedUrl, media, reset, selectedFormat, t, toast]);
 
   return (
     <div className="w-full">
       {/* ── Search bar hero ── */}
-      <div className="mb-4">
-        <p className="mb-3 text-xs font-medium text-text-muted">
+      <div className="mb-5">
+        <p className="ui-kicker mb-3">
           {t("download.placeholderLabel", {}, "วางลิงก์วิดีโอหรือเสียง")}
         </p>
-        <div className="flex gap-2 rounded-2xl border border-border bg-bg-surface p-2 focus-within:border-primary/40 focus-within:bg-bg-surface/80 transition-all shadow-xs">
-          <Search className="ml-2 size-5 shrink-0 self-center text-text-dim" />
+        <div className="group flex min-h-16 gap-2 rounded-2xl border border-border bg-bg-base/45 p-2 shadow-[inset_0_1px_0_var(--panel-highlight)] transition-[border-color,background-color,box-shadow] duration-200 focus-within:border-primary/55 focus-within:bg-bg-surface/70 focus-within:ring-3 focus-within:ring-primary/15">
+          <span className="grid size-11 shrink-0 place-items-center self-center rounded-xl bg-primary/10 text-primary">
+            <Search className="size-5" />
+          </span>
           <input
             type="url"
             value={url}
@@ -461,7 +492,7 @@ export function MediaAnalyzer() {
             }}
             placeholder="https://..."
             disabled={state === "analyzing"}
-            className="flex-1 bg-transparent py-2 text-base text-text placeholder:text-text-dim outline-none disabled:opacity-60"
+            className="min-w-0 flex-1 bg-transparent py-2 text-base font-medium text-text placeholder:font-normal placeholder:text-text-dim outline-none disabled:opacity-60 sm:text-lg"
             aria-label={t("download.placeholder")}
           />
           {url && (
@@ -471,15 +502,15 @@ export function MediaAnalyzer() {
                 setUrl("");
                 reset();
               }}
-              className="rounded-xl px-3 text-xs text-text-muted transition-colors hover:text-text cursor-pointer"
+              className="grid min-h-11 min-w-11 place-items-center rounded-xl text-xs text-text-muted transition-colors hover:text-text cursor-pointer"
               aria-label={t("download.clear")}
             >
               <X className="size-4" />
             </button>
           )}
         </div>
-        <div className="mt-3 flex items-start gap-2.5 rounded-xl border border-border/40 bg-bg-surface/20 px-3.5 py-2.5 text-[11px] leading-relaxed text-text-muted">
-          <Info className="size-3.5 shrink-0 text-text-dim mt-0.5" />
+        <div className="mt-3 flex items-start gap-2.5 rounded-xl border border-border/70 bg-bg-base/25 px-3.5 py-2.5 text-[11px] leading-relaxed text-text-muted">
+          <Info className="mt-0.5 size-3.5 shrink-0 text-primary" />
           <p className="font-medium">
             {t("download.policyNote")}
           </p>
@@ -523,20 +554,20 @@ export function MediaAnalyzer() {
       {state === "ready" && analysis && media && (
         <div className="space-y-4">
           {/* Policy pass indicator */}
-          <div className="flex items-center gap-2 rounded-xl border border-emerald-500/15 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-800 dark:text-emerald-300">
+          <div className="flex items-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-3.5 py-2.5 text-xs font-medium text-emerald-800 dark:text-emerald-300">
             <ShieldCheck className="size-3.5 shrink-0" />
             <span>{t("download.policyPassed")}</span>
           </div>
 
           {/* Media card */}
-          <div className="grid gap-4 rounded-2xl border border-border bg-bg-surface p-4 shadow-sm sm:grid-cols-[240px_1fr]">
+          <div className="grid gap-4 rounded-2xl border border-border bg-bg-base/35 p-4 sm:grid-cols-[220px_1fr] lg:p-5 xl:grid-cols-[240px_1fr]">
             {/* Thumbnail Button -> Opens Lightbox */}
             {media.thumbnail_url ? (
               <button
                 type="button"
                 onClick={() => setShowLightbox(true)}
                 title={t("download.viewThumbnail", {}, "คลิกเพื่อดูรูปภาพ")}
-                className="group aspect-video block overflow-hidden rounded-xl border border-border bg-cover bg-center transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] cursor-pointer hover:border-primary/40 hover:opacity-90 text-left w-full"
+                className="group block aspect-video w-full overflow-hidden rounded-xl border border-border bg-cover bg-center text-left shadow-lg transition-[border-color,opacity] duration-200 hover:border-primary/50 hover:opacity-90 cursor-pointer"
                 style={{ backgroundImage: `url("${media.thumbnail_url}")` }}
               />
             ) : (
@@ -547,7 +578,7 @@ export function MediaAnalyzer() {
 
             {/* Info */}
             <div className="flex flex-col justify-center min-w-0 py-1">
-              <h2 className="line-clamp-2 text-xl font-bold leading-snug text-text tracking-tight">
+              <h2 className="line-clamp-2 text-lg font-semibold leading-snug tracking-tight text-text sm:text-xl">
                 {media.title}
               </h2>
 
@@ -586,13 +617,13 @@ export function MediaAnalyzer() {
           </div>
 
           {/* Format selector */}
-          <div className="rounded-2xl border border-border bg-bg-surface p-4 shadow-sm">
+          <div className="rounded-2xl border border-border bg-bg-base/30 p-4 lg:p-5">
             {/* Video / Audio tab */}
             <div className="mb-3 flex items-center justify-between">
               <p className="text-sm font-semibold text-text">
                 {t("download.quality")}
               </p>
-              <div className="flex gap-1 rounded-xl border border-border bg-bg-base/30 p-1">
+              <div className="flex gap-1 rounded-xl border border-border bg-bg-surface/55 p-1">
                 {(["video", "audio"] as const).map((tab) => (
                   <button
                     key={tab}
@@ -602,9 +633,9 @@ export function MediaAnalyzer() {
                       setSelectedFormatId(groupedFormats[tab][0]?.format_id || "");
                     }}
                     disabled={groupedFormats[tab].length === 0}
-                    className={`rounded-lg px-4 py-1.5 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-30 ${
+                    className={`min-h-11 rounded-lg px-4 py-1.5 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-30 sm:min-h-0 ${
                       activeTab === tab
-                        ? "bg-primary text-primary-foreground"
+                        ? "bg-primary text-primary-foreground shadow-sm"
                         : "text-text-muted hover:text-text"
                     }`}
                   >
@@ -632,21 +663,27 @@ export function MediaAnalyzer() {
               </div>
             )}
 
-            {/* CTA */}
-            <div className="mt-4 flex items-center justify-end gap-3 border-t border-border pt-4">
-              <Button
-                type="button"
-                onClick={() => void queueJob()}
-                disabled={!selectedFormat || queueing}
-                className="h-10 px-6 font-semibold"
-              >
-                {queueing ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : (
-                  <Download className="size-4" />
-                )}
-                {queueing ? t("download.queueing") : t("download.addToQueue")}
-              </Button>
+            {/* Download action; clicking it is the explicit rights confirmation. */}
+            <div className="mt-4 flex justify-end">
+              <div className="w-full sm:w-auto">
+                <Button
+                  type="button"
+                  onClick={() => void startDownload()}
+                  disabled={!selectedFormat || queueing}
+                  aria-describedby="download-consent"
+                  className="h-12 w-full rounded-xl px-7 font-semibold sm:w-auto"
+                >
+                  {queueing ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <Download className="size-4" />
+                  )}
+                  {queueing ? t("download.preparing") : t("download.download")}
+                </Button>
+                <p id="download-consent" className="mt-1.5 text-center text-[10px] leading-relaxed text-text-dim">
+                  {t("download.downloadConsent")}
+                </p>
+              </div>
             </div>
           </div>
         </div>
@@ -666,7 +703,7 @@ export function MediaAnalyzer() {
             <button
               type="button"
               onClick={() => setShowLightbox(false)}
-              className="absolute right-3.5 top-3.5 z-10 grid size-8 place-items-center rounded-full bg-black/60 text-slate-400 hover:text-slate-200 backdrop-blur-sm transition-colors border border-white/5 cursor-pointer"
+              className="absolute right-3 top-3 z-10 grid size-11 place-items-center rounded-full border border-white/5 bg-black/60 text-slate-400 backdrop-blur-sm transition-colors hover:text-slate-200 sm:right-3.5 sm:top-3.5 sm:size-8 cursor-pointer"
             >
               <X className="size-4" />
             </button>

@@ -19,6 +19,7 @@ import { apiClient } from "@/lib/api-client";
 import { useT } from "@/lib/i18n/context";
 import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 
 interface AccountUser {
   email?: string;
@@ -35,6 +36,7 @@ export default function AccountPage() {
   const [confirmText, setConfirmText] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [showDangerZone, setShowDangerZone] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -65,8 +67,7 @@ export default function AccountPage() {
   };
 
   const deleteAccount = async () => {
-    if (!isConfirmValid(confirmText)) return;
-    if (!window.confirm(t("account.deleteConfirm"))) return;
+    setConfirmOpen(false);
     setDeleting(true);
     try {
       await apiClient.deleteAccount();
@@ -85,12 +86,13 @@ export default function AccountPage() {
   };
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-8 lg:px-6">
+    <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8 lg:py-9">
       {/* Page title */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-text">
+      <div className="mb-6 sm:mb-8">
+        <h1 className="ui-page-title">
           {t("account.title", {}, "บัญชี")}
         </h1>
+        <p className="mt-2 max-w-xl text-sm leading-6 text-text-muted">{t("account.subtitle")}</p>
       </div>
 
       {loading ? (
@@ -98,9 +100,9 @@ export default function AccountPage() {
           <Loader2 className="size-5 animate-spin text-text-dim" />
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="grid gap-5 lg:grid-cols-[1.25fr_0.75fr] lg:items-start">
           {/* Profile card */}
-          <section className="rounded-2xl border border-border bg-bg-surface/50 p-5">
+          <section className="ui-panel rounded-3xl p-5 sm:p-6">
             <div className="flex items-start justify-between">
               <h2 className="text-base font-semibold text-text">
                 {t("account.profile", {}, "โปรไฟล์ Google")}
@@ -111,11 +113,11 @@ export default function AccountPage() {
               </span>
             </div>
 
-            <div className="mt-4 flex items-center gap-4">
+            <div className="mt-6 flex items-center gap-4">
               <div
                 role={user?.avatar_url ? "img" : undefined}
                 aria-label={user?.full_name || user?.email || "User"}
-                className="grid size-14 shrink-0 place-items-center overflow-hidden rounded-2xl border border-border bg-bg-surface bg-cover bg-center"
+                className="grid size-16 shrink-0 place-items-center overflow-hidden rounded-2xl border border-primary/20 bg-primary/10 bg-cover bg-center"
                 style={
                   user?.avatar_url
                     ? { backgroundImage: `url("${user.avatar_url}")` }
@@ -141,17 +143,15 @@ export default function AccountPage() {
               </div>
             </div>
 
-            <p className="mt-5 text-xs text-text-dim">
-              {t("account.signoutNote", {}, "ออกจากระบบได้จากเมนู avatar มุมบนขวา")}
-            </p>
           </section>
 
           {/* Danger zone collapsible */}
-          <div className="rounded-2xl border border-border bg-card">
+          <div className="overflow-hidden rounded-3xl border border-border bg-bg-elevated/60 shadow-[inset_0_1px_0_var(--panel-highlight)]">
             <button
               type="button"
               onClick={() => setShowDangerZone(!showDangerZone)}
-            className="flex w-full items-center justify-between px-5 py-4 text-left text-sm font-medium text-text-muted transition-colors hover:text-text"
+              aria-expanded={showDangerZone}
+              className="flex min-h-14 w-full items-center justify-between px-5 py-4 text-left text-sm font-medium text-text-muted transition-colors hover:bg-bg-surface/60 hover:text-text cursor-pointer"
             >
               <span className="flex items-center gap-2">
                 <AlertTriangle className="size-4 text-text-dim" />
@@ -165,7 +165,7 @@ export default function AccountPage() {
             </button>
 
             {showDangerZone && (
-              <div className="border-t border-border bg-rose-500/5 p-5">
+              <div className="border-t border-rose-500/20 bg-rose-500/5 p-5">
                 <div className="flex items-start gap-3">
                   <div className="grid size-9 shrink-0 place-items-center rounded-xl border border-rose-500/20 bg-rose-500/10">
                     <AlertTriangle className="size-4 text-rose-500 dark:text-rose-300" />
@@ -189,13 +189,13 @@ export default function AccountPage() {
                     value={confirmText}
                     onChange={(e) => setConfirmText(e.target.value)}
                     placeholder={t("account.confirmPlaceholder", {}, "DELETE")}
-                    className="h-10 border-rose-500/30 bg-bg-base/30 text-text placeholder:text-text-dim focus-visible:ring-rose-500/20"
+                    className="h-11 border-rose-500/30 bg-bg-base/40 text-text placeholder:text-text-dim focus-visible:ring-rose-500/20"
                   />
                   <Button
                     type="button"
                     variant="destructive"
                     disabled={!isConfirmValid(confirmText) || deleting}
-                    onClick={() => void deleteAccount()}
+                    onClick={() => setConfirmOpen(true)}
                     className="w-full"
                   >
                     {deleting ? (
@@ -210,6 +210,19 @@ export default function AccountPage() {
             )}
           </div>
         </div>
+      )}
+
+      {confirmOpen && (
+        <ConfirmDialog
+          isOpen={true}
+          title={t("account.deleteConfirm", {}, "ยืนยันลบบัญชีถาวร?")}
+          description={t("account.dangerDesc", {}, "การลบบัญชีจะยกเลิกงานดาวน์โหลดทั้งหมด ลบประวัติ และลบข้อมูลบัญชีออกจากระบบอย่างถาวร")}
+          confirmText={t("common.delete", {}, "ลบ")}
+          cancelText={t("queue.cancel", {}, "ยกเลิก")}
+          variant="danger"
+          onConfirm={() => void deleteAccount()}
+          onCancel={() => setConfirmOpen(false)}
+        />
       )}
     </main>
   );
