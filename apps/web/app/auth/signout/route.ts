@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 
-export async function GET(request: Request) {
+export async function POST(request: Request) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -12,5 +12,5 @@ export async function GET(request: Request) {
   }
 
   const { origin } = new URL(request.url);
-  return NextResponse.redirect(`${origin}/`);
+  return NextResponse.redirect(`${origin}/`, 303);
 }

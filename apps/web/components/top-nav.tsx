@@ -54,7 +54,6 @@ function AccountDropdown({
 
   const handleSignOut = () => {
     setSigningOut(true);
-    window.location.href = "/auth/signout";
   };
 
   return (
@@ -84,15 +83,16 @@ function AccountDropdown({
 
       {/* Actions */}
       <div className="p-1">
-        <button
-          type="button"
-          onClick={() => void handleSignOut()}
-          disabled={signingOut}
-          className="flex w-full items-center gap-3 rounded-lg px-3.5 py-2.5 text-sm font-medium text-rose-600 dark:text-rose-400 transition-all hover:bg-rose-500/10 dark:hover:bg-rose-500/20 hover:text-rose-700 dark:hover:text-rose-300 disabled:opacity-50 text-left cursor-pointer"
-        >
-          <LogOut className="size-4" />
-          {signingOut ? t("account.signingOut", {}, "กำลังออกจากระบบ...") : t("account.signOut")}
-        </button>
+        <form action="/auth/signout" method="post" onSubmit={handleSignOut}>
+          <button
+            type="submit"
+            disabled={signingOut}
+            className="flex w-full items-center gap-3 rounded-lg px-3.5 py-2.5 text-sm font-medium text-rose-600 dark:text-rose-400 transition-all hover:bg-rose-500/10 dark:hover:bg-rose-500/20 hover:text-rose-700 dark:hover:text-rose-300 disabled:opacity-50 text-left cursor-pointer"
+          >
+            <LogOut className="size-4" />
+            {signingOut ? t("account.signingOut", {}, "กำลังออกจากระบบ...") : t("account.signOut")}
+          </button>
+        </form>
       </div>
     </div>
   );

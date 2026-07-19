@@ -61,6 +61,7 @@ All phases of the local workflow are implemented. The rebuild plan from 2026-07-
 - [x] Create login page/button
 - [x] Create auth callback route
 - [x] Create sign out action
+- [x] Prevent route prefetch from triggering sign out by requiring POST (2026-07-19)
 - [x] Protect dashboard routes
 - [x] Create profile bootstrap logic
 - [x] Add auth loading states

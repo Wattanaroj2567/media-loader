@@ -146,13 +146,15 @@ export function AppShell({ children, user }: AppShellProps) {
               <Languages aria-hidden="true" className="size-4" />
             </button>
             <div className="grid place-items-center"><ThemeToggle /></div>
-            <Link
-              href="/auth/signout"
-              aria-label={t("nav.signOut")}
-              className="grid size-9 place-items-center justify-self-center rounded-lg border border-border text-text-muted transition-colors hover:border-rose-500/30 hover:bg-rose-500/10 hover:text-rose-400"
-            >
-              <LogOut aria-hidden="true" className="size-4" />
-            </Link>
+            <form action="/auth/signout" method="post" className="grid place-items-center">
+              <button
+                type="submit"
+                aria-label={t("nav.signOut")}
+                className="grid size-9 place-items-center justify-self-center rounded-lg border border-border text-text-muted transition-colors hover:border-rose-500/30 hover:bg-rose-500/10 hover:text-rose-400 cursor-pointer"
+              >
+                <LogOut aria-hidden="true" className="size-4" />
+              </button>
+            </form>
           </div>
         </div>
       </aside>
