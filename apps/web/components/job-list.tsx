@@ -409,7 +409,7 @@ function HistoryHeader({
       </div>
       {selectionMode && (
         <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-primary/20 bg-primary/10 p-3">
-          <label className="flex min-h-11 cursor-pointer items-center gap-2 rounded-lg px-2 text-xs font-semibold text-text hover:bg-bg-surface sm:min-h-9">
+          <label className="flex min-h-11 cursor-pointer items-center gap-2 rounded-lg px-2 text-xs font-semibold text-text sm:min-h-9">
             <Checkbox
               checked={allSelected}
               disabled={deleting}
