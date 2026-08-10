@@ -48,20 +48,29 @@ def _run_yt_dlp_sync(url: str) -> dict[str, Any]:
     attempts to handle transient rate-limiting from platforms like TikTok.
     """
 
-    ydl_opts = {
+    base_opts: dict[str, Any] = {
         "quiet": True,
         "no_warnings": True,
         "extract_flat": False,  # We need format details
         "noplaylist": True,
-        "socket_timeout": 15,   # Allow time for redirect chains (e.g. vt.tiktok.com)
+        "socket_timeout": 15,   # Allow time for redirect chains
         "cookiefile": None,     # Explicitly no cookies
         "retries": 0,           # We handle retries at the app level with backoff
         "fragment_retries": 0,
-        "impersonate": ImpersonateTarget.from_str("chrome"),  # curl_cffi Chrome TLS fingerprint
     }
 
+    # Try with impersonate target if available
+    try_impersonate = True
     last_error: Exception | None = None
+
     for attempt in range(1, _MAX_EXTRACT_ATTEMPTS + 1):
+        ydl_opts = dict(base_opts)
+        if try_impersonate:
+            try:
+                ydl_opts["impersonate"] = ImpersonateTarget.from_str("chrome")
+            except Exception:
+                try_impersonate = False
+
         try:
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 info = ydl.extract_info(url, download=False)
@@ -70,6 +79,13 @@ def _run_yt_dlp_sync(url: str) -> dict[str, Any]:
                 return info
         except Exception as error:
             last_error = error
+            error_msg = str(error)
+            # If error is due to impersonate target missing, disable impersonate immediately without backoff delay
+            if try_impersonate and "Impersonate target" in error_msg:
+                logger.info("Impersonate target unavailable, falling back to standard extraction.")
+                try_impersonate = False
+                continue
+
             logger.warning(
                 "yt-dlp extraction attempt %d/%d failed: %s",
                 attempt, _MAX_EXTRACT_ATTEMPTS, type(error).__name__,
