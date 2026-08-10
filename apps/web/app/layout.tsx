@@ -5,6 +5,7 @@ import { ToastProvider } from "@/components/toast";
 import { ThemeProvider } from "@/components/theme-provider";
 import { cookies } from "next/headers";
 import { Locale } from "@/lib/i18n/config";
+import { BrowserSafetyGuard } from "@/components/browser-safety-guard";
 import "./globals.css";
 
 const kanit = Kanit({
@@ -55,6 +56,7 @@ export default async function RootLayout({
         >
           <I18nProvider initialLocale={initialLocale}>
             <ToastProvider>
+              <BrowserSafetyGuard />
               {children}
             </ToastProvider>
           </I18nProvider>
