@@ -214,12 +214,12 @@ function JobCard({ job, mode, busy, busyAction, selectionMode, selected, onToggl
   }, [job.created_at]);
 
   return (
-    <article className={`flex flex-col gap-3 rounded-2xl border bg-bg-elevated/65 p-3.5 shadow-[inset_0_1px_0_var(--panel-highlight)] transition-[border-color,background-color] duration-200 sm:flex-row sm:items-start ${
+    <article className={`flex flex-col gap-3 rounded-2xl border bg-bg-elevated/65 p-3.5 shadow-[inset_0_1px_0_var(--panel-highlight)] transition-[border-color,background-color] duration-200 sm:flex-row sm:items-center ${
       selected
         ? "border-primary/60 bg-primary/5"
         : "border-border hover:border-primary/30 hover:bg-bg-elevated/85"
     }`}>
-      <div className="flex min-w-0 flex-1 gap-3">
+      <div className="flex min-w-0 flex-1 items-center gap-3">
         {selectionMode && (
           <label
             htmlFor={`history-select-${job.id}`}
