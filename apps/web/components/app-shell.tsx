@@ -29,6 +29,12 @@ const navigation = [
   { href: "/history", label: "nav.history", icon: Clock3 },
 ];
 
+const mobileNavigation = [
+  { href: "/dashboard", label: "nav.newDownload", icon: ArrowDownToLine },
+  { href: "/history", label: "nav.history", icon: Clock3 },
+  { href: "/settings", label: "nav.account", icon: UserRound },
+];
+
 function UserAvatar({
   name,
   avatarUrl,
@@ -177,7 +183,7 @@ export function AppShell({ children, user }: AppShellProps) {
               type="button"
               onClick={toggleLocale}
               title={locale === "th" ? "Switch to English" : "เปลี่ยนเป็นภาษาไทย"}
-              className="flex h-9 items-center gap-1.5 rounded-xl border border-border bg-bg-surface/55 px-3 text-xs font-semibold text-text transition-colors hover:border-primary/30 hover:text-primary lg:hidden cursor-pointer"
+              className="flex h-9 items-center gap-1.5 rounded-xl border border-border bg-bg-surface/55 px-2.5 text-xs font-semibold text-text transition-colors hover:border-primary/30 hover:text-primary lg:hidden cursor-pointer"
             >
               <Languages aria-hidden="true" className="size-4 text-primary shrink-0" />
               <span className="font-mono font-bold tracking-wider">{locale === "th" ? "EN" : "TH"}</span>
@@ -188,7 +194,7 @@ export function AppShell({ children, user }: AppShellProps) {
               aria-label={t("nav.account")}
               className="rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-primary/60 lg:hidden"
             >
-              <UserAvatar name={user.name} avatarUrl={user.avatar_url} className="size-11" />
+              <UserAvatar name={user.name} avatarUrl={user.avatar_url} className="size-9" />
             </Link>
           </div>
         </header>
@@ -207,17 +213,17 @@ export function AppShell({ children, user }: AppShellProps) {
 
       <nav
         aria-label={t("nav.primary")}
-        className="fixed inset-x-3 bottom-3 z-40 grid grid-cols-2 rounded-2xl border border-border bg-sidebar/92 p-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))] shadow-[0_18px_60px_rgba(0,0,0,0.35)] backdrop-blur-2xl lg:hidden"
+        className="fixed inset-x-3 bottom-3 z-40 grid grid-cols-3 gap-1 rounded-2xl border border-border bg-sidebar/95 p-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))] shadow-[0_18px_60px_rgba(0,0,0,0.35)] backdrop-blur-2xl lg:hidden"
       >
-        {navigation.map(({ href, label, icon: Icon }) => {
+        {mobileNavigation.map(({ href, label, icon: Icon }) => {
           const active = href === "/dashboard" ? pathname === href : pathname.startsWith(href);
           return (
             <Link
               key={href}
               href={href}
               aria-current={active ? "page" : undefined}
-              className={`flex min-h-14 flex-col items-center justify-center gap-1 rounded-xl text-[10px] font-medium transition-colors ${
-                active ? "bg-primary/12 text-primary" : "text-text-muted hover:bg-bg-surface hover:text-text"
+              className={`flex min-h-12 flex-col items-center justify-center gap-1 rounded-xl text-[10px] font-medium transition-colors ${
+                active ? "bg-primary/12 text-primary font-semibold" : "text-text-muted hover:bg-bg-surface hover:text-text"
               }`}
             >
               <Icon aria-hidden="true" className="size-4.5" />
