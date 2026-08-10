@@ -64,17 +64,7 @@ function formatViews(views?: number | null, locale?: string) {
   }
 }
 
-function formatCodec(codec?: string | null) {
-  if (!codec || codec === "none") return null;
-  const c = codec.toLowerCase();
-  if (c.startsWith("avc") || c.startsWith("h264")) return "H.264";
-  if (c.startsWith("vp09") || c.startsWith("vp9")) return "VP9";
-  if (c.startsWith("av01")) return "AV1";
-  if (c.startsWith("hev") || c.startsWith("h265") || c.startsWith("hevc")) return "H.265";
-  if (c.startsWith("mp4a") || c.startsWith("aac")) return "AAC";
-  if (c.startsWith("opus")) return "Opus";
-  return null;
-}
+
 
 function formatCardTitle(format: MediaFormat) {
   if (format.quality_label) return format.quality_label;
@@ -84,28 +74,13 @@ function formatCardTitle(format: MediaFormat) {
   return format.format_id;
 }
 
-function getAudioQualityLabel(
-  bitrate: number,
-  t: (key: string, vars?: Record<string, string | number>, fallback?: string) => string,
-) {
-  if (bitrate >= 120) {
-    return t("download.audioHigh", {}, "คุณภาพสูง (ดีที่สุด)");
-  }
-  return t("download.audioLow", {}, "คุณภาพประหยัด (ต่ำ)");
-}
-
 function formatCardMeta(
   format: MediaFormat,
   t: (key: string, vars?: Record<string, string | number>, fallback?: string) => string,
 ) {
   const pieces = [
-    format.type === "audio" ? "MP3" : format.extension?.toUpperCase(),
-    format.type === "video" ? formatCodec(format.video_codec) : null,
     format.type === "video" && format.fps
       ? `${format.fps} ${t("download.fps")}`
-      : null,
-    format.type === "audio" && format.bitrate
-      ? getAudioQualityLabel(format.bitrate, t)
       : null,
     format.filesize ? formatBytes(format.filesize) : null,
   ].filter(Boolean);
@@ -629,7 +604,9 @@ export function MediaAnalyzer() {
                         : "text-text-muted hover:text-text"
                     }`}
                   >
-                    {tab === "video" ? t("download.video") : t("download.audio")}
+                    {tab === "video"
+                      ? `${t("download.video")} (MP4)`
+                      : `${t("download.audio")} (MP3)`}
                   </button>
                 ))}
               </div>
