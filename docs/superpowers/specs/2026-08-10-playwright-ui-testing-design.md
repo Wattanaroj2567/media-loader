@@ -1,36 +1,49 @@
-# Playwright Web UI & Zero-Config Quality Verification Spec
+# Full-Stack Quality Verification Spec (Web UI & Backend)
 
 **Date:** 2026-08-10  
-**Project:** Media Loader (`apps/web` & monorepo backend)  
+**Project:** Media Loader (`apps/web`, `apps/api`, `apps/worker`)  
 **Status:** Approved Specification  
 
 ---
 
 ## 🎯 Goal & Overview
 
-Provide a zero-overhead, highly-reliable test automation suite for Media Loader that validates both the **Next.js Web UI** (using Playwright) and the **FastAPI/Worker Backend** (using existing Python E2E tools), catching regressions, layout flaws, and functional bugs with minimal setup complexity.
+Provide a zero-overhead, highly-reliable test automation suite for Media Loader covering both **Web UI** (Playwright) and **Backend Services** (FastAPI, Python Media Worker, Policy Engine, and FFmpeg pipeline), catching regressions, security SSRF flaws, layout bugs, and transcoding failures with minimal setup complexity.
 
 ---
 
-## 🛠️ Design Architecture & Tooling Strategy
+## 🛠️ Full-Stack Testing Strategy
 
-### 1. Web UI Testing Layer (`apps/web/e2e`)
-Uses Playwright (`@playwright/test`) within `apps/web` with zero complex server management:
-- **Auto-managed Dev Server:** Playwright automatically manages `npm run dev` at `http://localhost:3000`.
-- **Mocked Backend Routes:** `page.route()` intercepts `/media/analyze` and `/downloads` endpoints to allow deterministic UI testing (loading states, format badges, error alerts, queue progress, and download triggers) without external network dependencies.
-- **Viewport & Accessibility Checks:** Tests desktop sidebar vs. mobile bottom navigation (320px - 1440px) and dark/light theme toggles.
+### 1. Frontend Web UI Layer (`apps/web/e2e`)
+Uses Playwright (`@playwright/test`) inside `apps/web` with auto-managed dev server:
+- **Auto-managed Dev Server:** Playwright auto-starts `next dev` at `http://localhost:3000`.
+- **Mocked Backend Routes:** `page.route()` intercepts `/media/analyze` and `/downloads` endpoints to test UI states (loading skeletons, format tables, rights confirmation, progress bars, download triggers) without requiring backend containers.
+- **Viewport Safety:** Validates Desktop sidebar (>=1024px) vs Mobile bottom navigation (320px - 390px) and Dark/Light theme toggles.
 
-### 2. Backend & Worker E2E Layer ([`scripts/test-e2e.py`](file:///D:/media-loader/scripts/test-e2e.py))
-Leverages the existing Python E2E runner for full integration verification when Docker backend services are running:
+### 2. Backend Unit & Policy Layer (`apps/api/tests` & `apps/worker/tests`)
+Uses Pytest for FastAPI and Worker services:
+- **URL Policy & SSRF Verification:** Asserts private IP blocking, protocol enforcement, and trusted domain whitelisting in `url_policy.py`.
+- **Format Normalization & Quality Sorting:** Asserts yt-dlp metadata format extraction and deduplication.
+- **Auth & Job Lifecycle:** Asserts JWT Bearer authentication, user scoping, and DB row locks.
+- **FFmpeg Transcoding & Cleanup:** Asserts WebM/MP4/MP3 conversion and automatic temp file removal.
+
+```bash
+# Execution Commands
+docker compose run --rm api pytest -v
+docker compose run --rm worker pytest -v
+```
+
+### 3. End-to-End Integration Layer ([`scripts/test-e2e.py`](file:///D:/media-loader/scripts/test-e2e.py))
+Leverages Python `httpx` to verify the full real lifecycle when containers are running:
 - Health check verification (`GET /health`)
 - Direct media URL policy analysis (`POST /media/analyze`)
 - Job queueing & worker polling (`POST /downloads`, `GET /downloads/{id}`)
 - Local file delivery & temp cleanup (`GET /files/download/{id}`, `DELETE /files/delete/{id}`)
 
-### 3. Environment & Code Quality Verification Layer
-- `npx tsx scripts/check-env.ts` — Secret leak safety check.
+### 4. Code Quality & Security Layer
+- `npx tsx scripts/check-env.ts` — Secret leak protection.
 - `npm --prefix apps/web run lint` — Next.js static analysis & Accessibility check.
-- `npm --prefix apps/web test` — Built-in Node test runner for client state & formatting logic.
+- `npm --prefix apps/web test` — Built-in Node client logic test suite.
 
 ---
 
@@ -43,25 +56,18 @@ apps/web/
   │   ├── url-validation.spec.ts # Form inputs, error states, rights check
   │   ├── dashboard-mock.spec.ts # Mocked format selection & queue progress
   │   └── responsive.spec.ts     # Mobile vs Desktop navigation layout
-  └── playwright.config.ts       # Single concise Playwright config
-```
+  └── playwright.config.ts       # Playwright configuration
 
----
-
-## 🚀 Package Scripts (`apps/web/package.json`)
-
-```json
-"scripts": {
-  "test:e2e": "playwright test",
-  "test:e2e:ui": "playwright test --ui"
-}
+apps/api/tests/                  # 9 Pytest files for FastAPI & Policy
+apps/worker/tests/               # Pytest files for Worker & FFmpeg
+scripts/test-e2e.py              # E2E integration test script
 ```
 
 ---
 
 ## ✅ Success Criteria
 
-1. `npx playwright test` runs smoothly on `apps/web` in headless mode and generates reports on failure.
-2. Web UI responsive layouts (320px - 1440px) pass without overflow or broken controls.
-3. Form validation and mocked format selection flow work deterministically.
-4. Zero complex external infrastructure setup required for UI regression tests.
+1. `npx playwright test` passes all UI scenarios in headless mode.
+2. Pytest suites in `apps/api` and `apps/worker` pass 100% of policy and transcoding tests.
+3. `python scripts/test-e2e.py` completes full end-to-end download flow cleanly.
+4. No complex external test infrastructure or high-maintenance setup required.
