@@ -484,9 +484,15 @@ export function MediaAnalyzer() {
                 }
               }
             }}
+            onWheel={(e) => {
+              if (e.deltaY !== 0) {
+                e.currentTarget.scrollLeft += e.deltaY;
+                e.preventDefault();
+              }
+            }}
             placeholder="https://..."
             disabled={state === "analyzing"}
-            className="min-w-0 flex-1 bg-transparent py-2 text-base font-medium text-text placeholder:font-normal placeholder:text-text-dim outline-none disabled:opacity-60 sm:text-lg"
+            className="min-w-0 flex-1 overflow-x-auto bg-transparent py-2 text-base font-medium text-text placeholder:font-normal placeholder:text-text-dim outline-none disabled:opacity-60 sm:text-lg no-scrollbar"
             aria-label={t("download.placeholder")}
           />
           {url ? (

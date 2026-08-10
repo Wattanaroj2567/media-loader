@@ -430,7 +430,7 @@ function HistoryHeader({
               size="sm"
               onClick={onCancelSelection}
               disabled={deleting}
-              className="h-11 font-semibold text-text-muted hover:text-text sm:h-9 cursor-pointer"
+              className="h-11 font-semibold text-text-muted hover:bg-transparent hover:text-text-muted sm:h-9 cursor-pointer"
             >
               {t("history.cancelSelect", {}, "ยกเลิก")}
             </Button>
