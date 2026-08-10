@@ -108,11 +108,43 @@ function getAudioQualityLabel(
   return t("download.audioLow", {}, "คุณภาพประหยัด");
 }
 
+function estimateFilesize(format: MediaFormat, durationSeconds?: number | null): string | null {
+  if (format.filesize && format.filesize > 0) {
+    return formatBytes(format.filesize);
+  }
+
+  // Calculate estimated filesize from bitrate & duration
+  if (format.bitrate && format.bitrate > 0 && durationSeconds && durationSeconds > 0) {
+    const approxBytes = (format.bitrate * 1000 * durationSeconds) / 8;
+    return `~${formatBytes(approxBytes)}`;
+  }
+
+  // Estimate from resolution bitrate tier & duration for Reels / Shorts
+  if (durationSeconds && durationSeconds > 0) {
+    const res = Math.min(format.width || 0, format.height || 0) || format.height || 0;
+    let estBitrateKbps = 0;
+    if (res >= 2160) estBitrateKbps = 12000;
+    else if (res >= 1440) estBitrateKbps = 6000;
+    else if (res >= 1080) estBitrateKbps = 3200;
+    else if (res >= 720) estBitrateKbps = 1600;
+    else if (res >= 480) estBitrateKbps = 800;
+    else if (res > 0) estBitrateKbps = 400;
+
+    if (estBitrateKbps > 0) {
+      const approxBytes = (estBitrateKbps * 1000 * durationSeconds) / 8;
+      return `~${formatBytes(approxBytes)}`;
+    }
+  }
+
+  return null;
+}
+
 function formatCardMeta(
   format: MediaFormat,
+  durationSeconds: number | null | undefined,
   t: (key: string, vars?: Record<string, string | number>, fallback?: string) => string,
 ) {
-  const resolutionStr = format.width && format.height ? `${format.width}x${format.height}` : null;
+  const sizeLabel = estimateFilesize(format, durationSeconds);
   const pieces = [
     format.type === "video" && format.fps && format.fps > 30
       ? `${format.fps} ${t("download.fps")}`
@@ -120,14 +152,11 @@ function formatCardMeta(
     format.type === "audio" && format.bitrate
       ? getAudioQualityLabel(format.bitrate, t)
       : null,
-    format.filesize ? formatBytes(format.filesize) : null,
-    !format.filesize && format.type === "video" && resolutionStr
-      ? resolutionStr
+    sizeLabel,
+    !sizeLabel && format.type === "video"
+      ? t("download.videoFormat", {}, "สตรีมมิ่ง HD")
       : null,
-    !format.filesize && !resolutionStr && format.type === "video"
-      ? t("download.videoFormat", {}, "ไฟล์วิดีโอ HD")
-      : null,
-    !format.filesize && !format.bitrate && format.type === "audio"
+    !sizeLabel && format.type === "audio"
       ? t("download.audioFormat", {}, "ไฟล์เสียง MP3")
       : null,
   ].filter(Boolean);
@@ -170,15 +199,17 @@ function AnalyzerSkeleton() {
 
 function FormatCard({
   format,
+  durationSeconds,
   selected,
   onSelect,
 }: {
   format: MediaFormat;
+  durationSeconds?: number | null;
   selected: boolean;
   onSelect: () => void;
 }) {
   const { t } = useT();
-  const meta = formatCardMeta(format, t) || (format.type === "video" ? t("download.videoFormat", {}, "ไฟล์วิดีโอ HD") : t("download.audioFormat", {}, "ไฟล์เสียง MP3"));
+  const meta = formatCardMeta(format, durationSeconds, t) || (format.type === "video" ? t("download.videoFormat", {}, "สตรีมมิ่ง HD") : t("download.audioFormat", {}, "ไฟล์เสียง MP3"));
 
   return (
     <button
@@ -710,6 +741,7 @@ export function MediaAnalyzer() {
                   <FormatCard
                     key={`${format.type}-${format.format_id}`}
                     format={format}
+                    durationSeconds={media.duration_seconds}
                     selected={selectedFormatId === format.format_id}
                     onSelect={() => setSelectedFormatId(format.format_id)}
                   />
