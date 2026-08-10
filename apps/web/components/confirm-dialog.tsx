@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -37,7 +38,7 @@ export function ConfirmDialog({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, onCancel]);
 
-  if (!isOpen) return null;
+  if (!isOpen || typeof window === "undefined") return null;
 
   const accentColor =
     variant === "danger"
@@ -48,21 +49,21 @@ export function ConfirmDialog({
 
   const confirmBtnClass =
     variant === "danger"
-      ? "bg-rose-600 hover:bg-rose-500 text-white"
+      ? "bg-rose-600 hover:bg-rose-500 text-white cursor-pointer"
       : variant === "warning"
-      ? "bg-amber-600 hover:bg-amber-500 text-slate-950 font-semibold"
-      : "bg-primary hover:bg-primary/90 text-slate-950 font-semibold";
+      ? "bg-amber-600 hover:bg-amber-500 text-slate-950 font-semibold cursor-pointer"
+      : "bg-primary hover:bg-primary/90 text-slate-950 font-semibold cursor-pointer";
 
-  return (
+  return createPortal(
     <div
       ref={overlayRef}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm transition-opacity duration-200 animate-in fade-in"
+      className="fixed inset-0 z-[9999] flex h-screen w-screen items-center justify-center bg-black/80 p-4 transition-opacity duration-200 animate-in fade-in"
       onClick={(e) => {
         if (e.target === overlayRef.current) onCancel();
       }}
     >
       <div
-        className="ui-panel w-full max-w-md overflow-hidden rounded-3xl p-5 transition-all duration-200 sm:p-6 animate-in zoom-in-95"
+        className="ui-panel w-full max-w-md overflow-hidden rounded-3xl border border-border bg-bg-surface p-5 shadow-2xl transition-all duration-200 sm:p-6 animate-in zoom-in-95"
         role="alertdialog"
         aria-modal="true"
         aria-labelledby="dialog-title"
@@ -86,7 +87,7 @@ export function ConfirmDialog({
           <button
             type="button"
             onClick={onCancel}
-            className="h-11 w-full rounded-xl border border-border bg-bg-surface/50 px-4 text-sm font-medium text-text-muted hover:bg-bg-surface hover:text-text sm:h-10 sm:w-auto cursor-pointer"
+            className="h-11 w-full rounded-xl border border-border bg-bg-base/80 px-4 text-sm font-medium text-text-muted hover:bg-bg-surface hover:text-text sm:h-10 sm:w-auto cursor-pointer"
           >
             {cancelText}
           </button>
@@ -98,6 +99,7 @@ export function ConfirmDialog({
           </Button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
