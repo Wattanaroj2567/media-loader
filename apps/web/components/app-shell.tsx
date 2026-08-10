@@ -144,7 +144,7 @@ export function AppShell({ children, user }: AppShellProps) {
               className="flex h-9 items-center justify-center gap-1 rounded-xl border border-border bg-bg-surface/50 px-2 text-xs font-semibold text-text transition-colors hover:border-primary/40 hover:bg-primary/10 hover:text-primary cursor-pointer"
             >
               <Languages aria-hidden="true" className="size-3.5 text-primary shrink-0" />
-              <span className="font-mono text-[11px] font-bold tracking-wider">{locale.toUpperCase()}</span>
+              <span className="font-mono text-[11px] font-bold tracking-wider">{locale === "th" ? "EN" : "TH"}</span>
             </button>
             <div className="grid place-items-center"><ThemeToggle /></div>
             <form action="/auth/signout" method="post" className="grid place-items-center">
@@ -177,7 +177,7 @@ export function AppShell({ children, user }: AppShellProps) {
               className="flex h-9 items-center gap-1.5 rounded-xl border border-border bg-bg-surface/55 px-3 text-xs font-semibold text-text transition-colors hover:border-primary/30 hover:text-primary lg:hidden cursor-pointer"
             >
               <Languages aria-hidden="true" className="size-4 text-primary shrink-0" />
-              <span className="font-mono font-bold tracking-wider">{locale.toUpperCase()}</span>
+              <span className="font-mono font-bold tracking-wider">{locale === "th" ? "EN" : "TH"}</span>
             </button>
             <div className="lg:hidden"><ThemeToggle /></div>
             <Link

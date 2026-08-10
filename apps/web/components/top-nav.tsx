@@ -162,7 +162,7 @@ export function TopNav({ user }: TopNavProps) {
             className="flex h-9 items-center gap-1.5 rounded-xl border border-border bg-bg-surface/50 px-3 text-xs font-semibold text-text transition-colors hover:border-primary/40 hover:bg-bg-surface hover:text-primary cursor-pointer"
           >
             <Languages className="size-4 shrink-0 text-primary" />
-            <span className="font-mono font-bold tracking-wider">{locale.toUpperCase()}</span>
+            <span className="font-mono font-bold tracking-wider">{locale === "th" ? "EN" : "TH"}</span>
           </button>
 
           {/* Theme Switcher Button */}
