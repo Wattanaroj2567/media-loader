@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { Locale, defaultLocale } from './config';
-import thMessages from './messages/th.json';
-import enMessages from './messages/en.json';
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
+import { Locale, defaultLocale } from "./config";
+import thMessages from "./messages/th.json";
+import enMessages from "./messages/en.json";
 
 type Messages = Record<string, string>;
 
@@ -11,6 +11,23 @@ const staticMessages: Record<Locale, Messages> = {
   th: thMessages as Messages,
   en: enMessages as Messages,
 };
+
+function translate(
+  messages: Messages,
+  key: string,
+  vars?: Record<string, string | number>,
+  fallback?: string,
+) {
+  const message = messages[key];
+  if (message === undefined) return fallback ?? key;
+  if (!vars) return message;
+
+  let result = message;
+  for (const [name, value] of Object.entries(vars)) {
+    result = result.replace(`{${name}}`, String(value));
+  }
+  return result;
+}
 
 interface I18nContextValue {
   locale: Locale;
@@ -22,8 +39,8 @@ interface I18nContextValue {
 const I18nContext = createContext<I18nContextValue>({
   locale: defaultLocale,
   setLocale: () => {},
-  t: (key) => key,
-  loaded: false,
+  t: (key, vars, fallback) => translate(staticMessages[defaultLocale], key, vars, fallback),
+  loaded: true,
 });
 
 export function I18nProvider({
@@ -34,13 +51,9 @@ export function I18nProvider({
   initialLocale?: Locale;
 }) {
   const [locale, setLocaleState] = useState<Locale>(initialLocale);
-  const [messages, setMessages] = useState<Messages>(() => staticMessages[initialLocale] || staticMessages[defaultLocale]);
-  const [loaded, setLoaded] = useState(true);
 
   useEffect(() => {
     document.documentElement.lang = locale;
-    setMessages(staticMessages[locale] || staticMessages[defaultLocale]);
-    setLoaded(true);
   }, [locale]);
 
   const setLocale = useCallback((l: Locale) => {
@@ -53,22 +66,13 @@ export function I18nProvider({
 
   const t = useCallback(
     (key: string, vars?: Record<string, string | number>, fallback?: string): string => {
-      const msg = messages[key];
-      if (msg === undefined) return fallback ?? key;
-      if (vars) {
-        let result = msg;
-        for (const [k, v] of Object.entries(vars)) {
-          result = result.replace(`{${k}}`, String(v));
-        }
-        return result;
-      }
-      return msg;
+      return translate(staticMessages[locale] || staticMessages[defaultLocale], key, vars, fallback);
     },
-    [messages],
+    [locale],
   );
 
   return (
-    <I18nContext.Provider value={{ locale, setLocale, t, loaded }}>
+    <I18nContext.Provider value={{ locale, setLocale, t, loaded: true }}>
       {children}
     </I18nContext.Provider>
   );
