@@ -584,12 +584,6 @@ export function MediaAnalyzer() {
       {/* ── Results ── */}
       {state === "ready" && analysis && media && (
         <div className="space-y-4">
-          {/* Policy pass indicator */}
-          <div className="flex items-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-3.5 py-2.5 text-xs font-medium text-emerald-800 dark:text-emerald-300">
-            <ShieldCheck className="size-3.5 shrink-0" />
-            <span>{t("download.policyPassed")}</span>
-          </div>
-
           {/* Media card */}
           <div className="grid gap-4 rounded-2xl border border-border bg-bg-base/35 p-4 sm:grid-cols-[220px_1fr] lg:p-5 xl:grid-cols-[240px_1fr]">
             {/* Thumbnail Button -> Opens Lightbox */}
@@ -609,6 +603,12 @@ export function MediaAnalyzer() {
 
             {/* Info */}
             <div className="flex flex-col justify-center min-w-0 py-1">
+              {/* Verified Policy Badge inline inside the card */}
+              <div className="mb-2 flex items-center gap-1.5 self-start rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-400">
+                <ShieldCheck className="size-3.5 shrink-0" />
+                <span>{t("download.policyPassed")}</span>
+              </div>
+
               <h2 className="line-clamp-2 text-lg font-semibold leading-snug tracking-tight text-text sm:text-xl">
                 {media.title}
               </h2>

@@ -7,6 +7,7 @@ import {
   Clock3,
   Languages,
   LogOut,
+  UserRound,
   WifiOff,
 } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -26,6 +27,7 @@ interface AppShellProps {
 const navigation = [
   { href: "/dashboard", label: "nav.newDownload", icon: ArrowDownToLine },
   { href: "/history", label: "nav.history", icon: Clock3 },
+  { href: "/settings", label: "nav.account", icon: UserRound },
 ];
 
 function UserAvatar({
