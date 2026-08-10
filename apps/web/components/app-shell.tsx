@@ -27,7 +27,6 @@ interface AppShellProps {
 const navigation = [
   { href: "/dashboard", label: "nav.newDownload", icon: ArrowDownToLine },
   { href: "/history", label: "nav.history", icon: Clock3 },
-  { href: "/settings", label: "nav.account", icon: UserRound },
 ];
 
 function UserAvatar({
@@ -124,21 +123,23 @@ export function AppShell({ children, user }: AppShellProps) {
         </nav>
 
         {/* Full-width Sidebar Footer (Seamless Edge-to-Edge) */}
-        <div className="border-t border-sidebar-border bg-bg-surface/30 p-4">
-          <div>
-            <Link
-              href="/settings"
-              title={t("account.viewProfile", {}, "ดูโปรไฟล์")}
-              className="flex min-w-0 items-center gap-3 rounded-xl p-1.5 transition-colors hover:bg-bg-elevated/70 outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
-            >
-              <UserAvatar name={user.name} avatarUrl={user.avatar_url} className="size-10" />
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-xs font-semibold text-text">{user.name}</span>
-                <span className="mt-0.5 block text-[10px] text-text-dim">{t("account.viewProfile", {}, "ดูโปรไฟล์")}</span>
-              </span>
-            </Link>
-          </div>
-          <div className="mt-3 grid grid-cols-3 gap-2 border-t border-border/60 pt-3">
+        <div className="border-t border-sidebar-border bg-bg-surface/30">
+          <Link
+            href="/settings"
+            title={t("account.viewProfile", {}, "ดูโปรไฟล์")}
+            className={`group flex min-w-0 items-center gap-3.5 border-l-3 px-5 py-3 text-[13.5px] font-medium transition-colors outline-none ${
+              pathname.startsWith("/settings")
+                ? "border-primary bg-primary/12 text-primary font-semibold"
+                : "border-transparent text-text hover:bg-bg-surface/60"
+            }`}
+          >
+            <UserAvatar name={user.name} avatarUrl={user.avatar_url} className="size-9" />
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-xs font-semibold text-text">{user.name}</span>
+              <span className="mt-0.5 block text-[10px] text-text-dim">{t("account.viewProfile", {}, "ดูโปรไฟล์")}</span>
+            </span>
+          </Link>
+          <div className="mx-4 mb-3.5 grid grid-cols-3 gap-2 border-t border-border/50 pt-2.5">
             <button
               type="button"
               onClick={toggleLocale}
