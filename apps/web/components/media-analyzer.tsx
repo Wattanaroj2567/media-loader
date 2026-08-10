@@ -113,7 +113,7 @@ function formatCardMeta(
   return pieces.join(" · ");
 }
 
-function safeDownloadFilename(title: string, extension: "mp4" | "mp3") {
+function safeDownloadFilename(title: string, extension: string) {
   return `${title || "media"}.${extension}`.replace(
     /[<>:"/\\|?*\u0000-\u001F]/g,
     "_",
@@ -226,8 +226,6 @@ export function MediaAnalyzer() {
   const [queueing, setQueueing] = useState(false);
   const [showLightbox, setShowLightbox] = useState(false);
   const [requestedAnalysisUrl, setRequestedAnalysisUrl] = useState("");
-  const [activeJobId, setActiveJobId] = useState<string | null>(null);
-  const [activeJobStatus, setActiveJobStatus] = useState<string | null>(null);
 
   const [isLoaded, setIsLoaded] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -332,8 +330,6 @@ export function MediaAnalyzer() {
     setActiveTab("video");
     setErrorMessage("");
     setShowLightbox(false);
-    setActiveJobId(null);
-    setActiveJobStatus(null);
 
     if (typeof window !== "undefined") {
       sessionStorage.removeItem("media_loader_analyzer_url");
@@ -344,31 +340,6 @@ export function MediaAnalyzer() {
       sessionStorage.removeItem("media_loader_analyzer_active_tab");
     }
   }, []);
-
-  // Poll activeJobId status to show live Auto-Save feedback
-  useEffect(() => {
-    if (!activeJobId) return;
-    let timer: ReturnType<typeof setInterval>;
-    
-    async function checkJob() {
-      try {
-        const jobs = await apiClient.listJobs({ limit: 20 });
-        const match = jobs.find((j) => j.id === activeJobId);
-        if (match) {
-          setActiveJobStatus(match.status);
-          if (["COMPLETED", "FAILED", "BLOCKED", "CANCELLED"].includes(match.status)) {
-            clearInterval(timer);
-          }
-        }
-      } catch (err) {
-        console.warn("[Poll Active Job Error]:", err);
-      }
-    }
-
-    void checkJob();
-    timer = setInterval(() => void checkJob(), 2000);
-    return () => clearInterval(timer);
-  }, [activeJobId]);
 
   const analyze = useCallback(async (targetUrl?: string) => {
     const inputUrl = targetUrl !== undefined ? targetUrl : url;
@@ -462,8 +433,6 @@ export function MediaAnalyzer() {
         registerPendingDownload(job.job_id, filename, null);
         window.dispatchEvent(new CustomEvent("media-loader:jobs-changed"));
         toast("success", t("download.started"), t("download.startedDesc"));
-        setActiveJobId(job.job_id);
-        setActiveJobStatus("QUEUED");
       } else {
         toast("error", t("download.failed"), t("download.failedDesc"));
       }
@@ -473,7 +442,7 @@ export function MediaAnalyzer() {
     } finally {
       setQueueing(false);
     }
-  }, [analyzedUrl, media, reset, selectedFormat, t, toast]);
+  }, [analyzedUrl, media, selectedFormat, t, toast]);
 
   return (
     <div className="w-full">
@@ -753,7 +722,7 @@ export function MediaAnalyzer() {
                       document.body.removeChild(a);
                       URL.revokeObjectURL(blobUrl);
                     } catch {
-                      window.open(media.thumbnail_url, "_blank");
+                      if (media.thumbnail_url) window.open(media.thumbnail_url, "_blank");
                     }
                   }}
                   className="h-9 gap-1.5 rounded-xl px-3 text-xs font-semibold cursor-pointer"

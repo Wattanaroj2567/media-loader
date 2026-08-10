@@ -3,11 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  ArrowDownToLine,
   Clock3,
   Home,
   Languages,
   LogOut,
-  UserRound,
   WifiOff,
 } from "lucide-react";
 import { useEffect, useState } from "react";
