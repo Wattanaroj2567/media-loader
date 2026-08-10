@@ -227,7 +227,7 @@ export function AppShell({ children, user }: AppShellProps) {
       {!isAccountPage && (
         <nav
           aria-label={t("nav.primary")}
-          className="fixed inset-x-3 bottom-3 z-40 grid grid-cols-2 gap-1 rounded-2xl border border-border bg-sidebar/95 p-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))] shadow-[0_18px_60px_rgba(0,0,0,0.35)] backdrop-blur-2xl lg:hidden"
+          className="fixed inset-x-3 bottom-3 z-40 grid grid-cols-2 gap-1 rounded-2xl border border-border bg-sidebar/95 p-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))] backdrop-blur-2xl lg:hidden"
         >
           {navigation.map(({ href, label, icon: Icon }) => {
             const active = href === "/dashboard" ? pathname === href : pathname.startsWith(href);
