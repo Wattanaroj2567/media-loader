@@ -177,7 +177,7 @@ function FormatCard({
         <p className="truncate text-xs font-semibold leading-tight text-text">
           {formatCardTitle(format)}
         </p>
-        <p className="mt-0.5 truncate text-[11px] text-text-muted">{meta}</p>
+        <p className="mt-0.5 line-clamp-3 text-[11px] leading-tight text-text-muted">{meta}</p>
       </div>
       {selected && <CheckCircle2 className="size-3.5 shrink-0 text-primary" />}
     </button>
