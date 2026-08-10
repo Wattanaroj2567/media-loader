@@ -219,7 +219,7 @@ function JobCard({ job, mode, busy, busyAction, selectionMode, selected, onToggl
         ? "border-primary/60 bg-primary/5"
         : "border-border hover:border-primary/30 hover:bg-bg-elevated/85"
     }`}>
-      <div className="flex min-w-0 flex-1 items-center gap-3">
+      <div className="flex flex-col sm:flex-row min-w-0 flex-1 sm:items-center gap-3">
         {selectionMode && (
           <label
             htmlFor={`history-select-${job.id}`}
@@ -234,8 +234,8 @@ function JobCard({ job, mode, busy, busyAction, selectionMode, selected, onToggl
             />
           </label>
         )}
-        {/* Thumb — fixed 80×45 (16:9) */}
-        <div className="h-11.25 w-20 shrink-0 sm:h-13.5 sm:w-24">
+        {/* Thumb — full width top on mobile, fixed 96x54 (16:9) on desktop */}
+        <div className="w-full shrink-0 overflow-hidden rounded-xl sm:h-13.5 sm:w-24">
           <Thumb job={job} />
         </div>
 

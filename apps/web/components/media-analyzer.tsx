@@ -10,7 +10,6 @@ import {
   Eye,
   Film,
   Globe2,
-  Headphones,
   Info,
   Loader2,
   Search,
@@ -157,35 +156,25 @@ function FormatCard({
   onSelect: () => void;
 }) {
   const { t } = useT();
-  const Icon = format.type === "audio" ? Headphones : Film;
   const meta = formatCardMeta(format, t) || t("common.unknown");
 
   return (
     <button
       type="button"
       onClick={onSelect}
-      className={`group flex min-h-18 items-center gap-3 rounded-xl border p-3 text-left transition-[border-color,background-color,box-shadow] duration-200 focus-visible:ring-2 focus-visible:ring-primary/50 ${
+      className={`group flex items-center justify-between gap-2 rounded-xl border px-3 py-2 text-left transition-all duration-200 cursor-pointer ${
         selected
-          ? "border-primary/45 bg-primary/10"
-          : "border-border bg-bg-base/30 hover:border-primary/30 hover:bg-bg-surface/80"
+          ? "border-primary/50 bg-primary/12 text-primary font-semibold shadow-xs"
+          : "border-border bg-bg-base/40 text-text hover:border-primary/30 hover:bg-bg-surface"
       }`}
     >
-      <span
-        className={`grid size-9 shrink-0 place-items-center rounded-lg ${
-          selected
-            ? "bg-primary/15 text-primary"
-            : "bg-bg-surface text-text-dim"
-        }`}
-      >
-        <Icon className="size-4" />
-      </span>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-semibold text-text">
+        <p className="truncate text-xs font-semibold leading-tight text-text">
           {formatCardTitle(format)}
         </p>
-        <p className="mt-0.5 truncate text-xs text-text-muted">{meta}</p>
+        <p className="mt-0.5 truncate text-[11px] text-text-muted">{meta}</p>
       </div>
-      {selected && <CheckCircle2 className="size-4 shrink-0 text-primary" />}
+      {selected && <CheckCircle2 className="size-3.5 shrink-0 text-primary" />}
     </button>
   );
 }
@@ -651,7 +640,7 @@ export function MediaAnalyzer() {
                 {t("download.noFormats")}
               </p>
             ) : (
-              <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+              <div className="grid gap-2 grid-cols-2 sm:grid-cols-3 xl:grid-cols-4">
                 {visibleFormats.map((format) => (
                   <FormatCard
                     key={`${format.type}-${format.format_id}`}
