@@ -154,7 +154,7 @@ export function AppShell({ children, user }: AppShellProps) {
               <button
                 type="submit"
                 aria-label={t("nav.signOut")}
-                className="grid size-9 place-items-center justify-self-center rounded-lg border border-border text-text-muted transition-colors hover:border-rose-500/30 hover:bg-rose-500/10 hover:text-rose-400 cursor-pointer"
+                className="flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-bg-base/60 text-text-muted transition-colors hover:border-rose-500/30 hover:bg-rose-500/10 hover:text-rose-400 cursor-pointer"
               >
                 <LogOut aria-hidden="true" className="size-4" />
               </button>

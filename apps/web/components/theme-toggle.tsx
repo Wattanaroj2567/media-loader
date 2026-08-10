@@ -8,14 +8,13 @@ export function ThemeToggle() {
   const [mounted, setMounted] = useState(false);
   const { resolvedTheme, setTheme } = useTheme();
 
-  // Prevent hydration mismatch by rendering a placeholder until mounted on client
   useEffect(() => {
     setMounted(true);
   }, []);
 
   if (!mounted) {
     return (
-      <div className="size-11 rounded-lg border border-border bg-bg-surface/30 sm:size-9" />
+      <div className="h-9 w-9 rounded-xl border border-border bg-bg-surface/50" />
     );
   }
 
@@ -29,12 +28,12 @@ export function ThemeToggle() {
         setTheme(nextTheme);
       }}
       title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
-      className="flex size-11 items-center justify-center rounded-lg border border-border bg-bg-surface/30 text-text-muted transition-all duration-200 hover:border-primary/40 hover:bg-bg-surface hover:text-primary active:scale-95 sm:size-9 cursor-pointer"
+      className="flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-bg-surface/50 text-text transition-all duration-200 hover:border-primary/40 hover:bg-bg-surface hover:text-primary active:scale-95 cursor-pointer"
     >
       {isDark ? (
-        <Sun className="size-4.5 transition-transform duration-300 rotate-0 hover:rotate-12" />
+        <Sun className="size-4 text-primary transition-transform duration-300 hover:rotate-12" />
       ) : (
-        <Moon className="size-4.5 transition-transform duration-300 rotate-0 hover:-rotate-12" />
+        <Moon className="size-4 text-primary transition-transform duration-300 hover:-rotate-12" />
       )}
     </button>
   );
