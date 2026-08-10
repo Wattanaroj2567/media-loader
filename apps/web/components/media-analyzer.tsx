@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import {
   AlertCircle,
   CheckCircle2,
+  ClipboardPaste,
   Clock3,
   Download,
   Eye,
@@ -469,7 +470,7 @@ export function MediaAnalyzer() {
             className="min-w-0 flex-1 bg-transparent py-2 text-base font-medium text-text placeholder:font-normal placeholder:text-text-dim outline-none disabled:opacity-60 sm:text-lg"
             aria-label={t("download.placeholder")}
           />
-          {url && (
+          {url ? (
             <button
               type="button"
               onClick={() => {
@@ -480,6 +481,29 @@ export function MediaAnalyzer() {
               aria-label={t("download.clear")}
             >
               <X className="size-4" />
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  const text = await navigator.clipboard.readText();
+                  if (text) {
+                    const converted = tryConvertThaiLayout(text);
+                    setUrl(converted);
+                    if (converted.trim()) {
+                      void analyze(converted);
+                    }
+                  }
+                } catch (err) {
+                  console.warn("[Paste Action Error]: Clipboard access denied or empty", err);
+                }
+              }}
+              title={t("download.pasteTitle", {}, "คัดลอกลิงก์แล้วกดวาง")}
+              className="flex h-9 items-center gap-1.5 rounded-xl border border-primary/35 bg-primary/10 px-3 text-xs font-semibold text-primary transition-all duration-200 hover:border-primary/50 hover:bg-primary/20 active:scale-95 cursor-pointer"
+            >
+              <ClipboardPaste className="size-3.5 shrink-0" />
+              <span>{t("download.paste", {}, "วางลิงก์")}</span>
             </button>
           )}
         </div>
