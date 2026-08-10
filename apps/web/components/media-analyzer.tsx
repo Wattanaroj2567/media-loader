@@ -604,8 +604,8 @@ export function MediaAnalyzer() {
             {/* Info */}
             <div className="flex flex-col justify-center min-w-0 py-1">
               {/* Verified Policy Badge inline inside the card */}
-              <div className="mb-2 flex items-center gap-1.5 self-start rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-400">
-                <ShieldCheck className="size-3.5 shrink-0" />
+              <div className="mb-2 flex items-center gap-1.5 self-start rounded-lg border border-emerald-500/35 bg-emerald-500/15 px-2.5 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
+                <ShieldCheck className="size-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
                 <span>{t("download.policyPassed")}</span>
               </div>
 
