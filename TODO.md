@@ -77,6 +77,7 @@ All phases of the local workflow are implemented. The rebuild plan from 2026-07-
 - [x] Add analyze button
 - [x] Add policy result card
 - [x] Add metadata preview card
+- [x] Show like count when source metadata provides it (2026-08-10)
 - [x] Add format selection table/card
 - [x] Add empty state
 - [x] Add loading skeleton
@@ -206,6 +207,7 @@ All phases of the local workflow are implemented. The rebuild plan from 2026-07-
 - [x] Add download-again action from the original source and selected format
 - [x] Add clear-all history action with confirmation
 - [x] Add responsive table/card view
+- [x] Show loading text alongside the spinner on the history view (2026-08-10)
 
 ## Simplified Download UX (2026-07-18)
 
@@ -223,6 +225,7 @@ All phases of the local workflow are implemented. The rebuild plan from 2026-07-
 - [x] Preserve the complete Unicode media title in the browser download filename while keeping restricted temporary filenames internally
 - [x] Rebuild the full frontend visual system with a calm media theme, contextual queue, responsive navigation, and unified dashboard/history/account surfaces
 - [x] Remove duplicate account navigation and profile metadata; open Account directly from the clickable profile/avatar
+- [x] Use text-only `Media Loader` branding without an app mark (2026-08-10)
 
 ---
 

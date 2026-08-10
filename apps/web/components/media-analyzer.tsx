@@ -11,6 +11,7 @@ import {
   Eye,
   Film,
   Globe2,
+  Heart,
   Info,
   Loader2,
   Search,
@@ -62,6 +63,25 @@ function formatViews(views?: number | null, locale?: string) {
     if (views >= 1000) return `${(views / 1000).toFixed(1)}K views`;
     return `${views.toLocaleString()} views`;
   }
+}
+
+function formatLikes(likes?: number | null, locale?: string) {
+  if (likes === undefined || likes === null || likes < 0) return null;
+  const compact = (value: number) => value.toFixed(1).replace(/\.0$/, "");
+
+  if (locale === "th") {
+    if (likes >= 1000000000) return `${compact(likes / 1000000000)} พันล้านไลก์`;
+    if (likes >= 1000000) return `${compact(likes / 1000000)} ล้านไลก์`;
+    if (likes >= 100000) return `${compact(likes / 100000)} แสนไลก์`;
+    if (likes >= 10000) return `${compact(likes / 10000)} หมื่นไลก์`;
+    if (likes >= 1000) return `${compact(likes / 1000)} พันไลก์`;
+    return `${likes.toLocaleString()} ไลก์`;
+  }
+
+  if (likes >= 1000000000) return `${compact(likes / 1000000000)}B likes`;
+  if (likes >= 1000000) return `${compact(likes / 1000000)}M likes`;
+  if (likes >= 1000) return `${compact(likes / 1000)}K likes`;
+  return `${likes.toLocaleString()} likes`;
 }
 
 
@@ -688,6 +708,12 @@ export function MediaAnalyzer() {
                   <span className="flex items-center gap-1.5 text-xs text-text-muted sm:text-sm">
                     <Eye className="size-3.5 shrink-0 text-text-dim" />
                     {formatViews(media.view_count, locale)}
+                  </span>
+                )}
+                {formatLikes(media.like_count, locale) && (
+                  <span className="flex items-center gap-1.5 text-xs text-text-muted sm:text-sm">
+                    <Heart className="size-3.5 shrink-0 text-text-dim" />
+                    {formatLikes(media.like_count, locale)}
                   </span>
                 )}
                 {media.platform && (

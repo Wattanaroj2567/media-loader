@@ -818,8 +818,9 @@ export function JobList({ mode, compact = false, containerRef }: {
 
       {/* List */}
       {loading ? (
-        <div className="grid min-h-48 place-items-center">
+        <div className="flex min-h-48 items-center justify-center gap-2 text-sm text-text-muted" role="status" aria-live="polite">
           <Loader2 className="size-6 animate-spin text-text-dim" />
+          <span>{t("common.loading", {}, "กำลังโหลด...")}</span>
         </div>
       ) : visibleJobs.length > 0 ? (
         <div className="space-y-2.5">

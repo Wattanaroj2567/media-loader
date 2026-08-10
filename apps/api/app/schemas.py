@@ -45,6 +45,7 @@ class MediaMetadata(BaseModel):
     uploader: str | None = None
     source_domain: str | None = None
     view_count: int | None = None
+    like_count: int | None = None
 
 
 class FormatInfo(BaseModel):

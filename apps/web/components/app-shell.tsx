@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  ArrowDownToLine,
   Clock3,
   Home,
   Languages,
@@ -93,13 +92,9 @@ export function AppShell({ children, user }: AppShellProps) {
       </a>
 
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-68 flex-col border-r border-sidebar-border bg-sidebar/92 backdrop-blur-2xl lg:flex">
-        <Link href="/dashboard" prefetch={true} className="flex h-21 items-center gap-3.5 border-b border-sidebar-border px-5">
-          <span className="relative grid size-11 place-items-center rounded-2xl border border-primary/25 bg-primary/10 text-primary">
-            <ArrowDownToLine aria-hidden="true" className="size-5" />
-            <span className="absolute -right-0.5 -top-0.5 size-2.5 rounded-full border-2 border-sidebar bg-emerald-400" />
-          </span>
+        <Link href="/dashboard" prefetch={true} className="flex h-21 items-center border-b border-sidebar-border px-5">
           <span className="min-w-0">
-            <span className="block text-[15px] font-semibold tracking-tight text-text">{t("app.name")}</span>
+            <span className="block font-heading text-lg font-semibold tracking-tight text-text">{t("app.name")}</span>
             <span className="mt-0.5 block text-[11px] text-text-dim">{t("app.localWorkspace")}</span>
           </span>
         </Link>
@@ -176,10 +171,7 @@ export function AppShell({ children, user }: AppShellProps) {
       <div className="lg:ml-68">
         <header className="sticky top-0 z-30 flex h-16 items-center border-b border-border bg-bg-base/82 px-4 backdrop-blur-2xl sm:px-6 lg:hidden">
           <Link href="/dashboard" className="flex items-center gap-2.5 lg:hidden">
-            <span className="grid size-9 place-items-center rounded-xl border border-primary/25 bg-primary/10 text-primary">
-              <ArrowDownToLine aria-hidden="true" className="size-4.5" />
-            </span>
-            <span className="text-sm font-semibold tracking-tight">{t("app.name")}</span>
+            <span className="font-heading text-base font-semibold tracking-tight">{t("app.name")}</span>
           </Link>
 
           <div className="ml-auto flex items-center gap-2">

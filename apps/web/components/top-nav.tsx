@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Download, LogOut, ChevronDown, Languages } from "lucide-react";
+import { LogOut, ChevronDown, Languages } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { useT } from "@/lib/i18n/context";
 
@@ -120,11 +120,8 @@ export function TopNav({ user }: TopNavProps) {
       <div className="mx-auto flex h-14 max-w-5xl items-center gap-1.5 sm:gap-2 px-3 sm:px-4 lg:px-6">
         {/* Logo */}
         <Link href="/dashboard" prefetch={true} className="flex shrink-0 items-center gap-2 pr-2 sm:pr-4">
-          <div className="grid size-8 place-items-center rounded-xl bg-primary/10 text-primary">
-            <Download className="size-4" />
-          </div>
-          <span className="hidden font-semibold tracking-tight text-sm text-foreground sm:block">
-            Media Loader
+          <span className="hidden font-heading text-sm font-semibold tracking-tight text-foreground sm:block">
+            {t("app.name")}
           </span>
         </Link>
 

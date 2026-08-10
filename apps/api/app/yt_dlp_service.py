@@ -104,6 +104,14 @@ def _as_positive_int(value: Any) -> int | None:
     return number if number > 0 else None
 
 
+def _as_non_negative_int(value: Any) -> int | None:
+    try:
+        number = int(float(value))
+    except (TypeError, ValueError):
+        return None
+    return number if number >= 0 else None
+
+
 def _normalize_height(height: int) -> int:
     """Normalize non-standard video heights to standard video resolution heights."""
     standards = [144, 240, 360, 480, 720, 1080, 1440, 2160, 4320]
@@ -148,6 +156,7 @@ def normalize_extractor_result(
         source_domain=raw_info.get("webpage_url_domain")
         or raw_info.get("extractor"),
         view_count=_as_positive_int(raw_info.get("view_count")),
+        like_count=_as_non_negative_int(raw_info.get("like_count")),
     )
 
     video_by_quality: dict[tuple[int, int | None], tuple[dict[str, Any], FormatInfo]] = {}

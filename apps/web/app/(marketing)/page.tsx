@@ -5,7 +5,6 @@ import { useSearchParams } from "next/navigation";
 import {
   ArrowRight,
   CheckCircle2,
-  Download,
   Loader2,
   ShieldCheck,
 } from "lucide-react";
@@ -117,16 +116,10 @@ export default function LandingPage() {
       <div className="relative mx-auto grid w-full max-w-7xl items-center gap-8 lg:grid-cols-[1.02fr_0.98fr] lg:gap-12 xl:gap-16">
         <section className="max-w-3xl">
           {/* 1. Header (delay 100ms) */}
-          <div className="mb-6 sm:mb-8 lg:mb-6 flex items-center gap-3 animate-fade-in-up [animation-delay:100ms]">
-            <div className="relative grid size-10 place-items-center rounded-2xl border border-primary/25 bg-primary/10">
-              <Download className="size-5 text-primary" />
-              <span className="absolute -right-0.5 -top-0.5 size-2.5 rounded-full border-2 border-bg-base bg-emerald-400" />
-            </div>
-            <div>
-              <p className="font-heading text-sm font-semibold tracking-tight">
-                {t("app.name")}
-              </p>
-            </div>
+          <div className="mb-6 sm:mb-8 lg:mb-6 animate-fade-in-up [animation-delay:100ms]">
+            <p className="font-heading text-base font-semibold tracking-tight text-text">
+              {t("app.name")}
+            </p>
           </div>
 
           {/* 2. Eyebrow badge (delay 200ms) */}

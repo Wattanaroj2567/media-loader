@@ -31,6 +31,8 @@ def test_normalize_extractor_result_returns_real_unique_video_heights():
         "thumbnail": "https://img.example/clip.jpg",
         "uploader": "Clip Owner",
         "webpage_url_domain": "youtube.com",
+        "view_count": 12345,
+        "like_count": 678,
         "formats": [
             *[
                 _video_format(height, f"v{height}")
@@ -77,6 +79,8 @@ def test_normalize_extractor_result_returns_real_unique_video_heights():
     assert media.uploader == "Clip Owner"
     assert media.source_domain == "youtube.com"
     assert media.duration_seconds == 125
+    assert media.view_count == 12345
+    assert media.like_count == 678
 
     videos = [item for item in formats if item.type == "video"]
     audio = [item for item in formats if item.type == "audio"]
@@ -142,5 +146,4 @@ def test_normalize_extractor_result_cleans_facebook_title_stats():
     }
     media_normal, _ = normalize_extractor_result(raw_info_normal)
     assert media_normal.title == "Awesome Vlog | My channel"
-
 
