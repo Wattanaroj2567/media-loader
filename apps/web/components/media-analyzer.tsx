@@ -612,13 +612,13 @@ export function MediaAnalyzer() {
               </div>
             </div>
 
-            {/* 100% Full-Width Format Grid (Balanced equal columns across viewports) */}
+            {/* 100% Full-Width Format Grid (Balanced 4-col layout for 8 quality options) */}
             {visibleFormats.length === 0 ? (
               <p className="py-6 text-center text-sm text-text-dim">
                 {t("download.noFormats")}
               </p>
             ) : (
-              <div className="grid gap-2 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+              <div className="grid gap-2.5 grid-cols-2 sm:grid-cols-3 md:grid-cols-4">
                 {visibleFormats.map((format) => (
                   <FormatCard
                     key={`${format.type}-${format.format_id}`}
