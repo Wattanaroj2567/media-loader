@@ -421,31 +421,34 @@ function HistoryHeader({
           <span className="mr-auto text-xs font-semibold text-text-muted" aria-live="polite">
             {t("history.selectedCount", { n: selectedCount }, `เลือกแล้ว ${selectedCount} รายการ`)}
           </span>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={onCancelSelection}
-            disabled={deleting}
-            className="h-11 font-semibold text-text-muted hover:text-text sm:h-9"
-          >
-            {t("history.cancelSelect", {}, "ยกเลิก")}
-          </Button>
 
-          {/* Delete Selected Button ONLY appears after user checks at least 1 item */}
-          {selectedCount > 0 && (
+          {/* Action buttons grouped together in the same right corner */}
+          <div className="flex items-center gap-2">
             <Button
               type="button"
-              variant="outline"
+              variant="ghost"
               size="sm"
-              onClick={onDeleteSelected}
+              onClick={onCancelSelection}
               disabled={deleting}
-              className="h-11 gap-2 border-rose-500/40 bg-rose-500/10 text-rose-700 dark:text-rose-300 font-semibold hover:bg-rose-500/20 sm:h-9 animate-in fade-in zoom-in-95"
+              className="h-11 font-semibold text-text-muted hover:text-text sm:h-9 cursor-pointer"
             >
-              {deleting ? <Loader2 className="size-3.5 animate-spin" /> : <Trash2 className="size-3.5" />}
-              {t("history.deleteSelected", {}, "ลบที่เลือก")}
+              {t("history.cancelSelect", {}, "ยกเลิก")}
             </Button>
-          )}
+
+            {selectedCount > 0 && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={onDeleteSelected}
+                disabled={deleting}
+                className="h-11 gap-2 border-rose-500/40 bg-rose-500/10 text-rose-700 dark:text-rose-300 font-semibold hover:bg-rose-500/20 sm:h-9 animate-in fade-in zoom-in-95 cursor-pointer"
+              >
+                {deleting ? <Loader2 className="size-3.5 animate-spin" /> : <Trash2 className="size-3.5" />}
+                {t("history.deleteSelected", {}, "ลบที่เลือก")}
+              </Button>
+            )}
+          </div>
         </div>
       )}
     </div>
