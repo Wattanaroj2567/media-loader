@@ -100,7 +100,7 @@ export function AppShell({ children, user }: AppShellProps) {
             {t("nav.workspace")}
           </p>
         </div>
-        <nav aria-label={t("nav.primary")} className="flex-1 space-y-1.5 px-3">
+        <nav aria-label={t("nav.primary")} className="flex-1 space-y-1 py-1">
           {navigation.map(({ href, label, icon: Icon }) => {
             const active = href === "/dashboard" ? pathname === href : pathname.startsWith(href);
             return (
@@ -108,14 +108,13 @@ export function AppShell({ children, user }: AppShellProps) {
                 key={href}
                 href={href}
                 aria-current={active ? "page" : undefined}
-                className={`group relative flex min-h-12 items-center gap-3 rounded-xl border px-3.5 text-[13px] font-medium transition-[color,background-color,border-color] duration-200 ${
+                className={`group flex min-h-11 items-center gap-3.5 border-l-3 px-5 py-2.5 text-[13.5px] font-medium transition-colors ${
                   active
-                    ? "border-primary/20 bg-primary/10 text-primary"
-                    : "border-transparent text-text-muted hover:border-border hover:bg-bg-surface/70 hover:text-text"
+                    ? "border-primary bg-primary/12 text-primary font-semibold"
+                    : "border-transparent text-text-muted hover:bg-bg-surface/60 hover:text-text"
                 }`}
               >
-                {active && <span className="absolute -left-3 h-6 w-0.5 rounded-r-full bg-primary" />}
-                <Icon aria-hidden="true" className="size-4.5" />
+                <Icon aria-hidden="true" className="size-4.5 shrink-0" />
                 <span>{t(label)}</span>
               </Link>
             );
