@@ -145,8 +145,8 @@ export default function AccountPage() {
                 </div>
               </div>
 
-              {/* Sign Out Action Button */}
-              <form action="/auth/signout" method="post" className="w-full sm:w-auto">
+              {/* Sign Out Action Button (Mobile responsive view only; hidden on desktop/Windows where sidebar handles signout) */}
+              <form action="/auth/signout" method="post" className="w-full sm:hidden">
                 <Button
                   type="submit"
                   variant="outline"
