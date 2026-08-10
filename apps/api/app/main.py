@@ -11,31 +11,8 @@ from fastapi.responses import JSONResponse
 
 from app.config import get_settings
 from app.errors import AppError, app_error_handler, generic_error_handler
+from app.rate_limiter import RateLimiterMiddleware
 from app.routers import account, downloads, files, health, media
-
-
-# Configure basic logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-)
-logger = logging.getLogger("media_loader_api")
-
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """Lifecycle events for the FastAPI app."""
-    settings = get_settings()
-    logger.info("Starting Media Loader API...")
-    if not settings.has_supabase():
-        logger.warning("Supabase credentials not found. DB features will fail.")
-    else:
-        logger.info("Supabase client initialized.")
-        
-    yield
-    
-    logger.info("Shutting down Media Loader API...")
-
 
 def create_app() -> FastAPI:
     """Create and configure the FastAPI application."""
@@ -47,6 +24,9 @@ def create_app() -> FastAPI:
         version="0.1.0",
         lifespan=lifespan,
     )
+
+    # Configure Rate Limiting Middleware
+    app.add_middleware(RateLimiterMiddleware, max_requests=60, window_seconds=60)
 
     # Configure CORS
     app.add_middleware(
