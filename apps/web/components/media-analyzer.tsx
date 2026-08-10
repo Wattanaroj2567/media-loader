@@ -689,32 +689,64 @@ export function MediaAnalyzer() {
         </div>
       )}
 
-      {/* ── Lightbox Modal Overlay (Theme-harmonized Glassmorphism Popup) ── */}
+      {/* ── Lightbox Modal Overlay (No Blur + Download Thumbnail Option) ── */}
       {showLightbox && media?.thumbnail_url && (
         <div
           onClick={() => setShowLightbox(false)}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-bg-base/75 p-4 backdrop-blur-md transition-all duration-200 animate-fade-in-up dark:bg-black/80"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 transition-all duration-200 animate-fade-in-up"
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="ui-panel relative flex max-h-[85vh] max-w-[92vw] items-center justify-center overflow-hidden rounded-3xl border border-primary/25 bg-bg-surface/90 p-2 shadow-2xl backdrop-blur-xl sm:p-3"
+            className="ui-panel relative flex flex-col max-h-[88vh] max-w-[92vw] items-center justify-center overflow-hidden rounded-3xl border border-border bg-bg-surface p-3 shadow-2xl sm:p-4"
           >
-            {/* Close button */}
-            <button
-              type="button"
-              onClick={() => setShowLightbox(false)}
-              aria-label={t("common.close", {}, "ปิด")}
-              className="absolute right-3 top-3 z-10 grid size-10 place-items-center rounded-2xl border border-border/80 bg-bg-base/80 text-text-muted backdrop-blur-md transition-colors hover:bg-bg-surface hover:text-text cursor-pointer sm:right-4 sm:top-4 sm:size-9"
-            >
-              <X className="size-4" />
-            </button>
+            {/* Action Bar: Title, Download Button & Close */}
+            <div className="mb-3 flex w-full items-center justify-between gap-3 px-1">
+              <span className="truncate text-xs font-semibold text-text-muted">
+                {t("download.thumbnailPreview", {}, "รูปภาพหน้าปก")}
+              </span>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={async () => {
+                    try {
+                      const res = await fetch(media.thumbnail_url!);
+                      const blob = await res.blob();
+                      const blobUrl = URL.createObjectURL(blob);
+                      const a = document.createElement("a");
+                      a.href = blobUrl;
+                      a.download = safeDownloadFilename(media.title, "jpg");
+                      document.body.appendChild(a);
+                      a.click();
+                      document.body.removeChild(a);
+                      URL.revokeObjectURL(blobUrl);
+                    } catch {
+                      window.open(media.thumbnail_url, "_blank");
+                    }
+                  }}
+                  className="h-9 gap-1.5 rounded-xl px-3 text-xs font-semibold cursor-pointer"
+                >
+                  <Download className="size-3.5 text-primary" />
+                  <span>{t("download.saveImage", {}, "ดาวน์โหลดรูป")}</span>
+                </Button>
+                <button
+                  type="button"
+                  onClick={() => setShowLightbox(false)}
+                  aria-label={t("common.close", {}, "ปิด")}
+                  className="grid size-9 place-items-center rounded-xl border border-border bg-bg-base/80 text-text-muted transition-colors hover:bg-bg-surface hover:text-text cursor-pointer"
+                >
+                  <X className="size-4" />
+                </button>
+              </div>
+            </div>
 
             {/* Lightbox thumbnail image */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={media.thumbnail_url}
               alt={media.title}
-              className="block max-h-[80vh] max-w-[88vw] rounded-2xl object-contain shadow-md"
+              className="block max-h-[75vh] max-w-[88vw] rounded-2xl object-contain shadow-md"
             />
           </div>
         </div>
