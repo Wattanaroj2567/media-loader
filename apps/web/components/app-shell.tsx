@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  ArrowDownToLine,
   Clock3,
+  Home,
   Languages,
   LogOut,
   UserRound,
@@ -25,7 +25,7 @@ interface AppShellProps {
 }
 
 const navigation = [
-  { href: "/dashboard", label: "nav.newDownload", icon: ArrowDownToLine },
+  { href: "/dashboard", label: "nav.newDownload", icon: Home },
   { href: "/history", label: "nav.history", icon: Clock3 },
 ];
 
