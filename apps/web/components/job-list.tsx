@@ -234,8 +234,8 @@ function JobCard({ job, mode, busy, busyAction, selectionMode, selected, onToggl
             />
           </label>
         )}
-        {/* Thumb — full width top on mobile, fixed 96x54 (16:9) on desktop */}
-        <div className="w-full shrink-0 overflow-hidden rounded-xl sm:h-13.5 sm:w-24">
+        {/* Thumb — 16:9 aspect ratio on mobile, fixed 96x54 (16:9) on desktop */}
+        <div className="aspect-video w-full shrink-0 overflow-hidden rounded-xl sm:aspect-auto sm:h-13.5 sm:w-24">
           <Thumb job={job} />
         </div>
 
