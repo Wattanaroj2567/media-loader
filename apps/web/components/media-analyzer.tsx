@@ -67,21 +67,29 @@ function formatViews(views?: number | null, locale?: string) {
 
 
 function formatCardTitle(format: MediaFormat) {
-  if (format.quality_label) {
-    // Strip trailing fps (e.g., "1080p60" -> "1080p") to avoid repeating fps in meta
-    const cleanLabel = format.quality_label.replace(/(\d+p)\d+$/i, "$1");
-    if (format.height === 2160) return `${cleanLabel} (4K)`;
-    if (format.height === 1440) return `${cleanLabel} (2K)`;
-    return cleanLabel;
+  if (format.type === "video") {
+    // For vertical videos (Reels/Shorts where height > width), use width as the resolution (e.g., 1080x1920 -> 1080p)
+    const effectiveRes = (format.width && format.height && format.height > format.width)
+      ? format.width
+      : format.height;
+
+    if (effectiveRes) {
+      if (effectiveRes >= 2160) return `${effectiveRes}p (4K)`;
+      if (effectiveRes >= 1440) return `${effectiveRes}p (2K)`;
+      return `${effectiveRes}p`;
+    }
+
+    if (format.quality_label) {
+      const cleanLabel = format.quality_label.replace(/(\d+p)\d+$/i, "$1");
+      return cleanLabel;
+    }
   }
-  if (format.type === "video" && format.height) {
-    if (format.height === 2160) return `${format.height}p (4K)`;
-    if (format.height === 1440) return `${format.height}p (2K)`;
-    return `${format.height}p`;
-  }
-  if (format.type === "audio" && format.bitrate)
+
+  if (format.type === "audio" && format.bitrate) {
     return `${Math.round(format.bitrate)} kbps`;
-  return format.format_id;
+  }
+
+  return format.quality_label || format.format_id;
 }
 
 function getAudioQualityLabel(
@@ -104,6 +112,7 @@ function formatCardMeta(
   format: MediaFormat,
   t: (key: string, vars?: Record<string, string | number>, fallback?: string) => string,
 ) {
+  const resolutionStr = format.width && format.height ? `${format.width}x${format.height}` : null;
   const pieces = [
     format.type === "video" && format.fps && format.fps > 30
       ? `${format.fps} ${t("download.fps")}`
@@ -112,6 +121,15 @@ function formatCardMeta(
       ? getAudioQualityLabel(format.bitrate, t)
       : null,
     format.filesize ? formatBytes(format.filesize) : null,
+    !format.filesize && format.type === "video" && resolutionStr
+      ? resolutionStr
+      : null,
+    !format.filesize && !resolutionStr && format.type === "video"
+      ? t("download.videoFormat", {}, "ไฟล์วิดีโอ HD")
+      : null,
+    !format.filesize && !format.bitrate && format.type === "audio"
+      ? t("download.audioFormat", {}, "ไฟล์เสียง MP3")
+      : null,
   ].filter(Boolean);
   return pieces.join(" · ");
 }
@@ -160,7 +178,7 @@ function FormatCard({
   onSelect: () => void;
 }) {
   const { t } = useT();
-  const meta = formatCardMeta(format, t) || t("common.unknown");
+  const meta = formatCardMeta(format, t) || (format.type === "video" ? t("download.videoFormat", {}, "ไฟล์วิดีโอ HD") : t("download.audioFormat", {}, "ไฟล์เสียง MP3"));
 
   return (
     <button
