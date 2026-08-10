@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   ArrowDownToLine,
   Clock3,
@@ -59,8 +59,16 @@ function UserAvatar({
 
 export function AppShell({ children, user }: AppShellProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const { t, locale, setLocale } = useT();
   const [isOffline, setIsOffline] = useState(false);
+
+  useEffect(() => {
+    // Eagerly prefetch app routes so sidebar page switches are instant
+    router.prefetch("/dashboard");
+    router.prefetch("/history");
+    router.prefetch("/settings");
+  }, [router]);
 
   useEffect(() => {
     const syncConnection = () => setIsOffline(!window.navigator.onLine);
@@ -85,7 +93,7 @@ export function AppShell({ children, user }: AppShellProps) {
       </a>
 
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-68 flex-col border-r border-sidebar-border bg-sidebar/92 backdrop-blur-2xl lg:flex">
-        <Link href="/dashboard" className="flex h-21 items-center gap-3.5 border-b border-sidebar-border px-5">
+        <Link href="/dashboard" prefetch={true} className="flex h-21 items-center gap-3.5 border-b border-sidebar-border px-5">
           <span className="relative grid size-11 place-items-center rounded-2xl border border-primary/25 bg-primary/10 text-primary">
             <ArrowDownToLine aria-hidden="true" className="size-5" />
             <span className="absolute -right-0.5 -top-0.5 size-2.5 rounded-full border-2 border-sidebar bg-emerald-400" />
@@ -108,6 +116,7 @@ export function AppShell({ children, user }: AppShellProps) {
               <Link
                 key={href}
                 href={href}
+                prefetch={true}
                 aria-current={active ? "page" : undefined}
                 className={`group flex min-h-11 items-center gap-3.5 border-l-3 px-5 py-2.5 text-[13.5px] font-medium transition-colors ${
                   active
@@ -126,6 +135,7 @@ export function AppShell({ children, user }: AppShellProps) {
         <div className="border-t border-sidebar-border bg-bg-surface/30">
           <Link
             href="/settings"
+            prefetch={true}
             title={t("account.viewProfile", {}, "ดูโปรไฟล์")}
             className={`group flex min-w-0 items-center gap-3.5 border-l-3 px-5 py-3 text-[13.5px] font-medium transition-colors outline-none ${
               pathname.startsWith("/settings")

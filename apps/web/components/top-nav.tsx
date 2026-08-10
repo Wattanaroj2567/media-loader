@@ -119,7 +119,7 @@ export function TopNav({ user }: TopNavProps) {
     <header className="sticky top-0 z-50 border-b border-border bg-bg-base/80 backdrop-blur-md">
       <div className="mx-auto flex h-14 max-w-5xl items-center gap-1.5 sm:gap-2 px-3 sm:px-4 lg:px-6">
         {/* Logo */}
-        <Link href="/dashboard" className="flex shrink-0 items-center gap-2 pr-2 sm:pr-4">
+        <Link href="/dashboard" prefetch={true} className="flex shrink-0 items-center gap-2 pr-2 sm:pr-4">
           <div className="grid size-8 place-items-center rounded-xl bg-primary/10 text-primary">
             <Download className="size-4" />
           </div>
@@ -138,6 +138,7 @@ export function TopNav({ user }: TopNavProps) {
               <Link
                 key={href}
                 href={href}
+                prefetch={true}
                 className={`relative flex h-full items-center px-1.5 sm:px-4 text-xs sm:text-sm font-medium whitespace-nowrap transition-colors ${
                   active ? "text-primary font-semibold" : "text-text-muted hover:text-foreground"
                 }`}
