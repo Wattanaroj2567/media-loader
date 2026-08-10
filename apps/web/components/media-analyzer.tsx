@@ -543,7 +543,7 @@ export function MediaAnalyzer() {
                 <span>{t("download.policyPassed")}</span>
               </div>
 
-              <h2 className="line-clamp-2 text-base font-semibold leading-snug tracking-tight text-text sm:text-lg lg:text-xl">
+              <h2 className="line-clamp-3 text-base font-semibold leading-snug tracking-tight text-text sm:text-lg lg:text-xl">
                 {media.title}
               </h2>
 
@@ -612,13 +612,13 @@ export function MediaAnalyzer() {
               </div>
             </div>
 
-            {/* 100% Full-Width Format Grid */}
+            {/* 100% Full-Width Format Grid (Balanced equal columns across viewports) */}
             {visibleFormats.length === 0 ? (
               <p className="py-6 text-center text-sm text-text-dim">
                 {t("download.noFormats")}
               </p>
             ) : (
-              <div className="grid gap-2 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+              <div className="grid gap-2 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
                 {visibleFormats.map((format) => (
                   <FormatCard
                     key={`${format.type}-${format.format_id}`}

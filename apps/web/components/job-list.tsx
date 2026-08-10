@@ -241,15 +241,15 @@ function JobCard({ job, mode, busy, busyAction, selectionMode, selected, onToggl
 
         {/* Content */}
         <div className="min-w-0 flex-1 py-0.5">
-        {/* Title */}
-        <p className="line-clamp-1 text-sm font-medium text-text leading-snug">
-          {title}
-        </p>
+          {/* Title (Up to 3 lines) */}
+          <p className="line-clamp-3 text-sm font-semibold text-text leading-snug">
+            {title}
+          </p>
 
-        {/* Status + meta */}
-        <div className="mt-1.5 flex flex-wrap items-center gap-2">
-          <StatusChip status={job.status} label={t(`status.${job.status}`, {}, job.status)} />
-          {job.platform && (
+          {/* Status + meta */}
+          <div className="mt-1.5 flex flex-wrap items-center gap-2">
+            <StatusChip status={job.status} label={t(`status.${job.status}`, {}, job.status)} />
+            {job.platform && (
             <span className="text-[11px] text-text-dim">{job.platform}</span>
           )}
           {job.source_domain && !isDomainRedundant && (
