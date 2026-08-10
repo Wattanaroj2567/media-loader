@@ -87,7 +87,7 @@ export default function AccountPage() {
   };
 
   return (
-    <main className="mx-auto max-w-6xl px-3 py-6 min-[360px]:px-4 sm:px-6 lg:px-8 lg:py-9">
+    <main className="mx-auto w-full min-w-0 max-w-6xl overflow-x-clip px-3 py-6 min-[360px]:px-4 sm:px-6 lg:px-8 lg:py-9">
       {/* Page title */}
       <div className="mb-6 sm:mb-8">
         <h1 className="ui-page-title">
@@ -104,10 +104,10 @@ export default function AccountPage() {
           />
         </div>
       ) : (
-        <div className="grid gap-5 lg:grid-cols-[1.25fr_0.75fr] lg:items-start">
+        <div className="grid min-w-0 gap-5 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,0.75fr)] lg:items-start">
           {/* Profile card */}
-          <section className="ui-panel rounded-3xl p-4 min-[360px]:p-5 sm:p-6">
-            <div className="flex items-start justify-between gap-3">
+          <section className="ui-panel min-w-0 max-w-full overflow-hidden rounded-3xl p-4 min-[360px]:p-5 sm:p-6">
+            <div className="flex min-w-0 flex-wrap items-start justify-between gap-2 min-[360px]:gap-3">
               <h2 className="min-w-0 text-base font-semibold text-text">
                 {t("account.profile", {}, "โปรไฟล์ Google")}
               </h2>
@@ -117,8 +117,8 @@ export default function AccountPage() {
               </span>
             </div>
 
-            <div className="mt-6 flex flex-wrap items-center justify-between gap-4 border-t border-border/60 pt-5">
-              <div className="flex min-w-0 flex-1 items-center gap-3 min-[360px]:gap-4">
+            <div className="mt-6 flex min-w-0 flex-wrap items-center justify-between gap-4 border-t border-border/60 pt-5">
+              <div className="flex w-full min-w-0 items-center gap-3 min-[360px]:gap-4 sm:flex-1">
                 <div
                   role={user?.avatar_url ? "img" : undefined}
                   aria-label={user?.full_name || user?.email || "User"}
@@ -133,18 +133,18 @@ export default function AccountPage() {
                     <CircleUserRound className="size-7 text-text-dim" />
                   )}
                 </div>
-                <div className="min-w-0">
-                  <div className="flex min-w-0 items-center gap-2">
-                    <p className="min-w-0 flex-1 truncate text-sm font-semibold text-text min-[360px]:text-base">
-                      {user?.full_name || user?.email?.split("@")[0] || "User"}
+                <div className="min-w-0 flex-1">
+                  <p className="block max-w-full truncate text-sm font-semibold text-text min-[360px]:text-base">
+                    {user?.full_name || user?.email?.split("@")[0] || "User"}
+                  </p>
+                  <div className="mt-0.5 flex min-w-0 items-center gap-2">
+                    <p className="min-w-0 flex-1 truncate text-sm text-text-muted">
+                      {user?.email}
                     </p>
                     <span className="shrink-0 rounded-lg border border-border bg-bg-surface px-2 py-0.5 text-[10px] font-medium text-text-muted">
                       Google
                     </span>
                   </div>
-                  <p className="mt-0.5 truncate text-sm text-text-muted">
-                    {user?.email}
-                  </p>
                 </div>
               </div>
 
@@ -164,7 +164,7 @@ export default function AccountPage() {
           </section>
 
           {/* Danger zone collapsible */}
-          <div className="overflow-hidden rounded-3xl border border-border bg-bg-elevated/60 shadow-[inset_0_1px_0_var(--panel-highlight)]">
+          <div className="min-w-0 max-w-full overflow-hidden rounded-3xl border border-border bg-bg-elevated/60 shadow-[inset_0_1px_0_var(--panel-highlight)]">
             <button
               type="button"
               onClick={() => setShowDangerZone(!showDangerZone)}

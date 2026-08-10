@@ -230,6 +230,7 @@ All phases of the local workflow are implemented. The rebuild plan from 2026-07-
 - [x] Let all desktop sidebar utility actions fill equal-width cells instead of leaving theme and sign-out controls undersized
 - [x] Standardize every frontend spinner with a visible localized loading/status label and accessible live status semantics
 - [x] Make i18n translation snapshots synchronous during SSR and hydration so fallback context never renders raw translation keys
+- [x] Prevent long real-world profile names and emails from widening the mobile Account grid beyond the viewport
 - [x] Use text-only `Media Loader` branding without an app mark (2026-08-10)
 
 ---
