@@ -225,6 +225,11 @@ All phases of the local workflow are implemented. The rebuild plan from 2026-07-
 - [x] Preserve the complete Unicode media title in the browser download filename while keeping restricted temporary filenames internally
 - [x] Rebuild the full frontend visual system with a calm media theme, contextual queue, responsive navigation, and unified dashboard/history/account surfaces
 - [x] Remove duplicate account navigation and profile metadata; open Account directly from the clickable profile/avatar
+- [x] Make Account a focused mobile/tablet subpage with a top-left Back action, no bottom navigation, and Sign out inside the profile card; keep desktop actions in the sidebar
+- [x] Enforce a 280px minimum viewport so narrow mobile emulation remains usable while extreme resizing scrolls instead of crushing the interface
+- [x] Let all desktop sidebar utility actions fill equal-width cells instead of leaving theme and sign-out controls undersized
+- [x] Standardize every frontend spinner with a visible localized loading/status label and accessible live status semantics
+- [x] Make i18n translation snapshots synchronous during SSR and hydration so fallback context never renders raw translation keys
 - [x] Use text-only `Media Loader` branding without an app mark (2026-08-10)
 
 ---

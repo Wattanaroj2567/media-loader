@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import {
   AlertTriangle,
   CircleUserRound,
-  Loader2,
   LogOut,
   ShieldCheck,
   Trash2,
@@ -21,6 +20,7 @@ import { useT } from "@/lib/i18n/context";
 import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { LoadingIndicator } from "@/components/loading-indicator";
 
 interface AccountUser {
   email?: string;
@@ -87,7 +87,7 @@ export default function AccountPage() {
   };
 
   return (
-    <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8 lg:py-9">
+    <main className="mx-auto max-w-6xl px-3 py-6 min-[360px]:px-4 sm:px-6 lg:px-8 lg:py-9">
       {/* Page title */}
       <div className="mb-6 sm:mb-8">
         <h1 className="ui-page-title">
@@ -97,29 +97,32 @@ export default function AccountPage() {
       </div>
 
       {loading ? (
-        <div className="grid min-h-48 place-items-center">
-          <Loader2 className="size-5 animate-spin text-text-dim" />
+        <div className="grid min-h-48 place-items-center text-sm text-text-muted">
+          <LoadingIndicator
+            label={t("common.loading", {}, "กำลังโหลด...")}
+            iconClassName="size-5 text-text-dim"
+          />
         </div>
       ) : (
         <div className="grid gap-5 lg:grid-cols-[1.25fr_0.75fr] lg:items-start">
           {/* Profile card */}
-          <section className="ui-panel rounded-3xl p-5 sm:p-6">
-            <div className="flex items-start justify-between">
-              <h2 className="text-base font-semibold text-text">
+          <section className="ui-panel rounded-3xl p-4 min-[360px]:p-5 sm:p-6">
+            <div className="flex items-start justify-between gap-3">
+              <h2 className="min-w-0 text-base font-semibold text-text">
                 {t("account.profile", {}, "โปรไฟล์ Google")}
               </h2>
-              <span className="flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-0.5 text-xs text-emerald-800 dark:text-emerald-300">
+              <span className="flex shrink-0 items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-0.5 text-xs text-emerald-800 dark:text-emerald-300">
                 <ShieldCheck className="size-3" />
                 {t("account.active", {}, "ใช้งานอยู่")}
               </span>
             </div>
 
             <div className="mt-6 flex flex-wrap items-center justify-between gap-4 border-t border-border/60 pt-5">
-              <div className="flex items-center gap-4">
+              <div className="flex min-w-0 flex-1 items-center gap-3 min-[360px]:gap-4">
                 <div
                   role={user?.avatar_url ? "img" : undefined}
                   aria-label={user?.full_name || user?.email || "User"}
-                  className="grid size-14 shrink-0 place-items-center overflow-hidden rounded-2xl border border-primary/20 bg-primary/10 bg-cover bg-center"
+                  className="grid size-12 shrink-0 place-items-center overflow-hidden rounded-2xl border border-primary/20 bg-primary/10 bg-cover bg-center min-[360px]:size-14"
                   style={
                     user?.avatar_url
                       ? { backgroundImage: `url("${user.avatar_url}")` }
@@ -131,11 +134,11 @@ export default function AccountPage() {
                   )}
                 </div>
                 <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="truncate text-base font-semibold text-text">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <p className="min-w-0 flex-1 truncate text-sm font-semibold text-text min-[360px]:text-base">
                       {user?.full_name || user?.email?.split("@")[0] || "User"}
                     </p>
-                    <span className="rounded-lg bg-bg-surface border border-border px-2 py-0.5 text-[10px] font-medium text-text-muted">
+                    <span className="shrink-0 rounded-lg border border-border bg-bg-surface px-2 py-0.5 text-[10px] font-medium text-text-muted">
                       Google
                     </span>
                   </div>
@@ -145,13 +148,12 @@ export default function AccountPage() {
                 </div>
               </div>
 
-              {/* Sign Out Action Button (Mobile responsive view only; hidden on desktop/Windows where sidebar handles signout) */}
-              <form action="/auth/signout" method="post" className="w-full sm:hidden">
+              <form action="/auth/signout" method="post" className="w-full sm:w-auto lg:hidden">
                 <Button
                   type="submit"
                   variant="outline"
                   size="sm"
-                  className="h-10 w-full gap-2 border-rose-500/40 text-rose-600 dark:text-rose-400 hover:border-rose-500/60 hover:bg-rose-500/10 hover:text-rose-700 dark:hover:text-rose-300 sm:w-auto cursor-pointer font-semibold"
+                  className="h-10 w-full cursor-pointer gap-2 border-border text-text-muted hover:border-rose-500/40 hover:bg-rose-500/10 hover:text-rose-700 dark:hover:text-rose-300 sm:w-auto"
                 >
                   <LogOut className="size-4" />
                   <span>{t("account.signOut", {}, "ออกจากระบบ")}</span>
@@ -215,11 +217,13 @@ export default function AccountPage() {
                     className="w-full"
                   >
                     {deleting ? (
-                      <Loader2 className="size-4 animate-spin" />
+                      <LoadingIndicator label={t("account.deleting")} />
                     ) : (
-                      <Trash2 className="size-4" />
+                      <>
+                        <Trash2 className="size-4" />
+                        {t("account.delete")}
+                      </>
                     )}
-                    {deleting ? t("account.deleting") : t("account.delete")}
                   </Button>
                 </div>
               </div>

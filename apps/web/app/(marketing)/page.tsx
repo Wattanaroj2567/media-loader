@@ -5,11 +5,11 @@ import { useSearchParams } from "next/navigation";
 import {
   ArrowRight,
   CheckCircle2,
-  Loader2,
   ShieldCheck,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { LoadingIndicator } from "@/components/loading-indicator";
 import { Badge } from "@/components/ui/badge";
 import { useT } from "@/lib/i18n/context";
 import { createClient } from "@/utils/supabase/client";
@@ -152,12 +152,14 @@ export default function LandingPage() {
               className="h-11.5 rounded-xl px-6 text-sm font-semibold transition-colors duration-200 cursor-pointer"
             >
               {loading ? (
-                <Loader2 className="size-4 animate-spin" />
+                <LoadingIndicator label={t("landing.signingIn")} />
               ) : (
-                <GoogleIcon />
+                <>
+                  <GoogleIcon />
+                  {t("landing.signIn")}
+                  <ArrowRight className="size-4" />
+                </>
               )}
-              {loading ? t("landing.signingIn") : t("landing.signIn")}
-              {!loading && <ArrowRight className="size-4" />}
             </Button>
           </div>
 

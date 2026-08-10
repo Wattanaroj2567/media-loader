@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  ArrowLeft,
   Clock3,
   Home,
   Languages,
@@ -61,6 +62,7 @@ export function AppShell({ children, user }: AppShellProps) {
   const router = useRouter();
   const { t, locale, setLocale } = useT();
   const [isOffline, setIsOffline] = useState(false);
+  const isAccountPage = pathname.startsWith("/settings");
 
   useEffect(() => {
     // Eagerly prefetch app routes so sidebar page switches are instant
@@ -154,12 +156,13 @@ export function AppShell({ children, user }: AppShellProps) {
               <Languages aria-hidden="true" className="size-3.5 text-primary shrink-0" />
               <span className="font-mono text-[11px] font-bold tracking-wider">{locale === "th" ? "EN" : "TH"}</span>
             </button>
-            <div className="grid place-items-center"><ThemeToggle /></div>
-            <form action="/auth/signout" method="post" className="grid place-items-center">
+            <ThemeToggle className="w-full bg-bg-base/60" />
+            <form action="/auth/signout" method="post" className="w-full">
               <button
                 type="submit"
                 aria-label={t("nav.signOut")}
-                className="flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-bg-base/60 text-text-muted transition-colors hover:border-rose-500/30 hover:bg-rose-500/10 hover:text-rose-400 cursor-pointer"
+                title={t("nav.signOut")}
+                className="flex h-9 w-full cursor-pointer items-center justify-center rounded-xl border border-border bg-bg-base/60 text-text-muted transition-colors hover:border-rose-500/30 hover:bg-rose-500/10 hover:text-rose-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 dark:hover:text-rose-400"
               >
                 <LogOut aria-hidden="true" className="size-4" />
               </button>
@@ -169,20 +172,31 @@ export function AppShell({ children, user }: AppShellProps) {
       </aside>
 
       <div className="lg:ml-68">
-        <header className="sticky top-0 z-30 flex h-16 items-center border-b border-border bg-bg-base/82 px-4 backdrop-blur-2xl sm:px-6 lg:hidden">
-          <Link href="/dashboard" className="flex items-center gap-2.5 lg:hidden">
-            <span className="font-heading text-base font-semibold tracking-tight">{t("app.name")}</span>
-          </Link>
+        <header className="sticky top-0 z-30 flex h-16 items-center border-b border-border bg-bg-base/82 px-3 backdrop-blur-2xl min-[360px]:px-4 sm:px-6 lg:hidden">
+          {isAccountPage ? (
+            <Link
+              href="/dashboard"
+              aria-label={t("common.back", {}, "กลับ")}
+              className="flex min-h-11 items-center gap-2 rounded-xl px-2 text-sm font-semibold text-text transition-colors hover:bg-bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+            >
+              <ArrowLeft aria-hidden="true" className="size-4.5" />
+              <span className="max-[359px]:sr-only">{t("common.back", {}, "กลับ")}</span>
+            </Link>
+          ) : (
+            <Link href="/dashboard" className="flex min-w-0 items-center gap-2.5">
+              <span className="truncate font-heading text-sm font-semibold tracking-tight min-[360px]:text-base">{t("app.name")}</span>
+            </Link>
+          )}
 
-          <div className="ml-auto flex items-center gap-2">
+          <div className="ml-auto flex shrink-0 items-center gap-1.5 min-[360px]:gap-2">
             <button
               type="button"
               onClick={toggleLocale}
               title={locale === "th" ? "Switch to English" : "เปลี่ยนเป็นภาษาไทย"}
-              className="flex h-9 items-center gap-1.5 rounded-xl border border-border bg-bg-surface/55 px-2.5 text-xs font-semibold text-text transition-colors hover:border-primary/30 hover:text-primary lg:hidden cursor-pointer"
+              className="flex h-9 items-center gap-1.5 rounded-xl border border-border bg-bg-surface/55 px-2 text-xs font-semibold text-text transition-colors hover:border-primary/30 hover:text-primary min-[360px]:px-2.5 lg:hidden cursor-pointer"
             >
               <Languages aria-hidden="true" className="size-4 text-primary shrink-0" />
-              <span className="font-mono font-bold tracking-wider">{locale === "th" ? "EN" : "TH"}</span>
+              <span className="font-mono font-bold tracking-wider max-[359px]:sr-only">{locale === "th" ? "EN" : "TH"}</span>
             </button>
             <div className="lg:hidden"><ThemeToggle /></div>
             <Link
@@ -202,32 +216,37 @@ export function AppShell({ children, user }: AppShellProps) {
           </div>
         )}
 
-        <main id="main-content" className="min-h-[calc(100dvh-4rem)] pb-24 lg:min-h-dvh lg:pb-0">
+        <main
+          id="main-content"
+          className={`min-h-[calc(100dvh-4rem)] lg:min-h-dvh lg:pb-0 ${isAccountPage ? "pb-6" : "pb-24"}`}
+        >
           {children}
         </main>
       </div>
 
-      <nav
-        aria-label={t("nav.primary")}
-        className="fixed inset-x-3 bottom-3 z-40 grid grid-cols-2 gap-1 rounded-2xl border border-border bg-sidebar/95 p-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))] shadow-[0_18px_60px_rgba(0,0,0,0.35)] backdrop-blur-2xl lg:hidden"
-      >
-        {navigation.map(({ href, label, icon: Icon }) => {
-          const active = href === "/dashboard" ? pathname === href : pathname.startsWith(href);
-          return (
-            <Link
-              key={href}
-              href={href}
-              aria-current={active ? "page" : undefined}
-              className={`flex min-h-12 flex-col items-center justify-center gap-1 rounded-xl text-[10px] font-medium transition-colors ${
-                active ? "bg-primary/12 text-primary font-semibold" : "text-text-muted hover:bg-bg-surface hover:text-text"
-              }`}
-            >
-              <Icon aria-hidden="true" className="size-4.5" />
-              <span>{t(label)}</span>
-            </Link>
-          );
-        })}
-      </nav>
+      {!isAccountPage && (
+        <nav
+          aria-label={t("nav.primary")}
+          className="fixed inset-x-3 bottom-3 z-40 grid grid-cols-2 gap-1 rounded-2xl border border-border bg-sidebar/95 p-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))] shadow-[0_18px_60px_rgba(0,0,0,0.35)] backdrop-blur-2xl lg:hidden"
+        >
+          {navigation.map(({ href, label, icon: Icon }) => {
+            const active = href === "/dashboard" ? pathname === href : pathname.startsWith(href);
+            return (
+              <Link
+                key={href}
+                href={href}
+                aria-current={active ? "page" : undefined}
+                className={`flex min-h-12 flex-col items-center justify-center gap-1 rounded-xl text-[10px] font-medium transition-colors ${
+                  active ? "bg-primary/12 text-primary font-semibold" : "text-text-muted hover:bg-bg-surface hover:text-text"
+                }`}
+              >
+                <Icon aria-hidden="true" className="size-4.5" />
+                <span>{t(label)}</span>
+              </Link>
+            );
+          })}
+        </nav>
+      )}
     </div>
   );
 }

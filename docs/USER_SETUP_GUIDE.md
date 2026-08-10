@@ -212,9 +212,11 @@ The compact queue appears only while a job is active. History contains completed
 
 ### Interface layout
 
-On desktop, the signed-in app uses a persistent sidebar for **New load** and **History**. Account settings open by clicking the profile at the bottom of the sidebar. On phones and tablets, New load and History move to the bottom navigation while the profile avatar opens Account. Queue is contextual rather than a separate destination: it appears beside or below the analyzer only while a job is active.
+On desktop, the signed-in app uses a persistent sidebar for **New load** and **History**. Account settings open by clicking the profile at the bottom of the sidebar, and Sign out remains in that sidebar. On phones and tablets, New load and History move to the bottom navigation while the profile avatar opens Account. Account is a focused subpage on these smaller screens: its bottom navigation is hidden, a Back action appears at the top-left, and Sign out is available inside the profile card. Queue is contextual rather than a separate destination: it appears beside or below the analyzer only while a job is active.
 
-The interface supports light and dark themes, Thai and English, keyboard focus indicators, reduced-motion preferences, and responsive layouts down to a 320px viewport.
+The interface supports light and dark themes, Thai and English, keyboard focus indicators, reduced-motion preferences, and responsive layouts down to a 280px viewport.
+
+All asynchronous loading indicators pair the spinner with a visible, localized status label so users are never left with an unexplained animated icon.
 
 ---
 

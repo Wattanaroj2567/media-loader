@@ -46,3 +46,9 @@ storage/
 
 
 .vercel
+
+# Local web install and test artifacts
+apps/web/package-lock.json
+apps/web/playwright-report/
+apps/web/test-results/
+test-results/

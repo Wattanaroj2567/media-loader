@@ -10,7 +10,6 @@ import {
   Film,
   Globe2,
   History,
-  Loader2,
   Music,
   Pause,
   Play,
@@ -20,6 +19,7 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { LoadingIndicator } from "@/components/loading-indicator";
 import { useToast } from "@/components/toast";
 import { apiClient, type Job } from "@/lib/api-client";
 import { isActiveStatus } from "@/lib/media-presenters.ts";
@@ -298,6 +298,14 @@ function JobCard({ job, mode, busy, busyAction, selectionMode, selected, onToggl
 
       {/* Actions */}
       <div className="flex shrink-0 items-center justify-end gap-2 border-t border-border/60 pt-2.5 sm:items-start sm:border-t-0 sm:pt-0.5">
+        {busyAction ? (
+          <LoadingIndicator
+            label={t("common.loading", {}, "กำลังโหลด...")}
+            className="min-h-11 rounded-lg border border-border bg-bg-surface/50 px-3 text-xs text-text-muted sm:min-h-8"
+            iconClassName="size-3.5"
+          />
+        ) : (
+          <>
         {canDownloadAgain && (
           <Button size="sm" onClick={onDownloadAgain} disabled={busy}
             aria-label={t("history.downloadAgain", {}, "ดาวน์โหลดอีกครั้ง")}
@@ -309,26 +317,28 @@ function JobCard({ job, mode, busy, busyAction, selectionMode, selected, onToggl
         {canResume && (
           <button type="button" onClick={onResume} disabled={busy} title={t("queue.resume", {}, "ดาวน์โหลดต่อ")}
             className="grid size-11 place-items-center rounded-lg border border-border bg-bg-surface/50 text-emerald-600 transition-colors hover:border-emerald-500/20 hover:bg-emerald-500/10 hover:text-emerald-500 sm:size-8 dark:text-emerald-400 dark:hover:text-emerald-300 cursor-pointer">
-            {busyAction === "resume" ? <Loader2 className="size-3.5 animate-spin" /> : <Play className="size-3.5" />}
+            <Play className="size-3.5" />
           </button>
         )}
         {canPause && (
           <button type="button" onClick={onPause} disabled={busy} title={t("queue.pause", {}, "หยุดชั่วคราว")}
             className="grid size-11 place-items-center rounded-lg border border-border bg-bg-surface/50 text-text-muted transition-colors hover:border-amber-500/20 hover:bg-amber-500/10 hover:text-amber-600 sm:size-8 dark:hover:text-amber-400 cursor-pointer">
-            {busyAction === "pause" ? <Loader2 className="size-3.5 animate-spin" /> : <Pause className="size-3.5" />}
+            <Pause className="size-3.5" />
           </button>
         )}
         {canCancel && (
           <button type="button" onClick={onCancel} disabled={busy} title={t("queue.cancel", {}, "ยกเลิก")}
             className="grid size-11 place-items-center rounded-lg border border-border bg-bg-surface/50 text-text-muted transition-colors hover:border-rose-500/20 hover:bg-rose-500/10 hover:text-rose-600 sm:size-8 dark:hover:text-rose-400 cursor-pointer">
-            {busyAction === "cancel" ? <Loader2 className="size-3.5 animate-spin" /> : <Ban className="size-3.5" />}
+            <Ban className="size-3.5" />
           </button>
         )}
         {canDeleteQ && (
           <button type="button" onClick={onDelete} disabled={busy} title={t("queue.delete", {}, "ลบ")}
             className="grid size-11 place-items-center rounded-lg border border-border text-text-muted transition-colors hover:border-rose-500/20 hover:bg-rose-500/10 hover:text-rose-600 sm:size-8 dark:hover:text-rose-400 cursor-pointer">
-            {busyAction === "delete" ? <Loader2 className="size-4.5 animate-spin" /> : <Trash2 className="size-4.5" />}
+            <Trash2 className="size-4.5" />
           </button>
+        )}
+          </>
         )}
       </div>
     </article>
@@ -444,8 +454,14 @@ function HistoryHeader({
                 disabled={deleting}
                 className="h-11 gap-2 border-rose-500/40 bg-rose-500/10 text-rose-700 dark:text-rose-300 font-semibold hover:bg-rose-500/20 sm:h-9 animate-in fade-in zoom-in-95 cursor-pointer"
               >
-                {deleting ? <Loader2 className="size-3.5 animate-spin" /> : <Trash2 className="size-3.5" />}
-                {t("history.deleteSelected", {}, "ลบที่เลือก")}
+                {deleting ? (
+                  <LoadingIndicator label={t("common.loading", {}, "กำลังโหลด...")} iconClassName="size-3.5" />
+                ) : (
+                  <>
+                    <Trash2 className="size-3.5" />
+                    {t("history.deleteSelected", {}, "ลบที่เลือก")}
+                  </>
+                )}
               </Button>
             )}
           </div>
@@ -523,8 +539,14 @@ function OfflineBanner({ message, onRetry }: { message: string; onRetry: () => P
         disabled={retrying}
         className="flex shrink-0 items-center gap-1.5 rounded-lg bg-rose-100 dark:bg-rose-500/10 px-3 py-1.5 text-xs font-semibold text-rose-800 dark:text-rose-300 transition-colors hover:bg-rose-200 dark:hover:bg-rose-500/20 disabled:opacity-60 cursor-pointer disabled:cursor-not-allowed"
       >
-        <RefreshCw className={`size-3 ${retrying ? "animate-spin" : ""}`} />
-        {retrying ? (locale === "th" ? "กำลังโหลด..." : "Retrying...") : t("common.retry", {}, "ลองใหม่")}
+        {retrying ? (
+          <LoadingIndicator label={t("common.loading", {}, "กำลังโหลด...")} iconClassName="size-3" />
+        ) : (
+          <>
+            <RefreshCw className="size-3" />
+            {t("common.retry", {}, "ลองใหม่")}
+          </>
+        )}
       </button>
     </div>
   );
@@ -818,9 +840,11 @@ export function JobList({ mode, compact = false, containerRef }: {
 
       {/* List */}
       {loading ? (
-        <div className="flex min-h-48 items-center justify-center gap-2 text-sm text-text-muted" role="status" aria-live="polite">
-          <Loader2 className="size-6 animate-spin text-text-dim" />
-          <span>{t("common.loading", {}, "กำลังโหลด...")}</span>
+        <div className="flex min-h-48 items-center justify-center text-sm text-text-muted">
+          <LoadingIndicator
+            label={t("common.loading", {}, "กำลังโหลด...")}
+            iconClassName="size-6 text-text-dim"
+          />
         </div>
       ) : visibleJobs.length > 0 ? (
         <div className="space-y-2.5">

@@ -13,7 +13,6 @@ import {
   Globe2,
   Heart,
   Info,
-  Loader2,
   Search,
   ShieldAlert,
   UserRound,
@@ -21,6 +20,7 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { LoadingIndicator } from "@/components/loading-indicator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/toast";
 import { apiClient, type MediaAnalysis } from "@/lib/api-client";
@@ -196,10 +196,10 @@ function AnalyzerSkeleton() {
   const { t } = useT();
   return (
     <div className="mt-5 space-y-3">
-      <div className="flex items-center gap-2 text-sm text-primary">
-        <Loader2 className="size-4 animate-spin" />
-        <span>{t("download.analyzing", {}, "กำลังวิเคราะห์...")}</span>
-      </div>
+      <LoadingIndicator
+        label={t("download.analyzing", {}, "กำลังวิเคราะห์...")}
+        className="text-sm text-primary"
+      />
       <div className="grid gap-4 rounded-2xl border border-border bg-bg-surface/55 p-4 sm:grid-cols-[240px_1fr]">
         <Skeleton className="aspect-video w-full rounded-xl bg-bg-base/80" />
         <div className="space-y-3 py-1">
@@ -786,11 +786,13 @@ export function MediaAnalyzer() {
                   className="h-11 w-full rounded-xl px-8 text-xs font-semibold sm:w-auto sm:min-w-[200px] cursor-pointer"
                 >
                   {queueing ? (
-                    <Loader2 className="size-4 animate-spin" />
+                    <LoadingIndicator label={t("download.preparing")} />
                   ) : (
-                    <Download className="size-4" />
+                    <>
+                      <Download className="size-4" />
+                      {t("download.download")}
+                    </>
                   )}
-                  {queueing ? t("download.preparing") : t("download.download")}
                 </Button>
                 <p id="download-consent" className="mt-1.5 text-center text-[10px] leading-relaxed text-text-dim">
                   {t("download.downloadConsent")}
