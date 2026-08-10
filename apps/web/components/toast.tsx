@@ -53,13 +53,13 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={{ toast }}>
       {children}
-      <div className="pointer-events-none fixed inset-x-4 bottom-4 z-50 flex flex-col gap-2 sm:left-auto sm:right-4 sm:w-full sm:max-w-sm">
+      <div className="pointer-events-none fixed inset-x-4 top-4 z-[9999] flex flex-col gap-2 sm:left-auto sm:right-4 sm:top-4 sm:w-full sm:max-w-sm">
         {toasts.map((t) => (
           <div
             key={t.id}
             role="status"
             aria-live="polite"
-            className={`pointer-events-auto flex items-start gap-3 rounded-2xl border ${borderMap[t.type]} bg-bg-elevated/92 px-4 py-3.5 shadow-[0_18px_55px_rgba(0,0,0,0.25)] backdrop-blur-xl animate-in slide-in-from-right-2 fade-in duration-200`}
+            className={`pointer-events-auto flex items-start gap-3 rounded-2xl border ${borderMap[t.type]} bg-bg-elevated/95 px-4 py-3.5 shadow-[0_18px_55px_rgba(0,0,0,0.35)] backdrop-blur-xl animate-in slide-in-from-top-3 fade-in duration-200`}
           >
             {iconMap[t.type]}
             <div className="flex-1 min-w-0">
