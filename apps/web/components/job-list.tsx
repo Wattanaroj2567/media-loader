@@ -408,17 +408,17 @@ function HistoryHeader({
         )}
       </div>
       {selectionMode && (
-        <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-primary/20 bg-primary/7 p-3">
-          <label className="flex min-h-11 cursor-pointer items-center gap-2 rounded-lg px-2 text-xs font-medium text-text-muted hover:bg-bg-surface hover:text-text sm:min-h-9">
+        <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-primary/20 bg-primary/10 p-3">
+          <label className="flex min-h-11 cursor-pointer items-center gap-2 rounded-lg px-2 text-xs font-semibold text-text hover:bg-bg-surface sm:min-h-9">
             <Checkbox
               checked={allSelected}
               disabled={deleting}
               onCheckedChange={onToggleAll}
               aria-label={allSelected ? t("history.deselectAll") : t("history.selectAll")}
             />
-            <span>{allSelected ? t("history.deselectAll") : t("history.selectAll")}</span>
+            <span className="font-semibold text-text">{allSelected ? t("history.deselectAll") : t("history.selectAll")}</span>
           </label>
-          <span className="mr-auto text-xs text-text-dim" aria-live="polite">
+          <span className="mr-auto text-xs font-semibold text-text-muted" aria-live="polite">
             {t("history.selectedCount", { n: selectedCount }, `เลือกแล้ว ${selectedCount} รายการ`)}
           </span>
           <Button
@@ -427,21 +427,25 @@ function HistoryHeader({
             size="sm"
             onClick={onCancelSelection}
             disabled={deleting}
-            className="h-11 text-text-muted sm:h-9"
+            className="h-11 font-semibold text-text-muted hover:text-text sm:h-9"
           >
             {t("history.cancelSelect", {}, "ยกเลิก")}
           </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={onDeleteSelected}
-            disabled={selectedCount === 0 || deleting}
-            className="h-11 gap-2 border-rose-500/25 text-rose-500 hover:bg-rose-500/10 sm:h-9"
-          >
-            {deleting ? <Loader2 className="size-3.5 animate-spin" /> : <Trash2 className="size-3.5" />}
-            {t("history.deleteSelected", {}, "ลบที่เลือก")}
-          </Button>
+
+          {/* Delete Selected Button ONLY appears after user checks at least 1 item */}
+          {selectedCount > 0 && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={onDeleteSelected}
+              disabled={deleting}
+              className="h-11 gap-2 border-rose-500/40 bg-rose-500/10 text-rose-700 dark:text-rose-300 font-semibold hover:bg-rose-500/20 sm:h-9 animate-in fade-in zoom-in-95"
+            >
+              {deleting ? <Loader2 className="size-3.5 animate-spin" /> : <Trash2 className="size-3.5" />}
+              {t("history.deleteSelected", {}, "ลบที่เลือก")}
+            </Button>
+          )}
         </div>
       )}
     </div>
