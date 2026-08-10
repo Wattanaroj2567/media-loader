@@ -167,10 +167,10 @@ function FormatCard({
     <button
       type="button"
       onClick={onSelect}
-      className={`group flex items-center justify-between gap-2 rounded-xl border px-3 py-2 text-left transition-all duration-200 cursor-pointer ${
+      className={`group flex items-center justify-between gap-2 rounded-xl border px-3 py-2 text-left transition-colors duration-150 cursor-pointer ${
         selected
-          ? "border-primary/50 bg-primary/10 text-primary font-semibold shadow-xs"
-          : "border-border bg-bg-base/40 text-text hover:border-primary/30 hover:bg-bg-surface"
+          ? "border-primary bg-primary/10 text-primary font-semibold"
+          : "border-border bg-bg-base/40 text-text hover:border-border-hover hover:bg-bg-surface"
       }`}
     >
       <div className="min-w-0 flex-1">
@@ -705,7 +705,7 @@ export function MediaAnalyzer() {
               </div>
             )}
 
-            {/* Download Action Footer */}
+            {/* Download Action Footer (Right-aligned, comfortable width on desktop/Windows) */}
             <div className="mt-5 flex justify-end">
               <div className="w-full sm:w-auto">
                 <Button
@@ -713,7 +713,7 @@ export function MediaAnalyzer() {
                   onClick={() => void startDownload()}
                   disabled={!selectedFormat || queueing}
                   aria-describedby="download-consent"
-                  className="h-11.25 w-full rounded-xl px-7 text-xs font-semibold sm:w-auto cursor-pointer"
+                  className="h-11 w-full rounded-xl px-8 text-xs font-semibold sm:w-auto sm:min-w-[200px] cursor-pointer"
                 >
                   {queueing ? (
                     <Loader2 className="size-4 animate-spin" />
