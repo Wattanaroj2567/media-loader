@@ -286,6 +286,27 @@ export function MediaAnalyzer() {
     }
   }, [isLoaded, url, analyzedUrl, state, analysis, selectedFormatId, activeTab]);
 
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Attach non-passive native wheel listener to completely block outer page vertical scroll
+  useEffect(() => {
+    const inputEl = inputRef.current;
+    if (!inputEl) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      if (e.deltaY !== 0) {
+        e.preventDefault();
+        e.stopPropagation();
+        inputEl.scrollLeft += e.deltaY;
+      }
+    };
+
+    inputEl.addEventListener("wheel", handleWheel, { passive: false });
+    return () => {
+      inputEl.removeEventListener("wheel", handleWheel);
+    };
+  }, []);
+
   const media = analysis?.media;
   const sourceDomain = media?.source_domain;
 
@@ -450,6 +471,7 @@ export function MediaAnalyzer() {
             <Search className="size-5" />
           </span>
           <input
+            ref={inputRef}
             type="url"
             value={url}
             onChange={(e) => setUrl(e.target.value)}
@@ -482,12 +504,6 @@ export function MediaAnalyzer() {
                 if (converted.trim()) {
                   void analyze(converted);
                 }
-              }
-            }}
-            onWheel={(e) => {
-              if (e.deltaY !== 0) {
-                e.currentTarget.scrollLeft += e.deltaY;
-                e.preventDefault();
               }
             }}
             placeholder="https://..."
