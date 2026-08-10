@@ -716,52 +716,6 @@ export function MediaAnalyzer() {
                 </p>
               </div>
             </div>
-
-            {/* Auto-Save Instant Stream Live Status Banner */}
-            {activeJobId && (
-              <div className="mt-4 rounded-2xl border border-primary/30 bg-primary/10 p-4 transition-all animate-in fade-in">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="flex items-center gap-3">
-                    {activeJobStatus === "COMPLETED" ? (
-                      <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-emerald-500/20 text-emerald-400">
-                        <CheckCircle2 className="size-5" />
-                      </span>
-                    ) : (
-                      <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary/20 text-primary">
-                        <Loader2 className="size-5 animate-spin" />
-                      </span>
-                    )}
-                    <div>
-                      <p className="text-xs font-semibold text-text">
-                        {activeJobStatus === "COMPLETED"
-                          ? t("download.autoSaveCompleted", {}, "ดาวน์โหลดและเซฟไฟล์ลงเครื่องสำเร็จแล้ว!")
-                          : t("download.autoSaveProcessing", {}, "กำลังรวมวิดีโอและเตรียมเซฟไฟล์... ระบบจะเด้งไฟล์ดาวน์โหลดให้อัตโนมัติ")}
-                      </p>
-                      <p className="mt-0.5 text-[11px] text-text-dim">
-                        {activeJobStatus === "COMPLETED"
-                          ? t("download.checkFolder", {}, "ตรวจสอบไฟล์ในโฟลเดอร์ Downloads ของเบราว์เซอร์ได้ทันที")
-                          : t("download.pleaseWait", {}, "โปรดรอสักครู่ ไฟล์จะถูกดาวน์โหลดลงเครื่องทันทีที่รวมเสร็จ")}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 self-end sm:self-auto">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setActiveJobId(null);
-                        setActiveJobStatus(null);
-                        reset();
-                      }}
-                      className="h-9 rounded-xl px-3 text-xs font-semibold cursor-pointer"
-                    >
-                      {t("download.analyzeAnother", {}, "ดาวน์โหลดลิงก์อื่น")}
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         </div>
       )}
