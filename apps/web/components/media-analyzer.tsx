@@ -540,64 +540,65 @@ export function MediaAnalyzer() {
       )}
 
       {/* ── Results ── */}
+      {/* ── Results (Clean, borderless inner sections to eliminate nested frames) ── */}
       {state === "ready" && analysis && media && (
-        <div className="space-y-4">
-          {/* Media card */}
-          <div className="grid gap-4 rounded-2xl border border-border bg-bg-base/35 p-4 sm:grid-cols-[220px_1fr] lg:p-5 xl:grid-cols-[240px_1fr]">
+        <div className="space-y-6">
+          {/* Media Info Section */}
+          <div className="grid gap-4 sm:grid-cols-[200px_1fr] lg:gap-6 xl:grid-cols-[240px_1fr]">
             {/* Thumbnail Button -> Opens Lightbox */}
             {media.thumbnail_url ? (
               <button
                 type="button"
                 onClick={() => setShowLightbox(true)}
                 title={t("download.viewThumbnail", {}, "คลิกเพื่อดูรูปภาพ")}
-                className="group block aspect-video w-full overflow-hidden rounded-xl border border-border bg-cover bg-center text-left shadow-lg transition-[border-color,opacity] duration-200 hover:border-primary/50 hover:opacity-90 cursor-pointer"
+                className="group block aspect-video w-full overflow-hidden rounded-2xl border border-border/80 bg-cover bg-center text-left shadow-md transition-[border-color,opacity,transform] duration-200 hover:border-primary/50 hover:opacity-90 active:scale-[0.99] cursor-pointer"
                 style={{ backgroundImage: `url("${media.thumbnail_url}")` }}
               />
             ) : (
-              <div className="grid aspect-video place-items-center rounded-xl border border-border bg-bg-surface/50">
+              <div className="grid aspect-video place-items-center rounded-2xl border border-border bg-bg-surface/50">
                 <Film className="size-8 text-text-dim" />
               </div>
             )}
 
             {/* Info */}
-            <div className="flex flex-col justify-center min-w-0 py-1">
+            <div className="flex flex-col justify-center min-w-0 py-0.5">
               {/* Verified Policy Badge inline inside the card */}
               <div className="mb-2 flex items-center gap-1.5 self-start rounded-lg border border-emerald-500/35 bg-emerald-500/15 px-2.5 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
                 <ShieldCheck className="size-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
                 <span>{t("download.policyPassed")}</span>
               </div>
 
-              <h2 className="line-clamp-2 text-lg font-semibold leading-snug tracking-tight text-text sm:text-xl">
+              <h2 className="line-clamp-2 text-base font-semibold leading-snug tracking-tight text-text sm:text-lg lg:text-xl">
                 {media.title}
               </h2>
 
-              <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2">
+              <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
                 {media.uploader && (
-                  <span className="flex items-center gap-1.5 text-sm text-text-muted">
-                    <UserRound className="size-4 shrink-0 text-text-dim" />
+                  <span className="flex items-center gap-1.5 text-xs text-text-muted sm:text-sm">
+                    <UserRound className="size-3.5 shrink-0 text-text-dim" />
                     {media.uploader}
                   </span>
                 )}
                 {sourceDomain && !isDomainRedundant && (
-                  <span className="flex items-center gap-1.5 text-sm text-text-muted">
-                    <Globe2 className="size-4 shrink-0 text-text-dim" />
+                  <span className="flex items-center gap-1.5 text-xs text-text-muted sm:text-sm">
+                    <Globe2 className="size-3.5 shrink-0 text-text-dim" />
                     {sourceDomain}
                   </span>
                 )}
                 {formatDuration(media.duration_seconds) && (
-                  <span className="flex items-center gap-1.5 text-sm text-text-muted">
-                    <Clock3 className="size-4 shrink-0 text-text-dim" />
+                  <span className="flex items-center gap-1.5 text-xs text-text-muted sm:text-sm">
+                    <Clock3 className="size-3.5 shrink-0 text-text-dim" />
                     {formatDuration(media.duration_seconds)}
                   </span>
                 )}
                 {formatViews(media.view_count, locale) && (
-                  <span className="flex items-center gap-1.5 text-sm text-text-muted">
-                    <Eye className="size-4 shrink-0 text-text-dim" />
+                  <span className="flex items-center gap-1.5 text-xs text-text-muted sm:text-sm">
+                    <Eye className="size-3.5 shrink-0 text-text-dim" />
                     {formatViews(media.view_count, locale)}
                   </span>
                 )}
                 {media.platform && (
-                  <span className="rounded-lg bg-bg-surface border border-border px-2.5 py-0.5 text-xs font-medium text-text-muted">
+                  <span className="rounded-lg bg-bg-surface border border-border/80 px-2 py-0.5 text-[11px] font-medium text-text-muted">
                     {media.platform}
                   </span>
                 )}
@@ -605,14 +606,14 @@ export function MediaAnalyzer() {
             </div>
           </div>
 
-          {/* Format selector */}
-          <div className="rounded-2xl border border-border bg-bg-base/30 p-4 lg:p-5">
-            {/* Video / Audio tab */}
-            <div className="mb-3 flex items-center justify-between">
-              <p className="text-sm font-semibold text-text">
+          {/* Format Selector Section (Seamless border-t divider, 100% full-width grid) */}
+          <div className="border-t border-border/70 pt-5">
+            {/* Video / Audio tab Header */}
+            <div className="mb-3.5 flex items-center justify-between gap-3">
+              <p className="text-xs font-semibold uppercase tracking-wider text-text-dim">
                 {t("download.quality")}
               </p>
-              <div className="flex gap-1 rounded-xl border border-border bg-bg-surface/55 p-1">
+              <div className="flex gap-1 rounded-xl border border-border/80 bg-bg-base/60 p-1">
                 {(["video", "audio"] as const).map((tab) => (
                   <button
                     key={tab}
@@ -622,9 +623,9 @@ export function MediaAnalyzer() {
                       setSelectedFormatId(groupedFormats[tab][0]?.format_id || "");
                     }}
                     disabled={groupedFormats[tab].length === 0}
-                    className={`min-h-11 rounded-lg px-4 py-1.5 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-30 sm:min-h-0 ${
+                    className={`min-h-9 rounded-lg px-3.5 py-1 text-xs font-semibold transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-30 ${
                       activeTab === tab
-                        ? "bg-primary text-primary-foreground shadow-sm"
+                        ? "bg-primary text-primary-foreground shadow-xs"
                         : "text-text-muted hover:text-text"
                     }`}
                   >
@@ -634,13 +635,13 @@ export function MediaAnalyzer() {
               </div>
             </div>
 
-            {/* Format grid */}
+            {/* 100% Full-Width Format Grid */}
             {visibleFormats.length === 0 ? (
               <p className="py-6 text-center text-sm text-text-dim">
                 {t("download.noFormats")}
               </p>
             ) : (
-              <div className="grid gap-2 grid-cols-2 sm:grid-cols-3 xl:grid-cols-4">
+              <div className="grid gap-2 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
                 {visibleFormats.map((format) => (
                   <FormatCard
                     key={`${format.type}-${format.format_id}`}
@@ -652,15 +653,15 @@ export function MediaAnalyzer() {
               </div>
             )}
 
-            {/* Download action; clicking it is the explicit rights confirmation. */}
-            <div className="mt-4 flex justify-end">
+            {/* Download Action Footer */}
+            <div className="mt-5 flex justify-end">
               <div className="w-full sm:w-auto">
                 <Button
                   type="button"
                   onClick={() => void startDownload()}
                   disabled={!selectedFormat || queueing}
                   aria-describedby="download-consent"
-                  className="h-12 w-full rounded-xl px-7 font-semibold sm:w-auto"
+                  className="h-11.25 w-full rounded-xl px-7 text-xs font-semibold sm:w-auto cursor-pointer"
                 >
                   {queueing ? (
                     <Loader2 className="size-4 animate-spin" />
