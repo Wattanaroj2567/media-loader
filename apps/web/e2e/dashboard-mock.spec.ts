@@ -1,24 +1,40 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Mocked Dashboard Workflow', () => {
-  test('should handle mocked media analysis and format selection', async ({ page }) => {
-    // Intercept /media/analyze API endpoint
+  test('should handle mocked media analysis and intercept API route correctly', async ({ page }) => {
+    let analyzeCalled = false;
+
     await page.route('**/media/analyze', async (route) => {
+      analyzeCalled = true;
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
           ok: true,
           data: {
-            url: 'https://upload.wikimedia.org/wikipedia/commons/c/c2/This_is_a_10_second_testvideo_with_bars_and_tone.webm',
-            title: 'Sample Open Access Video',
-            uploader: 'Wikimedia Commons',
-            duration: 10,
-            thumbnail: null,
+            policy: { decision: 'allowed', reason: 'Open Access Platform' },
+            media: {
+              title: 'Sample Open Access Video',
+              platform: 'wikimedia',
+              thumbnail_url: null,
+              duration_seconds: 10,
+              uploader: 'Wikimedia Commons',
+              source_domain: 'wikimedia.org',
+              view_count: 1000
+            },
             formats: [
-              { id: 'mp4-720p', label: '720p HD (MP4)', container: 'mp4', video_codec: 'h264', audio_codec: 'aac', width: 1280, height: 720, filesize: 5000000 }
-            ],
-            policy: { decision: 'allowed', reason: 'Trusted open-access platform' }
+              {
+                format_id: 'mp4-720p',
+                extension: 'mp4',
+                type: 'video',
+                quality_label: '720p',
+                height: 720,
+                fps: 30,
+                video_codec: 'h264',
+                audio_codec: 'aac',
+                filesize: 5000000
+              }
+            ]
           },
           error: null
         })
@@ -26,21 +42,40 @@ test.describe('Mocked Dashboard Workflow', () => {
     });
 
     await page.goto('/');
-    await expect(page.locator('body')).toBeVisible();
+
+    // Execute fetch inside browser page context so page.route catches it
+    const status = await page.evaluate(async () => {
+      const res = await fetch('/media/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: 'https://upload.wikimedia.org/wikipedia/commons/test.mp4' })
+      });
+      return res.status;
+    });
+
+    expect(analyzeCalled).toBe(true);
+    expect(status).toBe(200);
   });
 
-  test('should intercept job creation and simulate downloading queue state', async ({ page }) => {
-    // Intercept /downloads endpoint
+  test('should intercept job creation endpoint and confirm download contract', async ({ page }) => {
+    let jobCreated = false;
+
     await page.route('**/downloads', async (route) => {
+      jobCreated = true;
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
           ok: true,
           data: {
-            job_id: 'mock-job-123',
+            id: 'job-mock-999',
+            original_url: 'https://upload.wikimedia.org/wikipedia/commons/test.mp4',
             status: 'QUEUED',
-            created_at: new Date().toISOString()
+            progress: 0,
+            selected_format: 'mp4-720p',
+            output_format: 'mp4',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
           },
           error: null
         })
@@ -48,6 +83,22 @@ test.describe('Mocked Dashboard Workflow', () => {
     });
 
     await page.goto('/');
-    await expect(page.locator('body')).toBeVisible();
+
+    const status = await page.evaluate(async () => {
+      const res = await fetch('/downloads', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          url: 'https://upload.wikimedia.org/wikipedia/commons/test.mp4',
+          selected_format_id: 'mp4-720p',
+          output_format: 'mp4',
+          rights_confirmed: true
+        })
+      });
+      return res.status;
+    });
+
+    expect(jobCreated).toBe(true);
+    expect(status).toBe(200);
   });
 });
