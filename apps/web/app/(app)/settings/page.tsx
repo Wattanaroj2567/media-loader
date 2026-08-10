@@ -5,6 +5,7 @@ import {
   AlertTriangle,
   CircleUserRound,
   Loader2,
+  LogOut,
   ShieldCheck,
   Trash2,
   ChevronDown,
@@ -113,34 +114,49 @@ export default function AccountPage() {
               </span>
             </div>
 
-            <div className="mt-6 flex items-center gap-4">
-              <div
-                role={user?.avatar_url ? "img" : undefined}
-                aria-label={user?.full_name || user?.email || "User"}
-                className="grid size-16 shrink-0 place-items-center overflow-hidden rounded-2xl border border-primary/20 bg-primary/10 bg-cover bg-center"
-                style={
-                  user?.avatar_url
-                    ? { backgroundImage: `url("${user.avatar_url}")` }
-                    : undefined
-                }
-              >
-                {!user?.avatar_url && (
-                  <CircleUserRound className="size-7 text-text-dim" />
-                )}
-              </div>
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <p className="truncate text-base font-semibold text-text">
-                    {user?.full_name || user?.email?.split("@")[0] || "User"}
-                  </p>
-                  <span className="rounded-lg bg-bg-surface border border-border px-2 py-0.5 text-[10px] font-medium text-text-muted">
-                    Google
-                  </span>
+            <div className="mt-6 flex flex-wrap items-center justify-between gap-4 border-t border-border/60 pt-5">
+              <div className="flex items-center gap-4">
+                <div
+                  role={user?.avatar_url ? "img" : undefined}
+                  aria-label={user?.full_name || user?.email || "User"}
+                  className="grid size-14 shrink-0 place-items-center overflow-hidden rounded-2xl border border-primary/20 bg-primary/10 bg-cover bg-center"
+                  style={
+                    user?.avatar_url
+                      ? { backgroundImage: `url("${user.avatar_url}")` }
+                      : undefined
+                  }
+                >
+                  {!user?.avatar_url && (
+                    <CircleUserRound className="size-7 text-text-dim" />
+                  )}
                 </div>
-                <p className="mt-0.5 truncate text-sm text-text-muted">
-                  {user?.email}
-                </p>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="truncate text-base font-semibold text-text">
+                      {user?.full_name || user?.email?.split("@")[0] || "User"}
+                    </p>
+                    <span className="rounded-lg bg-bg-surface border border-border px-2 py-0.5 text-[10px] font-medium text-text-muted">
+                      Google
+                    </span>
+                  </div>
+                  <p className="mt-0.5 truncate text-sm text-text-muted">
+                    {user?.email}
+                  </p>
+                </div>
               </div>
+
+              {/* Sign Out Action Button */}
+              <form action="/auth/signout" method="post" className="w-full sm:w-auto">
+                <Button
+                  type="submit"
+                  variant="outline"
+                  size="sm"
+                  className="h-10 w-full gap-2 border-rose-500/40 text-rose-600 dark:text-rose-400 hover:border-rose-500/60 hover:bg-rose-500/10 hover:text-rose-700 dark:hover:text-rose-300 sm:w-auto cursor-pointer font-semibold"
+                >
+                  <LogOut className="size-4" />
+                  <span>{t("account.signOut", {}, "ออกจากระบบ")}</span>
+                </Button>
+              </form>
             </div>
 
           </section>

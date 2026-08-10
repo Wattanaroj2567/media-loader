@@ -173,13 +173,13 @@ export function TopNav({ user }: TopNavProps) {
             <button
               type="button"
               onClick={() => setAccountOpen((v) => !v)}
-              className="flex size-11 items-center justify-center gap-1.5 rounded-lg border border-border bg-bg-surface/30 p-0 transition-colors hover:border-primary/40 hover:bg-bg-surface sm:h-9 sm:w-auto sm:pl-2.5 sm:pr-2 cursor-pointer"
+              className="flex h-9 items-center justify-center gap-1.5 rounded-xl border border-border bg-bg-surface/50 px-2 sm:pl-2.5 sm:pr-2.5 transition-colors hover:border-primary/40 hover:bg-bg-surface cursor-pointer"
               aria-expanded={accountOpen}
               aria-label="บัญชีของฉัน"
             >
               <Avatar name={user.name} avatarUrl={user.avatar_url} size={7} />
               <ChevronDown
-                className={`hidden sm:block size-3.5 text-text-dim transition-transform duration-200 ${accountOpen ? "rotate-180" : ""}`}
+                className={`size-3.5 text-text-dim transition-transform duration-200 ${accountOpen ? "rotate-180" : ""}`}
               />
             </button>
 
