@@ -85,6 +85,22 @@ function formatCardTitle(format: MediaFormat) {
   return format.format_id;
 }
 
+function getAudioQualityLabel(
+  bitrate: number,
+  t: (key: string, vars?: Record<string, string | number>, fallback?: string) => string,
+) {
+  if (bitrate >= 256) {
+    return t("download.audioStudio", {}, "คุณภาพระดับสตูดิโอ");
+  }
+  if (bitrate >= 160) {
+    return t("download.audioHigh", {}, "คุณภาพสูง");
+  }
+  if (bitrate >= 120) {
+    return t("download.audioStandard", {}, "คุณภาพมาตรฐาน");
+  }
+  return t("download.audioLow", {}, "คุณภาพประหยัด");
+}
+
 function formatCardMeta(
   format: MediaFormat,
   t: (key: string, vars?: Record<string, string | number>, fallback?: string) => string,
@@ -92,6 +108,9 @@ function formatCardMeta(
   const pieces = [
     format.type === "video" && format.fps && format.fps > 30
       ? `${format.fps} ${t("download.fps")}`
+      : null,
+    format.type === "audio" && format.bitrate
+      ? getAudioQualityLabel(format.bitrate, t)
       : null,
     format.filesize ? formatBytes(format.filesize) : null,
   ].filter(Boolean);
