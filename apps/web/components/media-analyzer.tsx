@@ -689,21 +689,22 @@ export function MediaAnalyzer() {
         </div>
       )}
 
-      {/* ── Lightbox Modal Overlay (Half-screen Centered Popup) ── */}
+      {/* ── Lightbox Modal Overlay (Theme-harmonized Glassmorphism Popup) ── */}
       {showLightbox && media?.thumbnail_url && (
         <div
           onClick={() => setShowLightbox(false)}
-          className="fixed inset-0 bg-black/85 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-bg-base/75 p-4 backdrop-blur-md transition-all duration-200 animate-fade-in-up dark:bg-black/80"
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="relative rounded-2xl overflow-hidden border border-border bg-popover shadow-2xl flex items-center justify-center max-w-[90vw] max-h-[80vh]"
+            className="ui-panel relative flex max-h-[85vh] max-w-[92vw] items-center justify-center overflow-hidden rounded-3xl border border-primary/25 bg-bg-surface/90 p-2 shadow-2xl backdrop-blur-xl sm:p-3"
           >
             {/* Close button */}
             <button
               type="button"
               onClick={() => setShowLightbox(false)}
-              className="absolute right-3 top-3 z-10 grid size-11 place-items-center rounded-full border border-white/5 bg-black/60 text-slate-400 backdrop-blur-sm transition-colors hover:text-slate-200 sm:right-3.5 sm:top-3.5 sm:size-8 cursor-pointer"
+              aria-label={t("common.close", {}, "ปิด")}
+              className="absolute right-3 top-3 z-10 grid size-10 place-items-center rounded-2xl border border-border/80 bg-bg-base/80 text-text-muted backdrop-blur-md transition-colors hover:bg-bg-surface hover:text-text cursor-pointer sm:right-4 sm:top-4 sm:size-9"
             >
               <X className="size-4" />
             </button>
@@ -713,7 +714,7 @@ export function MediaAnalyzer() {
             <img
               src={media.thumbnail_url}
               alt={media.title}
-              className="max-w-[90vw] max-h-[80vh] w-auto h-auto object-contain block"
+              className="block max-h-[80vh] max-w-[88vw] rounded-2xl object-contain shadow-md"
             />
           </div>
         </div>
