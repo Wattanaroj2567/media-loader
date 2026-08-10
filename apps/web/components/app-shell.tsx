@@ -122,12 +122,13 @@ export function AppShell({ children, user }: AppShellProps) {
           })}
         </nav>
 
-        <div className="m-3 rounded-2xl border border-sidebar-border bg-bg-surface/55 p-3.5">
+        {/* Full-width Sidebar Footer (Seamless Edge-to-Edge) */}
+        <div className="border-t border-sidebar-border bg-bg-surface/30 p-4">
           <div>
             <Link
               href="/settings"
               title={t("account.viewProfile", {}, "ดูโปรไฟล์")}
-              className="flex min-w-0 items-center gap-3 rounded-xl p-1 transition-colors hover:bg-bg-elevated/70 outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+              className="flex min-w-0 items-center gap-3 rounded-xl p-1.5 transition-colors hover:bg-bg-elevated/70 outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
             >
               <UserAvatar name={user.name} avatarUrl={user.avatar_url} className="size-10" />
               <span className="min-w-0 flex-1">
@@ -136,12 +137,12 @@ export function AppShell({ children, user }: AppShellProps) {
               </span>
             </Link>
           </div>
-          <div className="mt-3 grid grid-cols-3 gap-2 border-t border-border/70 pt-3">
+          <div className="mt-3 grid grid-cols-3 gap-2 border-t border-border/60 pt-3">
             <button
               type="button"
               onClick={toggleLocale}
               title={locale === "th" ? "Switch to English" : "เปลี่ยนเป็นภาษาไทย"}
-              className="flex h-9 items-center justify-center gap-1 rounded-xl border border-border bg-bg-surface/50 px-2 text-xs font-semibold text-text transition-colors hover:border-primary/40 hover:bg-primary/10 hover:text-primary cursor-pointer"
+              className="flex h-9 items-center justify-center gap-1 rounded-xl border border-border bg-bg-base/60 px-2 text-xs font-semibold text-text transition-colors hover:border-primary/40 hover:bg-primary/10 hover:text-primary cursor-pointer"
             >
               <Languages aria-hidden="true" className="size-3.5 text-primary shrink-0" />
               <span className="font-mono text-[11px] font-bold tracking-wider">{locale === "th" ? "EN" : "TH"}</span>
