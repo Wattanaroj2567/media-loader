@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   AlertCircle,
   CheckCircle2,
@@ -689,15 +690,15 @@ export function MediaAnalyzer() {
         </div>
       )}
 
-      {/* ── Lightbox Modal Overlay (No Blur + Download Thumbnail Option) ── */}
-      {showLightbox && media?.thumbnail_url && (
+      {/* ── Lightbox Modal Overlay (Mounted directly on document.body via Portal) ── */}
+      {showLightbox && media?.thumbnail_url && typeof window !== "undefined" && createPortal(
         <div
           onClick={() => setShowLightbox(false)}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 transition-all duration-200 animate-fade-in-up"
+          className="fixed inset-0 z-[9999] flex h-screen w-screen items-center justify-center bg-black/80 p-4 transition-all duration-200 animate-fade-in-up"
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="ui-panel relative flex flex-col max-h-[88vh] max-w-[92vw] items-center justify-center overflow-hidden rounded-3xl border border-border bg-bg-surface p-3 shadow-2xl sm:p-4"
+            className="ui-panel relative flex flex-col max-h-[90vh] max-w-[92vw] sm:max-w-[85vw] items-center justify-center overflow-hidden rounded-3xl border border-border/80 bg-bg-surface p-3 shadow-2xl sm:p-4"
           >
             {/* Action Bar: Title, Download Button & Close */}
             <div className="mb-3 flex w-full items-center justify-between gap-3 px-1">
@@ -746,10 +747,11 @@ export function MediaAnalyzer() {
             <img
               src={media.thumbnail_url}
               alt={media.title}
-              className="block max-h-[75vh] max-w-[88vw] rounded-2xl object-contain shadow-md"
+              className="block max-h-[78vh] max-w-[88vw] rounded-2xl object-contain shadow-md"
             />
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
