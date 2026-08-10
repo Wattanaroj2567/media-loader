@@ -15,7 +15,6 @@ import {
   Loader2,
   Search,
   ShieldAlert,
-  ShieldCheck,
   UserRound,
   X,
 } from "lucide-react";
@@ -391,6 +390,7 @@ export function MediaAnalyzer() {
           setErrorMessage(t("download.noFormats"));
         } else {
           setState("ready");
+          toast("success", t("download.policyPassed", {}, "ตรวจสอบสิทธิ์การดาวน์โหลดผ่านแล้ว"));
           const grouped = groupFormats(result.formats);
           const firstVideo = grouped.video[0];
           const firstAudio = grouped.audio[0];
@@ -612,12 +612,6 @@ export function MediaAnalyzer() {
 
             {/* Info */}
             <div className="flex flex-col justify-center min-w-0 py-0.5">
-              {/* Verified Policy Badge inline inside the card */}
-              <div className="mb-2 flex items-center gap-1.5 self-start rounded-lg border border-emerald-500/35 bg-emerald-500/15 px-2.5 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
-                <ShieldCheck className="size-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
-                <span>{t("download.policyPassed")}</span>
-              </div>
-
               <h2 className="line-clamp-3 text-base font-semibold leading-snug tracking-tight text-text sm:text-lg lg:text-xl">
                 {media.title}
               </h2>
