@@ -159,10 +159,10 @@ export function TopNav({ user }: TopNavProps) {
             type="button"
             onClick={() => setLocale(locale === "th" ? "en" : "th")}
             title={locale === "th" ? "Switch to English" : "เปลี่ยนเป็นภาษาไทย"}
-            className="flex size-11 items-center justify-center gap-1.5 rounded-lg border border-border bg-bg-surface/30 p-0 text-sm font-medium text-text-muted transition-colors hover:border-primary/40 hover:bg-bg-surface hover:text-primary sm:h-9 sm:w-auto sm:px-3 cursor-pointer"
+            className="flex h-9 items-center gap-1.5 rounded-xl border border-border bg-bg-surface/50 px-3 text-xs font-semibold text-text transition-colors hover:border-primary/40 hover:bg-bg-surface hover:text-primary cursor-pointer"
           >
-            <Languages className="size-4 shrink-0" />
-            <span className="hidden sm:inline">{locale === "th" ? "EN" : "TH"}</span>
+            <Languages className="size-4 shrink-0 text-primary" />
+            <span className="font-mono font-bold tracking-wider">{locale.toUpperCase()}</span>
           </button>
 
           {/* Theme Switcher Button */}

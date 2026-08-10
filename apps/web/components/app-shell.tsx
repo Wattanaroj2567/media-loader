@@ -141,9 +141,10 @@ export function AppShell({ children, user }: AppShellProps) {
               type="button"
               onClick={toggleLocale}
               title={locale === "th" ? "Switch to English" : "เปลี่ยนเป็นภาษาไทย"}
-              className="grid size-9 place-items-center justify-self-center rounded-lg border border-border text-text-muted transition-colors hover:border-primary/30 hover:bg-primary/10 hover:text-primary cursor-pointer"
+              className="flex h-9 items-center justify-center gap-1 rounded-xl border border-border bg-bg-surface/50 px-2 text-xs font-semibold text-text transition-colors hover:border-primary/40 hover:bg-primary/10 hover:text-primary cursor-pointer"
             >
-              <Languages aria-hidden="true" className="size-4" />
+              <Languages aria-hidden="true" className="size-3.5 text-primary shrink-0" />
+              <span className="font-mono text-[11px] font-bold tracking-wider">{locale.toUpperCase()}</span>
             </button>
             <div className="grid place-items-center"><ThemeToggle /></div>
             <form action="/auth/signout" method="post" className="grid place-items-center">
@@ -173,10 +174,10 @@ export function AppShell({ children, user }: AppShellProps) {
               type="button"
               onClick={toggleLocale}
               title={locale === "th" ? "Switch to English" : "เปลี่ยนเป็นภาษาไทย"}
-              className="flex size-11 items-center justify-center gap-2 rounded-xl border border-border bg-bg-surface/55 text-xs font-semibold text-text-muted transition-colors hover:border-primary/30 hover:text-primary sm:w-auto sm:px-3 lg:hidden cursor-pointer"
+              className="flex h-9 items-center gap-1.5 rounded-xl border border-border bg-bg-surface/55 px-3 text-xs font-semibold text-text transition-colors hover:border-primary/30 hover:text-primary lg:hidden cursor-pointer"
             >
-              <Languages aria-hidden="true" className="size-4" />
-              <span className="hidden sm:inline">{locale === "th" ? "EN" : "TH"}</span>
+              <Languages aria-hidden="true" className="size-4 text-primary shrink-0" />
+              <span className="font-mono font-bold tracking-wider">{locale.toUpperCase()}</span>
             </button>
             <div className="lg:hidden"><ThemeToggle /></div>
             <Link
