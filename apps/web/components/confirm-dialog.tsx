@@ -57,7 +57,7 @@ export function ConfirmDialog({
   return createPortal(
     <div
       ref={overlayRef}
-      className="fixed inset-0 z-[9999] flex h-screen w-screen items-center justify-center bg-black/80 p-4 transition-opacity duration-200 animate-in fade-in"
+      className="fixed inset-0 z-[9999] flex h-full w-full items-center justify-center bg-black/80 p-4 transition-opacity duration-200 animate-in fade-in"
       onClick={(e) => {
         if (e.target === overlayRef.current) onCancel();
       }}

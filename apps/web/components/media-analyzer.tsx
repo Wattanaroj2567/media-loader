@@ -724,7 +724,7 @@ export function MediaAnalyzer() {
       {showLightbox && media?.thumbnail_url && typeof window !== "undefined" && createPortal(
         <div
           onClick={() => setShowLightbox(false)}
-          className="fixed inset-0 z-[9999] flex h-screen w-screen items-center justify-center bg-black/80 p-4 transition-all duration-200 animate-fade-in-up"
+          className="fixed inset-0 z-[9999] flex h-full w-full items-center justify-center bg-black/80 p-4 transition-all duration-200 animate-fade-in-up"
         >
           <div
             onClick={(e) => e.stopPropagation()}

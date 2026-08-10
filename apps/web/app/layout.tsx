@@ -45,7 +45,7 @@ export default async function RootLayout({
   return (
     <html lang={initialLocale} suppressHydrationWarning>
       <body
-        className={`${kanit.variable} ${inter.variable} ${geistMono.variable} antialiased bg-bg-base text-foreground font-sans`}
+        className={`${kanit.variable} ${inter.variable} ${geistMono.variable} antialiased bg-bg-base text-foreground font-sans overflow-x-hidden w-full max-w-full min-h-dvh`}
         suppressHydrationWarning
       >
         <ThemeProvider

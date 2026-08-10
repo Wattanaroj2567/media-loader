@@ -129,7 +129,7 @@ export function TopNav({ user }: TopNavProps) {
         </Link>
 
         {/* Tab navigation (Underscore style) */}
-        <nav className="flex flex-1 items-center gap-1 self-stretch">
+        <nav className="flex flex-1 items-center gap-1 self-stretch overflow-x-auto no-scrollbar">
           {TABS.map(({ href, labelKey }) => {
             const active =
               pathname === href ||
