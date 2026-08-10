@@ -169,8 +169,8 @@ function FormatCard({
       onClick={onSelect}
       className={`group flex items-center justify-between gap-2 rounded-xl border px-3 py-2 text-left transition-all duration-200 cursor-pointer ${
         selected
-          ? "border-cyan-500/60 bg-cyan-500/10 text-cyan-400 dark:text-cyan-300 font-semibold shadow-xs"
-          : "border-border bg-bg-base/40 text-text hover:border-cyan-500/30 hover:bg-bg-surface"
+          ? "border-primary/50 bg-primary/10 text-primary font-semibold shadow-xs"
+          : "border-border bg-bg-base/40 text-text hover:border-primary/30 hover:bg-bg-surface"
       }`}
     >
       <div className="min-w-0 flex-1">
@@ -541,7 +541,7 @@ export function MediaAnalyzer() {
                 }
               }}
               title={t("download.pasteTitle", {}, "คัดลอกลิงก์แล้วกดวาง")}
-              className="flex h-9 items-center gap-1.5 rounded-xl border border-cyan-500/40 bg-cyan-500/10 px-3 text-xs font-semibold text-cyan-400 dark:text-cyan-300 transition-all duration-200 hover:border-cyan-400 hover:bg-cyan-500/20 active:scale-95 cursor-pointer"
+              className="flex h-9 items-center gap-1.5 rounded-xl border border-primary/35 bg-primary/10 px-3 text-xs font-semibold text-primary transition-all duration-200 hover:border-primary/50 hover:bg-primary/20 active:scale-95 cursor-pointer"
             >
               <ClipboardPaste className="size-3.5 shrink-0" />
               <span>{t("download.paste", {}, "วางลิงก์")}</span>
@@ -675,7 +675,7 @@ export function MediaAnalyzer() {
                     disabled={groupedFormats[tab].length === 0}
                     className={`min-h-9 rounded-lg px-3.5 py-1 text-xs font-semibold transition-all duration-200 cursor-pointer disabled:cursor-not-allowed disabled:opacity-30 ${
                       activeTab === tab
-                        ? "bg-cyan-600 text-white shadow-xs"
+                        ? "bg-primary text-primary-foreground shadow-xs"
                         : "text-text-muted hover:text-text"
                     }`}
                   >
@@ -713,7 +713,7 @@ export function MediaAnalyzer() {
                   onClick={() => void startDownload()}
                   disabled={!selectedFormat || queueing}
                   aria-describedby="download-consent"
-                  className="h-11.25 w-full rounded-xl border border-cyan-500/40 bg-gradient-to-r from-cyan-600 via-blue-600 to-cyan-600 bg-[length:200%_auto] px-7 text-xs font-semibold text-white shadow-md shadow-cyan-950/40 transition-all duration-300 hover:border-cyan-400 hover:shadow-lg hover:shadow-cyan-500/25 active:scale-[0.99] disabled:opacity-50 disabled:shadow-none sm:w-auto cursor-pointer"
+                  className="h-11.25 w-full rounded-xl px-7 text-xs font-semibold sm:w-auto cursor-pointer"
                 >
                   {queueing ? (
                     <Loader2 className="size-4 animate-spin" />
