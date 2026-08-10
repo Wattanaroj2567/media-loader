@@ -199,9 +199,9 @@ export default function LandingPage() {
         </section>
 
         {/* 7. Right flow card (delay 900ms) */}
-        <section className="ui-panel relative rounded-[2rem] p-3 sm:p-4 animate-fade-in-up [animation-delay:900ms]">
-          <div className="absolute inset-x-12 -top-px h-px bg-gradient-to-r from-transparent via-primary/70 to-transparent" />
-          <div className="rounded-[1.5rem] border border-border bg-bg-base/35 p-4 sm:p-5 lg:p-5.5">
+        <section className="ui-panel relative rounded-4xl p-3 sm:p-4 animate-fade-in-up [animation-delay:900ms]">
+          <div className="absolute inset-x-12 -top-px h-px bg-linear-to-r from-transparent via-primary/70 to-transparent" />
+          <div className="rounded-3xl border border-border bg-bg-base/35 p-4 sm:p-5 lg:p-5.5">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-text-dim">
