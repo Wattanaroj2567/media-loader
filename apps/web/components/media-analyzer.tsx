@@ -67,8 +67,18 @@ function formatViews(views?: number | null, locale?: string) {
 
 
 function formatCardTitle(format: MediaFormat) {
-  if (format.quality_label) return format.quality_label;
-  if (format.type === "video" && format.height) return `${format.height}p`;
+  if (format.quality_label) {
+    // Strip trailing fps (e.g., "1080p60" -> "1080p") to avoid repeating fps in meta
+    const cleanLabel = format.quality_label.replace(/(\d+p)\d+$/i, "$1");
+    if (format.height === 2160) return `${cleanLabel} (4K)`;
+    if (format.height === 1440) return `${cleanLabel} (2K)`;
+    return cleanLabel;
+  }
+  if (format.type === "video" && format.height) {
+    if (format.height === 2160) return `${format.height}p (4K)`;
+    if (format.height === 1440) return `${format.height}p (2K)`;
+    return `${format.height}p`;
+  }
   if (format.type === "audio" && format.bitrate)
     return `${Math.round(format.bitrate)} kbps`;
   return format.format_id;
@@ -79,7 +89,7 @@ function formatCardMeta(
   t: (key: string, vars?: Record<string, string | number>, fallback?: string) => string,
 ) {
   const pieces = [
-    format.type === "video" && format.fps
+    format.type === "video" && format.fps && format.fps > 30
       ? `${format.fps} ${t("download.fps")}`
       : null,
     format.filesize ? formatBytes(format.filesize) : null,
