@@ -215,12 +215,25 @@ Supabase handles:
 
 Before coding:
 
-1. Read the relevant docs, including `docs/USER_SETUP_GUIDE.md` and `TODO.md` for current shipping status
-2. Inspect the existing structure
-3. Identify the smallest useful change
-4. Update the TODO status after finishing
-5. Add or update docs if behavior changes
-6. Run verification commands when possible
+1. Inspect relevant technical specifications in `docs/` (`docs/ARCHITECTURE.md`, `docs/API_SPEC.md`, `docs/DATABASE_SCHEMA.md`, `docs/SECURITY_AND_POLICY.md`, `docs/USER_SETUP_GUIDE.md`) for quick context.
+2. Inspect the existing structure.
+3. Identify the smallest useful change.
+4. Add or update docs if behavior changes.
+5. Run verification commands when possible.
+
+### Quick Documentation Map for Agents
+
+When needing deep domain information, read these files in `docs/`:
+- `docs/ARCHITECTURE.md` — Overall system blueprint and flow.
+- `docs/API_SPEC.md` — FastAPI endpoints and request/response specifications.
+- `docs/DATABASE_SCHEMA.md` — Supabase database tables and relationships.
+- `docs/SECURITY_AND_POLICY.md` — Non-bypass URL validation and policy enforcement rules.
+- `docs/SUPABASE_RLS_POLICY.md` — Row Level Security policies.
+- `docs/USER_SETUP_GUIDE.md` — Local & Cloud environment setup guide.
+- `docs/ENVIRONMENT_VARIABLES.md` — Environment variable definitions.
+- `docs/GOOGLE_OAUTH_SETUP.md` — Google OAuth setup instructions.
+- `docs/VERCEL_SETUP.md` — Frontend Vercel deployment guide.
+- `docs/SECRETS_PROTOCOL.md` — Zero-secret leakage handling protocol.
 
 Do not introduce unrelated features.
 
@@ -229,6 +242,12 @@ Do not silently change the stack.
 Do not skip security/policy checks.
 
 Do not rewrite large unrelated files without reason.
+
+### Package Manager Rules
+
+- Never use `pip` in this project for Python package management or environment creation.
+- Always use `uv` for Python package installation, virtual environment management, and running scripts (`uv venv`, `uv pip install`, `uv run`).
+- Always use `pnpm` for Node.js package management and script execution.
 
 ---
 

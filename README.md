@@ -8,7 +8,7 @@
 
 A premium, private, rights-aware media utility workspace built for personal daily use. Analyze media URLs, select quality/formats, queue download/conversion tasks, and manage files securely via a modern command-center dark interface.
 
-This application is architected with a decoupled monorepo approach: Next.js on Vercel, Supabase for auth/data, and Python backend services (FastAPI & Worker) running inside Docker.
+This application is architected with a decoupled monorepo approach: Next.js on Vercel, Supabase for auth/data, and Python backend services (FastAPI & Worker) running locally or inside Docker containers.
 
 ---
 
@@ -16,13 +16,13 @@ This application is architected with a decoupled monorepo approach: Next.js on V
 
 ```mermaid
 graph TD
-    User([User]) <--> WebApp[Next.js Frontend on Vercel]
-    WebApp <--> Supabase[Supabase Auth / PostgreSQL / Storage]
-    WebApp <--> API[FastAPI API on Docker]
+    User([User]) <--> WebApp["Next.js Frontend (Vercel)"]
+    WebApp <--> Supabase["Supabase (Auth / PostgreSQL / Storage)"]
+    WebApp <--> API["FastAPI API (Local / Docker)"]
     API <--> Supabase
-    API <--> Queue[(Job Queue / DB)]
-    Queue <--> Worker[Python Media Worker on Docker]
-    Worker <--> Tooling[yt-dlp / FFmpeg]
+    API <--> Queue[("Job Queue / DB")]
+    Queue <--> Worker["Python Media Worker (Local / Docker)"]
+    Worker <--> Tooling["yt-dlp / FFmpeg"]
     Worker --> Supabase
 ```
 
@@ -73,10 +73,11 @@ URL Input ──> URL Validation ──> Policy Check ──> Analysis ──> R
 | **Styling** | Vanilla CSS Variable Tokens, shadcn/ui | UI component system |
 | **Database** | PostgreSQL (Supabase) | Core schema, profiles, jobs & policies |
 | **Auth** | Supabase Auth (Google Provider) | Secure user access & token session validation |
-| **Backend API** | FastAPI, Uvicorn, Python 3.11 | REST endpoints, token validation, policy execution |
-| **Worker** | Python 3.11, Docker container | Daemon pulling queued jobs |
-| **Media Tools** | yt-dlp (restricted mode), FFmpeg | Core extraction and conversion engines |
-| **Deployment** | Vercel (Frontend), Docker Compose (Backend) | Production Vercel config & Dev setup |
+| **Backend API** | FastAPI, Uvicorn, Python 3.12 | REST endpoints, token validation, policy execution |
+| **Worker** | Python 3.12 | Daemon pulling queued jobs |
+| **Tooling & Envs** | `pnpm` (Node.js), `uv` (Python) | Package & virtualenv management |
+| **Media Engines** | yt-dlp (restricted mode), FFmpeg | Core extraction and conversion engines |
+| **Deployment** | Vercel (Frontend), Local Python / Docker Compose (Backend) | Flexible dev setup & containerized hosting |
 
 ---
 
@@ -88,8 +89,8 @@ This workspace is managed as a **pnpm monorepo**:
 media-loader/
 ├── apps/
 │   ├── web/                 # Next.js Frontend (Vercel deployment)
-│   ├── api/                 # FastAPI Backend Service (Docker container)
-│   └── worker/              # Python processing worker (Docker container)
+│   ├── api/                 # FastAPI Backend Service (Local / Docker)
+│   └── worker/              # Python processing worker (Local / Docker)
 ├── supabase/
 │   ├── schema.sql           # Database structures
 │   ├── rls_policies.sql     # Row level security scripts
@@ -98,7 +99,7 @@ media-loader/
 │   ├── ARCHITECTURE.md      # Detailed system blueprint
 │   ├── USER_SETUP_GUIDE.md  # Local and cloud environment instructions
 │   └── VERCEL_SETUP.md      # Step-by-step Vercel host instructions
-├── docker-compose.yml       # Local dev stack orchestra config
+├── docker-compose.yml       # Optional containerized dev stack
 ├── pnpm-workspace.yaml      # Monorepo workspace configuration
 ├── AGENTS.md                # Agent instruction & project rules
 └── TODO.md                  # Development roadmap and shipping checklist
@@ -112,8 +113,9 @@ Follow these steps to run the complete workspace locally.
 
 ### 1. Prerequisites
 Ensure you have the following installed:
-* [Docker & Docker Compose](https://www.docker.com/)
-* [Node.js & pnpm](https://nodejs.org/)
+* [Node.js & pnpm](https://nodejs.org/) (v18+)
+* [Python 3.12+](https://www.python.org/), [uv](https://github.com/astral-sh/uv) & [FFmpeg](https://ffmpeg.org/) (for Direct Local Development)
+* [Docker & Docker Compose](https://www.docker.com/) (Optional: for containerized runtime)
 
 ### 2. Configuration & Secrets
 Copy the environment template and fill in the values:
@@ -125,14 +127,51 @@ cp .env.example .env.local
 
 Refer to [docs/USER_SETUP_GUIDE.md](file:///d:/media-loader/docs/USER_SETUP_GUIDE.md) for generating Supabase & Google OAuth credentials.
 
-### 3. Deploy Supabase Migrations
-Apply schemas to your Supabase instance:
+### 3. Database & Migrations Setup
+This project is equipped with **Drizzle ORM** ([`apps/web/drizzle.config.ts`](file:///d:/media-loader/apps/web/drizzle.config.ts)) for TypeScript schema management alongside Supabase PostgreSQL support.
+
+To apply the database schema to your Supabase / PostgreSQL instance:
+
+#### Option A: Automatic Push via Drizzle Kit (Recommended)
+Ensure `DATABASE_URL` is defined in `.env.local`, then push the schema directly via CLI:
 ```bash
-# Apply migrations located in supabase/migrations/
+pnpm --filter web db:push
 ```
 
-### 4. Start Backend Stack (Docker)
-Launch the API and Worker containers:
+#### Option B: Via Supabase CLI or SQL Editor
+* **Supabase CLI**:
+  ```bash
+  supabase db push
+  ```
+* **Supabase Dashboard**: Go to **SQL Editor** -> copy & run SQL files in numerical order from [`supabase/migrations/`](file:///d:/media-loader/supabase/migrations/) (see [`supabase/README.md`](file:///d:/media-loader/supabase/README.md)).
+
+> [!NOTE]
+> Frontend uses Drizzle ORM ([`apps/web/lib/db/schema.ts`](file:///d:/media-loader/apps/web/lib/db/schema.ts)) and Backend services (`apps/api` & `apps/worker`) connect using `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`.
+
+### 4. Start Backend Services
+
+#### Option A: Direct Local Python via `uv` (Recommended for Fast Dev Iteration)
+Running directly with `uv` allows instant code changes and hot-reloading without waiting for Docker image rebuilds.
+
+1. **FastAPI API (`apps/api`)**:
+   ```bash
+   cd apps/api
+   uv venv
+   # Windows: .venv\Scripts\activate | Linux/macOS: source .venv/bin/activate
+   uv pip install -e .
+   uv run uvicorn app.main:app --reload --port 8000
+   ```
+
+2. **Media Worker (`apps/worker`)**:
+   ```bash
+   # Open a separate terminal
+   cd apps/worker
+   uv pip install -e .
+   uv run python -m worker.main
+   ```
+
+#### Option B: Docker Compose (Optional / Containerized Runtime)
+If you prefer running isolated containers without installing local Python/FFmpeg dependencies:
 ```bash
 docker compose up -d --build
 ```
@@ -145,6 +184,39 @@ pnpm install
 pnpm run dev:web
 ```
 Open `http://localhost:3000` to access the application dashboard.
+
+---
+
+## Verification & Health Check
+
+You can verify environment setup and database connections using these commands:
+
+1. **Verify Environment Configuration**:
+   ```bash
+   pnpm check-env
+   ```
+   Validates required environment variables without printing secret values.
+
+2. **Check Backend API & Supabase Connection**:
+   ```bash
+   curl http://localhost:8000/health
+   ```
+   Expected response:
+   ```json
+   {
+     "status": "success",
+     "data": {
+       "status": "healthy",
+       "supabase_connected": true
+     }
+   }
+   ```
+
+3. **Verify Tables in Supabase Dashboard**:
+   Run in Supabase SQL Editor:
+   ```sql
+   SELECT table_name FROM information_schema.tables WHERE table_schema = 'public';
+   ```
 
 ---
 
