@@ -21,7 +21,6 @@ Users should only access their own:
 - download jobs
 - media formats
 - policy logs
-- settings
 - optional storage files if cloud mode is enabled
 
 ---
@@ -31,9 +30,7 @@ Users should only access their own:
 ```text
 profiles
 download_jobs
-media_formats
 policy_logs
-user_settings
 ```
 
 RLS must be enabled on every table above.
@@ -55,9 +52,8 @@ using (auth.uid() = id)
 with check (auth.uid() = id)
 ```
 
-`download_jobs`, `media_formats`, and `policy_logs` are server-managed. Browser
-clients may read only their own rows and have no direct `INSERT`, `UPDATE`, or
-`DELETE` policies. FastAPI and the worker mutate these tables with the
+`download_jobs` and `policy_logs` are server-managed. Browser clients may read
+only their own rows and have no direct `INSERT`, `UPDATE`, or `DELETE` policies. FastAPI and the worker mutate these tables with the
 server-only service role after authentication and policy checks. This prevents
 direct Supabase inserts from bypassing the required queue flow.
 
@@ -103,7 +99,7 @@ Cloud file access should use short-lived signed URLs and must not be logged. Def
 - [ ] RLS is enabled on all user-owned tables
 - [ ] Select policies are user-scoped
 - [ ] Server-managed tables expose no browser mutation policies
-- [ ] Profile/settings mutations remain user-scoped where needed
+- [ ] Profile mutations remain user-scoped where needed
 - [ ] Service role key is server/worker-only
 - [ ] Optional Storage bucket is private when enabled
 - [ ] Signed URLs are not logged if optional cloud mode is enabled

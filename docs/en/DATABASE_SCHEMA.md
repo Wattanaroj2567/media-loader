@@ -56,29 +56,6 @@ Stores each media job.
 
 ---
 
-## `media_formats`
-
-Stores available formats discovered during analysis.
-
-| Column | Type | Notes |
-|---|---|---|
-| id | uuid | Primary key |
-| job_id | uuid | Related job or analysis record |
-| user_id | uuid | Owner |
-| format_id | text | Extractor format ID |
-| extension | text | mp4, webm, m4a, etc. |
-| resolution | text | 1080p, 720p, source |
-| fps | integer | Frame rate |
-| video_codec | text | Video codec |
-| audio_codec | text | Audio codec |
-| bitrate | integer | Bitrate |
-| filesize | bigint | Estimated size |
-| is_video | boolean | Has video |
-| is_audio | boolean | Has audio |
-| created_at | timestamptz | Created timestamp |
-
----
-
 ## `policy_logs`
 
 Stores policy decisions for audit and debugging.
@@ -92,19 +69,3 @@ Stores policy decisions for audit and debugging.
 | decision | text | allowed, blocked, needs_confirmation |
 | reason | text | Human readable reason |
 | created_at | timestamptz | Created timestamp |
-
----
-
-## `user_settings`
-
-Stores personal preferences.
-
-| Column | Type | Notes |
-|---|---|---|
-| user_id | uuid | Primary key, references auth.users(id) |
-| default_video_quality | text | e.g. 1080p |
-| default_audio_quality | text | e.g. 320kbps |
-| auto_cleanup_days | integer | cleanup age |
-| max_file_size_mb | integer | max file size |
-| created_at | timestamptz | Created timestamp |
-| updated_at | timestamptz | Updated timestamp |

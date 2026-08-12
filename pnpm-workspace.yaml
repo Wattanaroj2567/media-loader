@@ -12,3 +12,6 @@ onlyBuiltDependencies:
   - sharp
   - unrs-resolver
   - esbuild
+
+patchedDependencies:
+  drizzle-kit: patches/drizzle-kit.patch

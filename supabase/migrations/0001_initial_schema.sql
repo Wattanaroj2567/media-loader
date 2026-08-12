@@ -35,7 +35,7 @@ create table if not exists public.download_jobs (
   selected_has_audio boolean not null default false,
   output_format text,
   status text not null default 'PENDING',
-  progress integer not null default 0 check (progress >= 0 and progress <= 100),
+  progress integer not null default 0,
   error_message text,
   storage_bucket text,
   storage_path text,
@@ -47,24 +47,6 @@ create table if not exists public.download_jobs (
   updated_at timestamptz not null default now(),
   completed_at timestamptz,
   download_speed bigint
-);
-
--- Media formats
-create table if not exists public.media_formats (
-  id uuid primary key default gen_random_uuid(),
-  job_id uuid references public.download_jobs(id) on delete cascade,
-  user_id uuid not null references auth.users(id) on delete cascade,
-  format_id text not null,
-  extension text,
-  resolution text,
-  fps integer,
-  video_codec text,
-  audio_codec text,
-  bitrate integer,
-  filesize bigint,
-  is_video boolean not null default false,
-  is_audio boolean not null default false,
-  created_at timestamptz not null default now()
 );
 
 -- Policy logs
@@ -83,7 +65,6 @@ create table if not exists public.policy_logs (
 -- ==========================================
 create index if not exists idx_download_jobs_user_id_created_at on public.download_jobs(user_id, created_at desc);
 create index if not exists idx_download_jobs_status on public.download_jobs(status);
-create index if not exists idx_media_formats_user_id on public.media_formats(user_id);
 create index if not exists idx_policy_logs_user_id_created_at on public.policy_logs(user_id, created_at desc);
 
 -- ==========================================
@@ -92,7 +73,6 @@ create index if not exists idx_policy_logs_user_id_created_at on public.policy_l
 
 alter table public.profiles enable row level security;
 alter table public.download_jobs enable row level security;
-alter table public.media_formats enable row level security;
 alter table public.policy_logs enable row level security;
 
 -- Profiles Policies
@@ -122,14 +102,6 @@ with check (auth.uid() = id);
 drop policy if exists "Users can read own download jobs" on public.download_jobs;
 create policy "Users can read own download jobs"
 on public.download_jobs
-for select
-to authenticated
-using (auth.uid() = user_id);
-
--- Media Formats Policies (Read Only for Users, Mutated via Server-side/Service Role)
-drop policy if exists "Users can read own media formats" on public.media_formats;
-create policy "Users can read own media formats"
-on public.media_formats
 for select
 to authenticated
 using (auth.uid() = user_id);

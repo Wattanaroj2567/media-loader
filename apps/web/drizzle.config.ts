@@ -10,11 +10,15 @@ if (databaseUrl.startsWith("DATABASE_URL=")) {
   databaseUrl = databaseUrl.substring("DATABASE_URL=".length);
 }
 
+if (!databaseUrl) {
+  console.warn("DATABASE_URL is not set. drizzle-kit commands will fail.");
+}
+
 export default defineConfig({
   schema: "./lib/db/schema.ts",
-  out: "./drizzle/migrations", // Store Drizzle migrations locally within apps/web
+  out: "./drizzle/migrations",
   dialect: "postgresql",
-  schemaFilter: ["public"], // Only introspect and sync the public schema
+  schemaFilter: ["public"],
   dbCredentials: {
     url: databaseUrl,
   },

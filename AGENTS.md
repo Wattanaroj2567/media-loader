@@ -258,7 +258,7 @@ Use clear, boring, maintainable names.
 Good names:
 
 - `download_jobs`
-- `media_formats`
+- `profiles`
 - `policy_logs`
 - `analyzeMediaUrl`
 - `createDownloadJob`

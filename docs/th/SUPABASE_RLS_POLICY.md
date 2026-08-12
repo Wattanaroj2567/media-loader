@@ -30,9 +30,7 @@ supabase/rls_policies.sql
 ```text
 profiles
 download_jobs
-media_formats
 policy_logs
-user_settings
 ```
 
 ทุกตารางข้างต้นต้องเปิดใช้งาน RLS (`ALTER TABLE ... ENABLE ROW LEVEL SECURITY;`)
@@ -52,4 +50,4 @@ USING (auth.uid() = id)
 WITH CHECK (auth.uid() = id)
 ```
 
-ตาราง `download_jobs`, `media_formats` และ `policy_logs` ถูกบริหารจัดการผ่านฝั่ง Server-Side (FastAPI API และ Media Worker) Client บนเบราว์เซอร์จะมีสิทธิ์เพียงการอ่าน (`SELECT`) แถวข้อมูลของตนเองเท่านั้น โดยไม่มีสิทธิ์ `INSERT`, `UPDATE` หรือ `DELETE` โดยตรง FastAPI และ Worker จะปรับเปลี่ยนข้อมูลผ่าน Supabase Service Role Key บนเครื่อง Server ที่ปลอดภัย
+ตาราง `download_jobs` และ `policy_logs` ถูกบริหารจัดการผ่านฝั่ง Server-Side (FastAPI API และ Media Worker) Client บนเบราว์เซอร์จะมีสิทธิ์เพียงการอ่าน (`SELECT`) แถวข้อมูลของตนเองเท่านั้น โดยไม่มีสิทธิ์ `INSERT`, `UPDATE` หรือ `DELETE` โดยตรง FastAPI และ Worker จะปรับเปลี่ยนข้อมูลผ่าน Supabase Service Role Key บนเครื่อง Server ที่ปลอดภัย

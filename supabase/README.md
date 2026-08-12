@@ -45,9 +45,7 @@ Expected output:
 
 - `profiles`
 - `download_jobs`
-- `media_formats`
 - `policy_logs`
-- `user_settings`
 
 ---
 
@@ -63,7 +61,7 @@ WHERE schemaname = 'public';
 
 Expected output:
 
-- `download_jobs`, `media_formats`, and `policy_logs` expose user-scoped
-  `SELECT` policies only. Their mutations run through FastAPI/worker.
-- `profiles` and `user_settings` keep user-scoped policies for the operations
-  their browser-facing settings flows require.
+- `download_jobs` and `policy_logs` expose user-scoped `SELECT` policies
+  only. Their mutations run through FastAPI/worker.
+- `profiles` keeps user-scoped policies for the operations their
+  browser-facing profile flows require.

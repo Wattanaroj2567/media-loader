@@ -30,23 +30,6 @@ CREATE TABLE "download_jobs" (
 	"download_speed" bigint
 );
 --> statement-breakpoint
-CREATE TABLE "media_formats" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"job_id" uuid,
-	"user_id" uuid NOT NULL,
-	"format_id" text NOT NULL,
-	"extension" text,
-	"resolution" text,
-	"fps" integer,
-	"video_codec" text,
-	"audio_codec" text,
-	"bitrate" integer,
-	"filesize" bigint,
-	"is_video" boolean DEFAULT false NOT NULL,
-	"is_audio" boolean DEFAULT false NOT NULL,
-	"created_at" timestamp with time zone DEFAULT now() NOT NULL
-);
---> statement-breakpoint
 CREATE TABLE "policy_logs" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid,
@@ -71,11 +54,8 @@ CREATE TABLE "auth"."users" (
 );
 --> statement-breakpoint
 ALTER TABLE "download_jobs" ADD CONSTRAINT "download_jobs_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "media_formats" ADD CONSTRAINT "media_formats_job_id_download_jobs_id_fk" FOREIGN KEY ("job_id") REFERENCES "public"."download_jobs"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "media_formats" ADD CONSTRAINT "media_formats_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "policy_logs" ADD CONSTRAINT "policy_logs_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "profiles" ADD CONSTRAINT "profiles_id_users_id_fk" FOREIGN KEY ("id") REFERENCES "auth"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "idx_download_jobs_user_id_created_at" ON "download_jobs" USING btree ("user_id","created_at");--> statement-breakpoint
 CREATE INDEX "idx_download_jobs_status" ON "download_jobs" USING btree ("status");--> statement-breakpoint
-CREATE INDEX "idx_media_formats_user_id" ON "media_formats" USING btree ("user_id");--> statement-breakpoint
 CREATE INDEX "idx_policy_logs_user_id_created_at" ON "policy_logs" USING btree ("user_id","created_at");

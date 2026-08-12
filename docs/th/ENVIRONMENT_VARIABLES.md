@@ -58,6 +58,4 @@ TEMP_DIR=.tmp/media-loader
 
 ```env
 LOG_LEVEL=info
-ENABLE_SUPABASE_REALTIME=false
-DEFAULT_AUDIO_QUALITY=192kbps
 ```

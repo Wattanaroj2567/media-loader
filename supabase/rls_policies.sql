@@ -2,7 +2,6 @@
 
 alter table public.profiles enable row level security;
 alter table public.download_jobs enable row level security;
-alter table public.media_formats enable row level security;
 alter table public.policy_logs enable row level security;
 
 -- Profiles
@@ -36,17 +35,6 @@ using (auth.uid() = user_id);
 drop policy if exists "Users can insert own download jobs" on public.download_jobs;
 drop policy if exists "Users can update own download jobs" on public.download_jobs;
 drop policy if exists "Users can delete own download jobs" on public.download_jobs;
-
--- Media formats
-drop policy if exists "Users can read own media formats" on public.media_formats;
-create policy "Users can read own media formats"
-on public.media_formats
-for select
-to authenticated
-using (auth.uid() = user_id);
-
-drop policy if exists "Users can insert own media formats" on public.media_formats;
-drop policy if exists "Users can delete own media formats" on public.media_formats;
 
 -- Policy logs
 drop policy if exists "Users can read own policy logs" on public.policy_logs;
