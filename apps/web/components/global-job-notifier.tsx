@@ -89,7 +89,7 @@ export function GlobalJobNotifier() {
       toast(
         "error",
         t("history.downloadError", {}, "ดาวน์โหลดไฟล์ไม่สำเร็จ"),
-        t("error.genericDesc"),
+        err instanceof Error && err.message ? err.message : t("error.genericDesc"),
       );
     } finally {
       setDelivering(false);
@@ -138,8 +138,8 @@ export function GlobalJobNotifier() {
             // On phones/tablets, let the user pick how to save the file: the
             // native share sheet can save straight into Photos (iOS) or to
             // Photos/Files/Drive (Android). Desktop keeps the automatic
-            // browser download. The completed file is one-shot, so the user
-            // must choose before we consume it.
+            // browser download. Keep only one chooser open so the user can
+            // decide how to handle each completed file clearly.
             const preferShareSheet =
               isMobileDevice() &&
               canShareFiles() &&
@@ -184,7 +184,7 @@ export function GlobalJobNotifier() {
                 toast(
                   "error",
                   t("history.downloadError", {}, "ดาวน์โหลดไฟล์ไม่สำเร็จ"),
-                  t("error.genericDesc"),
+                  err instanceof Error && err.message ? err.message : t("error.genericDesc"),
                 );
               }
             }

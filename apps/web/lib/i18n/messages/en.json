@@ -140,7 +140,7 @@
   "history.confirmBulkDeleteTitle": "Delete Selected Items",
   "history.confirmBulkDeleteDesc": "Are you sure you want to delete the {n} selected history items? Related files will be deleted.",
   "history.bulkDeletedSuccess": "Bulk history deleted successfully",
-  "history.bulkDeletedError": "Failed to delete bulk history",
+  "history.bulkDeletedError": "Could not delete selected history",
 
   "downloads.title": "Queue",
   "downloads.subtitle": "Media that is waiting or processing.",

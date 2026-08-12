@@ -11,7 +11,6 @@ from pathlib import Path
 
 from fastapi import APIRouter, Depends, Response
 from fastapi.responses import FileResponse
-from starlette.background import BackgroundTask
 
 from app.auth import CurrentUser, get_current_user
 from app.config import get_settings
@@ -91,20 +90,7 @@ async def download_file(
         path=file_path,
         filename=output_filename,
         media_type="application/octet-stream",
-        background=BackgroundTask(
-            _remove_delivered_file,
-            str(file_path),
-            job_id,
-            current_user.id,
-        ),
     )
-
-
-def _remove_delivered_file(path: str, job_id: str, user_id: str) -> None:
-    try:
-        delete_local_output(path, settings.resolved_temp_dir)
-    finally:
-        clear_job_output(job_id, user_id=user_id)
 
 
 @router.delete("/delete/{job_id}")

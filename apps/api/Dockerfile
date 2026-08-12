@@ -1,4 +1,9 @@
+FROM denoland/deno:bin-2.9.5 AS deno-runtime
+FROM ghcr.io/astral-sh/uv:0.12.3 AS uv-runtime
 FROM python:3.12-slim
+
+COPY --from=deno-runtime /deno /usr/local/bin/deno
+COPY --from=uv-runtime /uv /uvx /bin/
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
@@ -10,20 +15,11 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 COPY apps/api/pyproject.toml ./pyproject.toml
-RUN pip install --no-cache-dir --upgrade pip \
-    && pip install --no-cache-dir \
-       fastapi \
-       "uvicorn[standard]" \
-       pydantic \
-       pydantic-settings \
-       httpx \
-       python-dotenv \
-       supabase \
-       yt-dlp \
-       curl_cffi
+COPY apps/api/uv.lock ./uv.lock
+RUN uv sync --locked --no-dev --no-install-project
 
 COPY apps/api ./
 
 EXPOSE 8000
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["/app/apps/api/.venv/bin/uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

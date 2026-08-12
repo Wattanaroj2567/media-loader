@@ -1,7 +1,15 @@
 import { getDownloadFilename, type MediaFormat } from "./media-presenters.ts";
+import { createClient } from "./supabase/client.ts";
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_FASTAPI_BASE_URL || "http://localhost:8000";
+function getApiBaseUrl(): string {
+  if (process.env.NEXT_PUBLIC_FASTAPI_BASE_URL) {
+    return process.env.NEXT_PUBLIC_FASTAPI_BASE_URL;
+  }
+  if (typeof window !== "undefined" && window.location.hostname === "127.0.0.1") {
+    return "http://127.0.0.1:8000";
+  }
+  return "http://localhost:8000";
+}
 
 export interface Job {
   id: string;
@@ -71,7 +79,6 @@ export interface FileDestination {
 }
 
 async function currentAccessToken(): Promise<string | null> {
-  const { createClient } = await import("./supabase/client");
   const {
     data: { session },
   } = await createClient().auth.getSession();
@@ -155,6 +162,20 @@ function apiErrorMessage(payload: unknown, fallback: string) {
   return fallback;
 }
 
+function isNetworkError(error: unknown): boolean {
+  return (
+    error instanceof TypeError ||
+    (error instanceof Error &&
+      (error.name === "TypeError" || error.message.includes("Failed to fetch")))
+  );
+}
+
+function networkErrorMessage(kind: "api" | "file"): string {
+  return kind === "file"
+    ? "ไม่สามารถดาวน์โหลดไฟล์ได้ กรุณาลองใหม่อีกครั้ง"
+    : "ไม่สามารถดำเนินการได้ในขณะนี้ กรุณาลองใหม่อีกครั้ง";
+}
+
 export class UnauthorizedError extends Error {
   constructor(message = "Session หมดอายุ กรุณาเข้าสู่ระบบอีกครั้ง") {
     super(message);
@@ -168,7 +189,7 @@ export class ApiClient {
   private readonly fetcher: Fetcher;
 
   constructor(
-    baseUrl = API_BASE_URL,
+    baseUrl = getApiBaseUrl(),
     tokenProvider: TokenProvider = currentAccessToken,
     fetcher: Fetcher = fetch,
   ) {
@@ -178,7 +199,21 @@ export class ApiClient {
   }
 
   private async authorizationHeaders(includeJson = true) {
-    const token = await this.tokenProvider();
+    let token: string | null;
+    try {
+      token = await this.tokenProvider();
+    } catch (error) {
+      if (process.env.NODE_ENV !== "production") {
+        const detail =
+          error instanceof Error
+            ? `${error.name}: ${error.message}`
+            : "Unknown session read error";
+        console.warn(`[Session Read Error]: ${detail}`);
+      }
+      throw new Error(
+        "ไม่สามารถตรวจสอบการเข้าสู่ระบบได้ กรุณาโหลดหน้าใหม่แล้วลองอีกครั้ง",
+      );
+    }
     if (!token) {
       throw new UnauthorizedError("Session หมดอายุ กรุณาเข้าสู่ระบบอีกครั้ง");
     }
@@ -191,17 +226,33 @@ export class ApiClient {
     endpoint: string,
     options: RequestInit = {},
   ): Promise<T> {
-    const response = await this.fetcher(`${this.baseUrl}${endpoint}`, {
-      ...options,
-      headers: new Headers({
-        ...(Object.fromEntries(
-          (await this.authorizationHeaders()).entries(),
-        ) as Record<string, string>),
-        ...(Object.fromEntries(
-          new Headers(options.headers).entries(),
-        ) as Record<string, string>),
-      }),
-    });
+    const authorizationHeaders = await this.authorizationHeaders();
+    let response: Response;
+    try {
+      response = await this.fetcher(`${this.baseUrl}${endpoint}`, {
+        ...options,
+        headers: new Headers({
+          ...(Object.fromEntries(
+            authorizationHeaders.entries(),
+          ) as Record<string, string>),
+          ...(Object.fromEntries(
+            new Headers(options.headers).entries(),
+          ) as Record<string, string>),
+        }),
+      });
+    } catch (error) {
+      if (isNetworkError(error)) {
+        if (process.env.NODE_ENV !== "production") {
+          const detail =
+            error instanceof Error
+              ? `${error.name}: ${error.message}`
+              : "Unknown browser request error";
+          console.warn(`[API Request Error] ${endpoint}: ${detail}`);
+        }
+        throw new Error(networkErrorMessage("api"));
+      }
+      throw error;
+    }
     const payload = (await response.json().catch(() => null)) as
       | ApiEnvelope<T>
       | null;
@@ -211,7 +262,12 @@ export class ApiClient {
       );
     }
     if (!response.ok || !payload?.ok || payload.data === null) {
-      throw new Error(apiErrorMessage(payload, "ไม่สามารถเชื่อมต่อบริการได้"));
+      throw new Error(
+        apiErrorMessage(
+          payload,
+          "ไม่สามารถดำเนินการได้ในขณะนี้ กรุณาลองใหม่อีกครั้ง",
+        ),
+      );
     }
     return payload.data;
   }
@@ -293,17 +349,31 @@ export class ApiClient {
   }
 
   private async fileResponse(jobId: string) {
-    const response = await this.fetcher(
-      `${this.baseUrl}/files/download/${encodeURIComponent(jobId)}`,
-      {
-        headers: await this.authorizationHeaders(false),
-      },
-    );
-    if (!response.ok) {
-      const payload = await response.json().catch(() => null);
-      throw new Error(apiErrorMessage(payload, "ดาวน์โหลดไฟล์ไม่สำเร็จ"));
+    let lastError: unknown;
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      try {
+        const response = await this.fetcher(
+          `${this.baseUrl}/files/download/${encodeURIComponent(jobId)}`,
+          {
+            headers: await this.authorizationHeaders(false),
+          },
+        );
+        if (!response.ok) {
+          const payload = await response.json().catch(() => null);
+          throw new Error(apiErrorMessage(payload, "ดาวน์โหลดไฟล์ไม่สำเร็จ"));
+        }
+        return response;
+      } catch (err) {
+        lastError = err;
+        if (isNetworkError(err) && attempt < 2) {
+          await new Promise((resolve) => setTimeout(resolve, 800));
+          continue;
+        }
+        if (isNetworkError(err)) throw new Error(networkErrorMessage("file"));
+        throw err;
+      }
     }
-    return response;
+    throw lastError;
   }
 
   async chooseFileDestination(
@@ -348,9 +418,9 @@ export class ApiClient {
    *
    * On iOS the share sheet includes "Save Video / Save Image" which saves
    * straight into the Photos app; on Android the user can pick Photos, Files,
-   * Drive, etc. The completed file is one-shot (the API deletes it after this
-   * request), so when sharing is unavailable or dismissed we fall back to a
-   * regular browser download with the already-fetched blob instead of wasting it.
+   * Drive, etc. When sharing is unavailable or dismissed we fall back to a
+   * regular browser download with the already-fetched blob instead of making a
+   * second request for the same completed file.
    *
    * Returns:
    *   - "shared":      file handed to the native share sheet
@@ -385,9 +455,8 @@ export class ApiClient {
       await navigator.share({ files: [file], title: filename });
       return "shared";
     } catch {
-      // The one-shot server file is already consumed at response.blob(), so on
-      // any share failure (including the user dismissing the share sheet) we
-      // deliver the blob we already hold instead of losing the file.
+      // On any share failure (including dismissing the share sheet), deliver
+      // the blob we already hold instead of making another request.
       triggerBlobDownload(blob, filename);
       return "downloaded";
     }

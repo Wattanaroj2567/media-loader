@@ -10,8 +10,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from app.config import get_settings
 from app.errors import AppError
-from app.file_service import delete_local_output
+from app.file_service import delete_local_output, local_output_exists
 from app.supabase_client import get_supabase_client
 
 logger = logging.getLogger("media_loader_api.job_service")
@@ -96,6 +97,11 @@ def create_job(
         "selected_has_audio": selected_has_audio,
         "output_format": output_format,
         "rights_confirmed": True,
+        # Reserve the existing lock field as a routing marker while QUEUED.
+        # Old workers ignore non-null markers, so a cloud worker cannot steal
+        # a job created by the local API during a rolling deployment.
+        "locked_by": get_settings().queue_target_marker,
+        "locked_at": None,
         "created_at": now,
         "updated_at": now,
     }
@@ -124,7 +130,12 @@ def _normalize_job(job: dict, *, include_internal: bool = False) -> dict:
     if "selected_format_id" in job and "selected_format" not in job:
         job["selected_format"] = job["selected_format_id"]
     storage_path = job.get("storage_path")
-    job["file_available"] = bool(storage_path)
+    # Local output metadata can remain after retention cleanup. Do not expose a
+    # share/download action until the owner-scoped file is still deliverable.
+    job["file_available"] = local_output_exists(
+        storage_path,
+        get_settings().resolved_temp_dir,
+    )
     if storage_path:
         job["output_filename"] = Path(storage_path).name
     if include_internal:
@@ -270,9 +281,16 @@ def delete_job(job_id: str, *, user_id: str, temp_root: str | Path) -> bool:
             "JOB_STILL_RUNNING",
             "กรุณายกเลิกงานที่กำลังทำงานก่อนลบ",
         )
-    delete_local_output(job.get("output_path"), temp_root)
     try:
-        result = (
+        delete_local_output(job.get("output_path"), temp_root)
+    except AppError as error:
+        if error.code != "UNSAFE_FILE_PATH":
+            raise
+        # A historical path from another deployment must never be deleted, but
+        # it also must not prevent the owner from removing their history row.
+        logger.warning("Skipped unsafe output while deleting job %s", job_id)
+    try:
+        (
             _database()
             .table("download_jobs")
             .delete()
@@ -280,7 +298,7 @@ def delete_job(job_id: str, *, user_id: str, temp_root: str | Path) -> bool:
             .eq("user_id", user_id)
             .execute()
         )
-        return bool(result.data)
+        return True
     except Exception as error:
         logger.error("Failed to delete job %s: %s", job_id, type(error).__name__)
         raise AppError(500, "JOB_DELETE_FAILED", "ไม่สามารถลบรายการได้") from error
@@ -336,6 +354,6 @@ def resume_job(job_id: str, *, user_id: str) -> dict:
         job_id,
         "QUEUED",
         user_id=user_id,
-        locked_by=None,
+        locked_by=get_settings().queue_target_marker,
         locked_at=None,
     )

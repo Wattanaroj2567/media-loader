@@ -5,7 +5,7 @@ Handles polling for queued jobs, locking, and status updates.
 """
 
 import logging
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from typing import Any
 
 from worker.supabase_client import get_supabase_client
@@ -26,16 +26,18 @@ def poll_queued_job() -> dict | None:
 
     settings = get_settings()
     worker_id = settings.worker_id
+    queue_target = settings.queue_target_marker
     now = datetime.now(timezone.utc)
-    timeout_threshold = now - timedelta(minutes=settings.job_timeout_minutes)
 
     try:
-        # Find a QUEUED job that is not locked or whose lock has expired
+        # Only claim jobs explicitly routed to this runtime. This prevents a
+        # Railway worker and a local worker sharing Supabase from racing for
+        # a file that only one machine can later serve.
         result = (
             supabase.table("download_jobs")
             .select("*")
             .eq("status", "QUEUED")
-            .or_(f"locked_by.is.null,locked_at.lt.{timeout_threshold.isoformat()}")
+            .eq("locked_by", queue_target)
             .order("created_at", desc=False)
             .limit(1)
             .execute()
@@ -61,6 +63,7 @@ def poll_queued_job() -> dict | None:
             .update(update_data)
             .eq("id", job_id)
             .eq("status", "QUEUED")
+            .eq("locked_by", queue_target)
             .execute()
         )
 
@@ -69,7 +72,12 @@ def poll_queued_job() -> dict | None:
             logger.debug(f"Job {job_id} was claimed by another worker")
             return None
 
-        logger.info(f"Claimed job {job_id} for worker {worker_id}")
+        logger.info(
+            "Claimed job %s for worker %s in pool %s",
+            job_id,
+            worker_id,
+            settings.resolved_worker_pool,
+        )
         return update_result.data[0]
 
     except Exception as e:

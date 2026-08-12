@@ -43,7 +43,8 @@ Public health check.
 {
   "ok": true,
   "data": {
-    "status": "healthy"
+    "status": "healthy",
+    "worker_pool": "local"
   },
   "error": null
 }
@@ -180,7 +181,7 @@ Delete a queued or terminal job and clear its local temporary output when presen
 
 Authenticated local file delivery for completed jobs.
 
-The frontend calls this endpoint with the Supabase access token and opens the browser save dialog when supported. After the response is delivered, FastAPI deletes the local temp file and clears `storage_path`; only metadata/history remains in PostgreSQL.
+The frontend calls this endpoint with the Supabase access token and opens the browser save dialog when supported. The local temp file remains available until it is explicitly removed or reaches retention cleanup, so a transient browser failure does not discard the user's completed output. Cleanup clears `storage_path`; only metadata/history remains in PostgreSQL.
 
 ---
 

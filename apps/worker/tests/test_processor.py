@@ -9,6 +9,7 @@ from worker.processor import (
     JobCancelled,
     build_format_selector,
     calculate_download_progress,
+    classify_download_error,
     create_progress_hook,
     is_terminal_status,
 )
@@ -33,6 +34,15 @@ def test_build_format_selector_uses_selected_real_video_plus_audio():
 def test_build_format_selector_uses_selected_audio_without_video():
     assert build_format_selector("251", "mp3") == "251/bestaudio/best"
     assert build_format_selector("best", "mp3") == "bestaudio/best"
+
+
+def test_download_errors_are_classified_without_exposing_extractor_details():
+    assert "HTTP 403" in classify_download_error(Exception("HTTP Error 403: Forbidden"))
+    assert "JavaScript" in classify_download_error(Exception("No JavaScript runtime"))
+    assert "FFmpeg" in classify_download_error(Exception("ffmpeg is not installed"))
+    assert classify_download_error(Exception("signed source URL failed")) == (
+        "ดาวน์โหลดจากแหล่งต้นทางไม่สำเร็จ"
+    )
 
 
 def test_calculate_download_progress_handles_exact_estimated_and_missing_totals():

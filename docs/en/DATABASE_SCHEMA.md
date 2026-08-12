@@ -49,7 +49,7 @@ Stores each media job.
 | file_size | bigint | Completed file size |
 | rights_confirmed | boolean | User confirmation |
 | locked_at | timestamptz | Worker lock timestamp |
-| locked_by | text | Worker identifier |
+| locked_by | text | Queue target `pool:<environment>` while queued; worker identifier while processing |
 | created_at | timestamptz | Created timestamp |
 | updated_at | timestamptz | Updated timestamp |
 | completed_at | timestamptz | Completed timestamp |

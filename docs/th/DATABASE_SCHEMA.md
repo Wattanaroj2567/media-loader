@@ -51,7 +51,7 @@ Supabase PostgreSQL เป็นฐานข้อมูลหลักของ
 | `file_size` | bigint | ขนาดไฟล์เมื่อประมวลผลเสร็จสิ้น (Bytes) |
 | `rights_confirmed` | boolean | การยืนยันสิทธิ์ของผู้ใช้ |
 | `locked_at` | timestamptz | เวลาที่ Worker ล็อกคิวงานไปทำ |
-| `locked_by` | text | รหัสระบุ Worker ที่กำลังประมวลผล |
+| `locked_by` | text | ระหว่างรอคิวเก็บเป้าหมาย `pool:<environment>`; ระหว่างประมวลผลเก็บรหัส Worker |
 | `created_at` | timestamptz | เวลาที่สร้างงาน |
 | `updated_at` | timestamptz | เวลาที่อัปเดตสถานะ |
 | `completed_at` | timestamptz | เวลาที่ประมวลผลเสร็จสิ้น |

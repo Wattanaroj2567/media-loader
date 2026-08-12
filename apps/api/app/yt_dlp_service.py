@@ -13,6 +13,7 @@ from typing import Any
 import yt_dlp
 from yt_dlp.networking.impersonate import ImpersonateTarget
 
+from app.config import get_settings
 from app.errors import AppError
 from app.schemas import MediaMetadata, FormatInfo
 
@@ -58,6 +59,11 @@ def _run_yt_dlp_sync(url: str) -> dict[str, Any]:
         "retries": 0,           # We handle retries at the app level with backoff
         "fragment_retries": 0,
     }
+    if js_runtime := get_settings().resolved_js_runtime:
+        runtime_name, runtime_executable = js_runtime
+        base_opts["js_runtimes"] = {
+            runtime_name: {"path": str(runtime_executable)},
+        }
 
     # Try with impersonate target if available
     try_impersonate = True

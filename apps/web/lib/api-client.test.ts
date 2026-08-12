@@ -137,3 +137,38 @@ test("ApiClient exposes the wrapped API error message", async () => {
     /Blocked by policy/,
   );
 });
+
+test("ApiClient gives a user-friendly message when history deletion cannot reach the API", async () => {
+  const client = new ApiClient(
+    "http://api.test",
+    async () => "token",
+    async () => {
+      throw new TypeError("Failed to fetch");
+    },
+  );
+
+  await assert.rejects(
+    () => client.deleteJob("job-1"),
+    /ไม่สามารถดำเนินการได้ในขณะนี้ กรุณาลองใหม่อีกครั้ง/,
+  );
+});
+
+test("ApiClient does not misreport a session read failure as an API network error", async () => {
+  let fetchCalled = false;
+  const client = new ApiClient(
+    "http://api.test",
+    async () => {
+      throw new TypeError("HMR removed the session module");
+    },
+    async () => {
+      fetchCalled = true;
+      return new Response();
+    },
+  );
+
+  await assert.rejects(
+    () => client.deleteJob("job-1"),
+    /ไม่สามารถตรวจสอบการเข้าสู่ระบบได้ กรุณาโหลดหน้าใหม่แล้วลองอีกครั้ง/,
+  );
+  assert.equal(fetchCalled, false);
+});

@@ -19,6 +19,7 @@ async def health_check():
         data={
             "status": "healthy",
             "worker_id": settings.worker_id,
+            "worker_pool": settings.resolved_worker_pool,
             "output_mode": settings.media_output_mode,
             "supabase_connected": settings.has_supabase(),
         }

@@ -1,4 +1,5 @@
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -129,6 +130,30 @@ def test_history_search_includes_source_domain_and_output_filename(
     assert [job["id"] for job in by_filename] == ["job-u1-done"]
 
 
+def test_job_marks_file_available_only_when_local_output_exists(
+    monkeypatch, jobs, tmp_path: Path
+):
+    output_dir = tmp_path / "job-u1-done"
+    output_dir.mkdir()
+    output = output_dir / "clip.mp4"
+    output.write_bytes(b"media")
+    jobs[1]["storage_path"] = str(output)
+    database = InMemorySupabase(jobs)
+
+    monkeypatch.setattr("app.job_service.get_supabase_client", lambda: database)
+    monkeypatch.setattr(
+        "app.job_service.get_settings",
+        lambda: SimpleNamespace(resolved_temp_dir=tmp_path),
+    )
+
+    listed = list_jobs(user_id="user-1", limit=20, offset=0)
+    assert listed[0]["file_available"] is True
+
+    output.unlink()
+    listed_after_cleanup = list_jobs(user_id="user-1", limit=20, offset=0)
+    assert listed_after_cleanup[0]["file_available"] is False
+
+
 def test_cancel_job_updates_only_a_cancellable_owned_job(monkeypatch, jobs):
     database = InMemorySupabase(jobs)
     monkeypatch.setattr("app.job_service.get_supabase_client", lambda: database)
@@ -166,4 +191,18 @@ def test_delete_job_refuses_running_work_and_cleans_terminal_output(
         delete_job("job-u1-done", user_id="user-1", temp_root=tmp_path) is True
     )
     assert output.exists() is False
+    assert get_job("job-u1-done", user_id="user-1") is None
+
+
+def test_delete_job_removes_history_when_legacy_output_path_is_unsafe(
+    monkeypatch, jobs, tmp_path: Path
+):
+    legacy_output = tmp_path.parent / "legacy-output.mp4"
+    legacy_output.write_bytes(b"legacy")
+    jobs[1]["storage_path"] = str(legacy_output)
+    database = InMemorySupabase(jobs)
+    monkeypatch.setattr("app.job_service.get_supabase_client", lambda: database)
+
+    assert delete_job("job-u1-done", user_id="user-1", temp_root=tmp_path) is True
+    assert legacy_output.exists() is True
     assert get_job("job-u1-done", user_id="user-1") is None

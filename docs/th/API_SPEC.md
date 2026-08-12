@@ -45,7 +45,8 @@ Authorization: Bearer <Supabase access token>
 {
   "ok": true,
   "data": {
-    "status": "healthy"
+    "status": "healthy",
+    "worker_pool": "local"
   },
   "error": null
 }

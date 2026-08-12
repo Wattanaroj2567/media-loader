@@ -746,7 +746,7 @@ export function JobList({ mode, compact = false, containerRef }: {
             : t("queue.completedToastTitle", {}, "ดาวน์โหลดสำเร็จแล้ว"),
           filename,
         );
-        // The one-shot file is consumed; refresh so the button disappears.
+        // Refresh availability in case retention cleanup changed the file state.
         await fetchJobs(true);
       } catch (e) {
         console.warn("[Share File Error]:", e);
@@ -775,7 +775,7 @@ export function JobList({ mode, compact = false, containerRef }: {
           await fetchJobs(true);
         } catch (e) {
           console.warn("[Delete Job Error]:", e);
-          toast("error", t("queue.actionError"), t("error.genericDesc"));
+          toast("error", t("queue.actionError"), e instanceof Error ? e.message : t("error.genericDesc"));
         } finally { setBusyState(null); }
       },
       { variant: "danger", confirmText: t("common.delete", {}, "ลบ") }
@@ -830,18 +830,68 @@ export function JobList({ mode, compact = false, containerRef }: {
         setDeletingSelection(true);
         try {
           const results = await Promise.allSettled(
-            idsToDelete.map((jobId) => apiClient.deleteJob(jobId)),
+            idsToDelete.map(async (jobId) => {
+              try {
+                return await apiClient.deleteJob(jobId);
+              } catch (err: unknown) {
+                const msg = err instanceof Error ? err.message : "";
+                if (
+                  msg.includes("ไม่พบงานนี้") ||
+                  msg.includes("JOB_NOT_FOUND") ||
+                  msg.includes("404")
+                ) {
+                  return { deleted: true };
+                }
+                throw err;
+              }
+            }),
           );
-          if (results.some((result) => result.status === "rejected")) {
-            throw new Error("Some history items could not be deleted");
+
+          const succeededIds = new Set<string>();
+          const failedIds = new Set<string>();
+
+          results.forEach((res, index) => {
+            const jobId = idsToDelete[index];
+            if (res.status === "fulfilled") {
+              succeededIds.add(jobId);
+            } else {
+              failedIds.add(jobId);
+            }
+          });
+
+          if (succeededIds.size > 0) {
+            setSelectedJobIds((prev) => {
+              const next = new Set(prev);
+              succeededIds.forEach((id) => next.delete(id));
+              return next;
+            });
           }
-          toast("success", t("history.bulkDeletedSuccess"));
-          setSelectionMode(false);
-          setSelectedJobIds(new Set());
+
+          if (failedIds.size === 0) {
+            toast("success", t("history.bulkDeletedSuccess", {}, "ลบประวัติแบบกลุ่มสำเร็จ"));
+            setSelectionMode(false);
+            setSelectedJobIds(new Set());
+          } else if (succeededIds.size > 0) {
+            toast(
+              "info",
+              t(
+                "history.bulkDeletedPartial",
+                { s: succeededIds.size, f: failedIds.size },
+                `ลบสำเร็จ ${succeededIds.size} รายการ (ล้มเหลว ${failedIds.size} รายการ)`,
+              ),
+            );
+          } else {
+            toast(
+              "error",
+              t("history.bulkDeletedError", {}, "ไม่สามารถลบประวัติที่เลือกได้"),
+              t("error.genericDesc"),
+            );
+          }
+
           await fetchJobs(true);
         } catch (error) {
           console.warn("[Delete Selected History Error]:", error);
-          toast("error", t("history.bulkDeletedError"), t("error.genericDesc"));
+          toast("error", t("history.bulkDeletedError", {}, "ไม่สามารถลบประวัติที่เลือกได้"), t("error.genericDesc"));
         } finally {
           setDeletingSelection(false);
         }

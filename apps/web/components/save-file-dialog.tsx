@@ -20,7 +20,8 @@ interface SaveFileDialogProps {
  * Bottom-sheet style chooser shown on mobile when a download completes.
  * Lets the user decide between the native share sheet (iOS: "Save Video" /
  * "Save Image" straight into Photos; Android: pick Photos/Files/Drive) or a
- * regular browser download. The file is one-shot, so the user picks first.
+ * regular browser download. The file stays available until retention cleanup,
+ * but the user picks first to avoid opening multiple save actions at once.
  */
 export function SaveFileDialog({
   open,

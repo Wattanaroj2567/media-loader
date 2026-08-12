@@ -3,7 +3,11 @@ from pathlib import Path
 import pytest
 
 from app.errors import AppError
-from app.file_service import delete_local_output, resolve_local_output
+from app.file_service import (
+    delete_local_output,
+    local_output_exists,
+    resolve_local_output,
+)
 
 
 def test_resolve_local_output_accepts_only_files_inside_temp_root(tmp_path: Path):
@@ -36,3 +40,16 @@ def test_delete_local_output_is_idempotent_for_missing_path(tmp_path: Path):
     missing = tmp_path / "job-3" / "missing.mp4"
     assert delete_local_output(str(missing), tmp_path) is False
 
+
+def test_local_output_exists_rejects_missing_and_unsafe_paths(tmp_path: Path):
+    job_dir = tmp_path / "job-4"
+    job_dir.mkdir()
+    output = job_dir / "clip.mp4"
+    output.write_bytes(b"media")
+
+    assert local_output_exists(str(output), tmp_path) is True
+    assert local_output_exists(str(job_dir / "missing.mp4"), tmp_path) is False
+
+    outside = tmp_path.parent / "outside.mp4"
+    outside.write_bytes(b"outside")
+    assert local_output_exists(str(outside), tmp_path) is False
