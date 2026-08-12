@@ -65,15 +65,18 @@ apps/worker/Dockerfile
 
 ### 3. การสร้างและประมวลผลคิวงาน (Job Queue Processing)
 ```text
-เลือกฟอร์แมต ──> Web App ──> บันทึก Job ลง Supabase DB (Status: PENDING)
-                                     │
-Worker ดักรอคิวงาน ◄─────────────────┘
+เลือกฟอร์แมต ──> Web App ──> บันทึก Job ลง Supabase DB (Status: QUEUED)
+                                     │ พร้อมเป้าหมาย pool:local / pool:railway
+Worker ใน pool เดียวกันดักรอคิวงาน ◄─┘
     │
     ├──> ดาวน์โหลดสื่อผ่าน yt-dlp
     ├──> แปลงไฟล์ด้วย FFmpeg
     ├──> อัปเดตความคืบหน้าลง DB (Status: DOWNLOADING / CONVERTING)
     └──> บันทึกไฟล์ผลลัพธ์ลง Local Temp / Storage (Status: COMPLETED)
 ```
+
+การแยก worker pool จำเป็นในโหมด Local Temp เพราะ local และ Railway สามารถใช้
+Supabase ชุดเดียวกันได้ แต่ไม่สามารถอ่านไฟล์ข้าม filesystem ของกันและกัน
 
 ---
 

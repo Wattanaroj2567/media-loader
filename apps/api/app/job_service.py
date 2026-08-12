@@ -97,6 +97,11 @@ def create_job(
         "selected_has_audio": selected_has_audio,
         "output_format": output_format,
         "rights_confirmed": True,
+        # Reserve the existing lock field as a routing marker while QUEUED.
+        # Old workers ignore non-null markers, so a cloud worker cannot steal
+        # a job created by the local API during a rolling deployment.
+        "locked_by": get_settings().queue_target_marker,
+        "locked_at": None,
         "created_at": now,
         "updated_at": now,
     }
@@ -349,6 +354,6 @@ def resume_job(job_id: str, *, user_id: str) -> dict:
         job_id,
         "QUEUED",
         user_id=user_id,
-        locked_by=None,
+        locked_by=get_settings().queue_target_marker,
         locked_at=None,
     )

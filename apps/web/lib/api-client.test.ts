@@ -138,7 +138,7 @@ test("ApiClient exposes the wrapped API error message", async () => {
   );
 });
 
-test("ApiClient gives a clear message when history deletion cannot reach the API", async () => {
+test("ApiClient gives a user-friendly message when history deletion cannot reach the API", async () => {
   const client = new ApiClient(
     "http://api.test",
     async () => "token",
@@ -149,6 +149,26 @@ test("ApiClient gives a clear message when history deletion cannot reach the API
 
   await assert.rejects(
     () => client.deleteJob("job-1"),
-    /ไม่สามารถเชื่อมต่อบริการได้/,
+    /ไม่สามารถดำเนินการได้ในขณะนี้ กรุณาลองใหม่อีกครั้ง/,
   );
+});
+
+test("ApiClient does not misreport a session read failure as an API network error", async () => {
+  let fetchCalled = false;
+  const client = new ApiClient(
+    "http://api.test",
+    async () => {
+      throw new TypeError("HMR removed the session module");
+    },
+    async () => {
+      fetchCalled = true;
+      return new Response();
+    },
+  );
+
+  await assert.rejects(
+    () => client.deleteJob("job-1"),
+    /ไม่สามารถตรวจสอบการเข้าสู่ระบบได้ กรุณาโหลดหน้าใหม่แล้วลองอีกครั้ง/,
+  );
+  assert.equal(fetchCalled, false);
 });

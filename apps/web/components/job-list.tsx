@@ -881,20 +881,17 @@ export function JobList({ mode, compact = false, containerRef }: {
               ),
             );
           } else {
-            const firstReason = results.find(
-              (r) => r.status === "rejected",
-            ) as PromiseRejectedResult | undefined;
-            const errorMsg =
-              firstReason?.reason instanceof Error
-                ? firstReason.reason.message
-                : t("error.genericDesc");
-            toast("error", t("history.bulkDeletedError", {}, "ลบประวัติแบบกลุ่มล้มเหลว"), errorMsg);
+            toast(
+              "error",
+              t("history.bulkDeletedError", {}, "ไม่สามารถลบประวัติที่เลือกได้"),
+              t("error.genericDesc"),
+            );
           }
 
           await fetchJobs(true);
         } catch (error) {
           console.warn("[Delete Selected History Error]:", error);
-          toast("error", t("history.bulkDeletedError", {}, "ลบประวัติแบบกลุ่มล้มเหลว"), t("error.genericDesc"));
+          toast("error", t("history.bulkDeletedError", {}, "ไม่สามารถลบประวัติที่เลือกได้"), t("error.genericDesc"));
         } finally {
           setDeletingSelection(false);
         }

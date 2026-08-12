@@ -7,6 +7,9 @@ Never prints or logs secret values.
 
 from functools import lru_cache
 from pathlib import Path
+import re
+import shutil
+
 from pydantic_settings import BaseSettings
 
 
@@ -30,6 +33,10 @@ class Settings(BaseSettings):
 
     # Worker (read here for health check awareness)
     worker_id: str = "local-worker-1"
+    worker_pool: str = ""
+    railway_environment_id: str = ""
+    node_path: str = ""
+    deno_path: str = ""
 
     # Media output
     media_output_mode: str = "local_temp"
@@ -53,6 +60,44 @@ class Settings(BaseSettings):
         )
         path.mkdir(parents=True, exist_ok=True)
         return path.resolve()
+
+    @property
+    def resolved_worker_pool(self) -> str:
+        """Return a safe queue pool name for the current runtime."""
+        configured = self.worker_pool.strip().lower()
+        candidate = configured or (
+            "railway" if self.railway_environment_id.strip() else "local"
+        )
+        normalized = re.sub(r"[^a-z0-9_-]+", "-", candidate).strip("-")
+        return normalized or "local"
+
+    @property
+    def queue_target_marker(self) -> str:
+        """Marker stored in locked_by while a job is waiting for its pool."""
+        return f"pool:{self.resolved_worker_pool}"
+
+    @staticmethod
+    def _configured_executable(value: str, filename: str) -> Path | None:
+        if not value.strip():
+            return None
+        configured = Path(value).expanduser()
+        if configured.is_dir():
+            candidates = (configured / filename, configured / f"{filename}.exe")
+            configured = next((path for path in candidates if path.is_file()), configured)
+        return configured.resolve() if configured.is_file() else None
+
+    @property
+    def resolved_js_runtime(self) -> tuple[str, Path] | None:
+        """Return a supported runtime and executable for yt-dlp analysis."""
+        for runtime_name, configured_path in (
+            ("deno", self.deno_path),
+            ("node", self.node_path),
+        ):
+            configured = self._configured_executable(configured_path, runtime_name)
+            discovered = configured or shutil.which(runtime_name)
+            if discovered:
+                return runtime_name, Path(discovered).resolve()
+        return None
 
     model_config = {
         "env_file": (".env.local", "../../.env.local"),

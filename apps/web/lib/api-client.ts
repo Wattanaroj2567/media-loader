@@ -1,4 +1,5 @@
 import { getDownloadFilename, type MediaFormat } from "./media-presenters.ts";
+import { createClient } from "./supabase/client.ts";
 
 function getApiBaseUrl(): string {
   if (process.env.NEXT_PUBLIC_FASTAPI_BASE_URL) {
@@ -78,7 +79,6 @@ export interface FileDestination {
 }
 
 async function currentAccessToken(): Promise<string | null> {
-  const { createClient } = await import("./supabase/client");
   const {
     data: { session },
   } = await createClient().auth.getSession();
@@ -172,8 +172,8 @@ function isNetworkError(error: unknown): boolean {
 
 function networkErrorMessage(kind: "api" | "file"): string {
   return kind === "file"
-    ? "ไม่สามารถเชื่อมต่อบริการส่งไฟล์ได้ กรุณาตรวจสอบว่า FastAPI ทำงานอยู่"
-    : "ไม่สามารถเชื่อมต่อบริการได้ กรุณาตรวจสอบว่า FastAPI ทำงานอยู่";
+    ? "ไม่สามารถดาวน์โหลดไฟล์ได้ กรุณาลองใหม่อีกครั้ง"
+    : "ไม่สามารถดำเนินการได้ในขณะนี้ กรุณาลองใหม่อีกครั้ง";
 }
 
 export class UnauthorizedError extends Error {
@@ -199,7 +199,21 @@ export class ApiClient {
   }
 
   private async authorizationHeaders(includeJson = true) {
-    const token = await this.tokenProvider();
+    let token: string | null;
+    try {
+      token = await this.tokenProvider();
+    } catch (error) {
+      if (process.env.NODE_ENV !== "production") {
+        const detail =
+          error instanceof Error
+            ? `${error.name}: ${error.message}`
+            : "Unknown session read error";
+        console.warn(`[Session Read Error]: ${detail}`);
+      }
+      throw new Error(
+        "ไม่สามารถตรวจสอบการเข้าสู่ระบบได้ กรุณาโหลดหน้าใหม่แล้วลองอีกครั้ง",
+      );
+    }
     if (!token) {
       throw new UnauthorizedError("Session หมดอายุ กรุณาเข้าสู่ระบบอีกครั้ง");
     }
@@ -212,13 +226,14 @@ export class ApiClient {
     endpoint: string,
     options: RequestInit = {},
   ): Promise<T> {
+    const authorizationHeaders = await this.authorizationHeaders();
     let response: Response;
     try {
       response = await this.fetcher(`${this.baseUrl}${endpoint}`, {
         ...options,
         headers: new Headers({
           ...(Object.fromEntries(
-            (await this.authorizationHeaders()).entries(),
+            authorizationHeaders.entries(),
           ) as Record<string, string>),
           ...(Object.fromEntries(
             new Headers(options.headers).entries(),
@@ -226,7 +241,16 @@ export class ApiClient {
         }),
       });
     } catch (error) {
-      if (isNetworkError(error)) throw new Error(networkErrorMessage("api"));
+      if (isNetworkError(error)) {
+        if (process.env.NODE_ENV !== "production") {
+          const detail =
+            error instanceof Error
+              ? `${error.name}: ${error.message}`
+              : "Unknown browser request error";
+          console.warn(`[API Request Error] ${endpoint}: ${detail}`);
+        }
+        throw new Error(networkErrorMessage("api"));
+      }
       throw error;
     }
     const payload = (await response.json().catch(() => null)) as
@@ -238,7 +262,12 @@ export class ApiClient {
       );
     }
     if (!response.ok || !payload?.ok || payload.data === null) {
-      throw new Error(apiErrorMessage(payload, "ไม่สามารถเชื่อมต่อบริการได้"));
+      throw new Error(
+        apiErrorMessage(
+          payload,
+          "ไม่สามารถดำเนินการได้ในขณะนี้ กรุณาลองใหม่อีกครั้ง",
+        ),
+      );
     }
     return payload.data;
   }

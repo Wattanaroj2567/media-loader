@@ -7,6 +7,10 @@ Never prints or logs secret values.
 
 from functools import lru_cache
 from pathlib import Path
+import re
+import shutil
+
+import imageio_ffmpeg
 from pydantic_settings import BaseSettings
 
 
@@ -23,7 +27,12 @@ class Settings(BaseSettings):
 
     # Worker identity
     worker_id: str = "local-worker-1"
+    worker_pool: str = ""
+    railway_environment_id: str = ""
     worker_secret: str = ""
+    node_path: str = ""
+    deno_path: str = ""
+    ffmpeg_path: str = ""
 
     # Media processing
     max_file_size_mb: int = 500
@@ -51,6 +60,69 @@ class Settings(BaseSettings):
         )
         path.mkdir(parents=True, exist_ok=True)
         return path.resolve()
+
+    @property
+    def resolved_worker_pool(self) -> str:
+        """Return a safe queue pool name for the current runtime."""
+        configured = self.worker_pool.strip().lower()
+        candidate = configured or (
+            "railway" if self.railway_environment_id.strip() else "local"
+        )
+        normalized = re.sub(r"[^a-z0-9_-]+", "-", candidate).strip("-")
+        return normalized or "local"
+
+    @property
+    def queue_target_marker(self) -> str:
+        """Marker accepted by this worker while a job is queued."""
+        return f"pool:{self.resolved_worker_pool}"
+
+    @staticmethod
+    def _configured_executable(value: str, filename: str) -> Path | None:
+        if not value.strip():
+            return None
+        configured = Path(value).expanduser()
+        if configured.is_dir():
+            candidates = (configured / filename, configured / f"{filename}.exe")
+            configured = next((path for path in candidates if path.is_file()), configured)
+        return configured.resolve() if configured.is_file() else None
+
+    @property
+    def resolved_node_executable(self) -> Path | None:
+        """Resolve the Node runtime used by yt-dlp's YouTube EJS solver."""
+        configured = self._configured_executable(self.node_path, "node")
+        if configured:
+            return configured
+        discovered = shutil.which("node")
+        return Path(discovered).resolve() if discovered else None
+
+    @property
+    def resolved_deno_executable(self) -> Path | None:
+        """Resolve the preferred Deno runtime used by yt-dlp's EJS solver."""
+        configured = self._configured_executable(self.deno_path, "deno")
+        if configured:
+            return configured
+        discovered = shutil.which("deno")
+        return Path(discovered).resolve() if discovered else None
+
+    @property
+    def resolved_js_runtime(self) -> tuple[str, Path] | None:
+        """Return a supported runtime and executable for yt-dlp."""
+        if deno := self.resolved_deno_executable:
+            return "deno", deno
+        if node := self.resolved_node_executable:
+            return "node", node
+        return None
+
+    @property
+    def resolved_ffmpeg_executable(self) -> Path:
+        """Resolve FFmpeg without requiring a machine-wide installation."""
+        configured = self._configured_executable(self.ffmpeg_path, "ffmpeg")
+        if configured:
+            return configured
+        discovered = shutil.which("ffmpeg")
+        if discovered:
+            return Path(discovered).resolve()
+        return Path(imageio_ffmpeg.get_ffmpeg_exe()).resolve()
 
     model_config = {
         "env_file": (".env.local", "../../.env.local"),

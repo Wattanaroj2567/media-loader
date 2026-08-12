@@ -140,7 +140,7 @@
   "history.confirmBulkDeleteTitle": "ลบรายการที่เลือก",
   "history.confirmBulkDeleteDesc": "คุณแน่ใจหรือไม่ว่าต้องการลบประวัติงานดาวน์โหลดจำนวน {n} รายการที่เลือกไว้? ไฟล์ที่เกี่ยวข้องจะถูกลบออกด้วย",
   "history.bulkDeletedSuccess": "ลบประวัติแบบกลุ่มสำเร็จ",
-  "history.bulkDeletedError": "ลบประวัติแบบกลุ่มล้มเหลว",
+  "history.bulkDeletedError": "ไม่สามารถลบประวัติที่เลือกได้",
 
   "downloads.title": "คิวงาน",
   "downloads.subtitle": "สื่อที่กำลังรอและกำลังประมวลผล",

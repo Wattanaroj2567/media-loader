@@ -35,6 +35,10 @@ class JobCancelled(Exception):
     """Raised when the API marks a running job as cancelled."""
 
 
+class MediaDownloadError(Exception):
+    """Safe source-download error that can be persisted with the job."""
+
+
 def is_terminal_status(status: str) -> bool:
     return status in TERMINAL_STATUSES
 
@@ -54,6 +58,18 @@ def build_format_selector(
     if format_id == "best":
         return "bestaudio/best"
     return f"{format_id}/bestaudio/best"
+
+
+def classify_download_error(error: Exception) -> str:
+    """Convert extractor details into a safe, useful job error."""
+    message = str(error).casefold()
+    if "403" in message or "forbidden" in message:
+        return "แหล่งวิดีโอปฏิเสธการดาวน์โหลด (HTTP 403)"
+    if "javascript runtime" in message or "challenge" in message:
+        return "ไม่สามารถประมวลผลการตรวจสอบ JavaScript ของแหล่งวิดีโอได้"
+    if "ffmpeg" in message:
+        return "ไม่พบ FFmpeg สำหรับรวมไฟล์วิดีโอและเสียง"
+    return "ดาวน์โหลดจากแหล่งต้นทางไม่สำเร็จ"
 
 
 def calculate_download_progress(progress_data: dict) -> int:
@@ -164,7 +180,14 @@ async def download_media(
         "retries": 30,
         "fragment_retries": 30,
         "continuedl": True,
+        "ffmpeg_location": str(settings.resolved_ffmpeg_executable),
     }
+    js_runtime = settings.resolved_js_runtime
+    if js_runtime:
+        runtime_name, runtime_executable = js_runtime
+        ydl_opts["js_runtimes"] = {
+            runtime_name: {"path": str(runtime_executable)},
+        }
 
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -188,8 +211,13 @@ async def download_media(
     except Exception as error:
         if is_job_cancelled(job_id):
             raise JobCancelled(f"Job {job_id} was cancelled") from error
-        logger.error("Download failed: %s", type(error).__name__)
-        return None
+        safe_detail = " ".join(str(error).split())[:300]
+        logger.error(
+            "Download failed (%s): %s",
+            type(error).__name__,
+            safe_detail,
+        )
+        raise MediaDownloadError(classify_download_error(error)) from error
 
 
 async def _run_cancellable_command(
@@ -241,7 +269,7 @@ async def convert_to_mp3(
 
     try:
         cmd = [
-            "ffmpeg",
+            str(settings.resolved_ffmpeg_executable),
             "-i", str(input_path),
             "-codec:a", "libmp3lame",
             "-qscale:a", "0",  # VBR ~245kbps — maximum MP3 quality (was 2 / ~190kbps)
@@ -283,7 +311,7 @@ async def convert_to_mp4(
 
     try:
         cmd = [
-            "ffmpeg",
+            str(settings.resolved_ffmpeg_executable),
             "-i", str(input_path),
             "-c:v", "libx264",
             "-c:a", "aac",
@@ -340,16 +368,24 @@ async def process_job(job: dict) -> bool:
         # Download media
         if is_job_cancelled(job_id):
             raise JobCancelled(f"Job {job_id} was cancelled")
-        downloaded_file = await download_media(
-            url,
-            job_dir,
-            format_id,
-            job_id,
-            output_format,
-            selected_has_audio,
-        )
+        try:
+            downloaded_file = await download_media(
+                url,
+                job_dir,
+                format_id,
+                job_id,
+                output_format,
+                selected_has_audio,
+            )
+        except MediaDownloadError as error:
+            update_job_status(job_id, "FAILED", error_message=str(error))
+            return False
         if not downloaded_file:
-            update_job_status(job_id, "FAILED", error_message="Download failed")
+            update_job_status(
+                job_id,
+                "FAILED",
+                error_message="ดาวน์โหลดจากแหล่งต้นทางไม่สำเร็จ",
+            )
             return False
 
         # Check file size

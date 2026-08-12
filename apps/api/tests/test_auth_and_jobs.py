@@ -86,3 +86,5 @@ def test_create_job_requires_user_and_persists_analysis_metadata(monkeypatch):
     assert fake.download_jobs.inserted["uploader"] == "Clip Owner"
     assert fake.download_jobs.inserted["selected_quality"] == "1080p · 30 FPS"
     assert fake.download_jobs.inserted["selected_has_audio"] is False
+    assert fake.download_jobs.inserted["locked_by"] == "pool:local"
+    assert fake.download_jobs.inserted["locked_at"] is None

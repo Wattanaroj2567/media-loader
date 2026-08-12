@@ -48,12 +48,25 @@ SUPABASE_SERVICE_ROLE_KEY=
 MEDIA_STORAGE_BUCKET=media-downloads
 WORKER_SECRET=
 WORKER_ID=local-worker-1
+WORKER_POOL=local
+NODE_PATH=
+DENO_PATH=
+FFMPEG_PATH=
 MAX_FILE_SIZE_MB=500
 TEMP_DIR=tmp/media-loader
 ```
 
 ทั้ง API และ worker จะ resolve `TEMP_DIR` จาก root ของโปรเจกต์เดียวกัน
 ต้องกำหนดค่าเดียวกันเสมอ โดย Docker จะแชร์ผ่าน `/app/tmp`
+
+`WORKER_POOL` แยกคิวตาม runtime เพื่อไม่ให้ worker บน Railway แย่งงานจาก
+เครื่อง local ที่เก็บไฟล์คนละ filesystem ใช้ `local` บนเครื่องพัฒนา และ
+`railway` บน Railway (ระบบตรวจจับ Railway อัตโนมัติเมื่อเว้นค่านี้ว่าง)
+
+`NODE_PATH`, `DENO_PATH` และ `FFMPEG_PATH` เป็นตัวเลือกเสริม โดย worker จะเลือก
+Deno ก่อน จากนั้นจึงค้นหา Node จาก `PATH` และใช้ FFmpeg binary ที่จัดการอยู่ใน
+Python environment โดยอัตโนมัติ ส่วน deployment image มี Deno และ dependency
+แบบล็อกเวอร์ชันสำหรับ JavaScript solver ของ YouTube ใน yt-dlp แล้ว
 
 ---
 

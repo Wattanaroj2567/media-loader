@@ -91,8 +91,13 @@ FastAPI validates selection
   ↓
 FastAPI inserts row in `download_jobs`
   ↓
-Worker picks queued job
+FastAPI marks the target worker pool (`pool:local` or `pool:railway`)
+  ↓
+Only a worker in that pool picks the queued job
 ```
+
+Queue affinity is required in local-temp mode because local and Railway
+workers can share Supabase but cannot read each other's filesystems.
 
 ### Process Job
 

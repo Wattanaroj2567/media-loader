@@ -46,12 +46,26 @@ SUPABASE_SERVICE_ROLE_KEY=
 MEDIA_STORAGE_BUCKET=media-downloads
 WORKER_SECRET=
 WORKER_ID=local-worker-1
+WORKER_POOL=local
+NODE_PATH=
+DENO_PATH=
+FFMPEG_PATH=
 MAX_FILE_SIZE_MB=500
 TEMP_DIR=tmp/media-loader
 ```
 
 `TEMP_DIR` is resolved from the repository root by both the API and worker.
 Keep it identical for both services; Docker shares it through `/app/tmp`.
+
+`WORKER_POOL` isolates queues by runtime so a Railway worker cannot claim a
+local job whose output is stored on another filesystem. Use `local` during
+local development and `railway` on Railway. Railway is detected automatically
+when the value is empty.
+
+`NODE_PATH`, `DENO_PATH`, and `FFMPEG_PATH` are optional overrides. The worker
+prefers Deno, otherwise discovers Node from `PATH`, and falls back to its
+managed FFmpeg binary automatically. Deployment images include Deno and the
+locked worker dependencies needed by yt-dlp's YouTube JavaScript solver.
 
 ---
 

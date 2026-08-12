@@ -47,6 +47,13 @@ signal.signal(signal.SIGTERM, handle_shutdown)
 async def worker_loop():
     """Main worker loop that polls and processes jobs."""
     logger.info(f"Worker {settings.worker_id} starting...")
+    logger.info(f"Worker pool: {settings.resolved_worker_pool}")
+    js_runtime = settings.resolved_js_runtime
+    logger.info(
+        "YouTube JavaScript runtime: %s",
+        js_runtime[0] if js_runtime else "unavailable",
+    )
+    logger.info("FFmpeg runtime: available")
     logger.info(f"Poll interval: {settings.poll_interval_seconds}s")
     logger.info(f"Temp directory: {settings.resolved_temp_dir}")
     logger.info(f"Media output mode: {settings.media_output_mode}")

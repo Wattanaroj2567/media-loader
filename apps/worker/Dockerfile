@@ -1,4 +1,9 @@
+FROM denoland/deno:bin-2.9.5 AS deno-runtime
+FROM ghcr.io/astral-sh/uv:0.12.3 AS uv-runtime
 FROM python:3.12-slim
+
+COPY --from=deno-runtime /deno /usr/local/bin/deno
+COPY --from=uv-runtime /uv /uvx /bin/
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
@@ -13,19 +18,12 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 COPY apps/worker/pyproject.toml ./pyproject.toml
-RUN pip install --no-cache-dir --upgrade pip \
-    && pip install --no-cache-dir \
-       yt-dlp \
-       supabase \
-       python-dotenv \
-       pydantic \
-       pydantic-settings \
-       watchfiles \
-       curl_cffi
+COPY apps/worker/uv.lock ./uv.lock
+RUN uv sync --locked --no-dev --no-install-project
 
 COPY apps/worker ./
 
 # Create temp directory
 RUN mkdir -p /app/tmp/media-loader
 
-CMD ["python", "-m", "worker.main"]
+CMD ["/app/apps/worker/.venv/bin/python", "-m", "worker.main"]
