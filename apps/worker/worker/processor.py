@@ -153,9 +153,9 @@ async def download_media(
         "extract_flat": False,
         "ignoreerrors": False,
         "progress_hooks": [create_progress_hook(job_id)],
-        # Force high-quality 192kbps AAC when transcoding incompatible audio streams (like OPUS/webm to MP4)
+        # Force maximum-quality 320kbps AAC when transcoding incompatible audio streams (like OPUS/webm to MP4)
         "postprocessor_args": {
-            "merger": ["-c:a", "aac", "-b:a", "192k"]
+            "merger": ["-c:a", "aac", "-b:a", "320k"]
         },
         # Security: No cookies, no login bypass
         "nocheckcertificate": False,
@@ -244,7 +244,7 @@ async def convert_to_mp3(
             "ffmpeg",
             "-i", str(input_path),
             "-codec:a", "libmp3lame",
-            "-qscale:a", "2",
+            "-qscale:a", "0",  # VBR ~245kbps — maximum MP3 quality (was 2 / ~190kbps)
             "-y",  # Overwrite output file
             str(output_path),
         ]
@@ -287,7 +287,7 @@ async def convert_to_mp4(
             "-i", str(input_path),
             "-c:v", "libx264",
             "-c:a", "aac",
-            "-b:a", "192k",
+            "-b:a", "320k",  # Maximum-quality AAC audio (was 192k)
             "-movflags", "+faststart",
             "-y",  # Overwrite output file
             str(output_path),

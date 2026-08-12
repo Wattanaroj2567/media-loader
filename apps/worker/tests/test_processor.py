@@ -15,12 +15,19 @@ from worker.processor import (
 
 
 def test_build_format_selector_uses_selected_real_video_plus_audio():
-    assert build_format_selector("137", "mp4") == "137+bestaudio/137/best"
+    # Prefers AAC/m4a audio stream for direct mux without re-encoding
+    assert (
+        build_format_selector("137", "mp4")
+        == "137+bestaudio[ext=m4a]/137+bestaudio/137/best"
+    )
     assert (
         build_format_selector("18", "mp4", selected_has_audio=True)
         == "18/best"
     )
-    assert build_format_selector("best", "mp4") == "bestvideo+bestaudio/best"
+    assert (
+        build_format_selector("best", "mp4")
+        == "bestvideo+bestaudio[ext=m4a]/bestvideo+bestaudio/best"
+    )
 
 
 def test_build_format_selector_uses_selected_audio_without_video():
@@ -53,7 +60,7 @@ def test_progress_hook_updates_real_percentage_and_stops_cancelled_job():
     hook = create_progress_hook(
         "job-1",
         cancellation_checker=lambda _job_id: False,
-        progress_updater=lambda _job_id, progress: updates.append(progress),
+        progress_updater=lambda _job_id, progress, _speed, _total: updates.append(progress),
     )
 
     hook({"status": "downloading", "downloaded_bytes": 50, "total_bytes": 100})
