@@ -100,6 +100,13 @@ function apiErrorMessage(payload: unknown, fallback: string) {
   return fallback;
 }
 
+export class UnauthorizedError extends Error {
+  constructor(message = "Session หมดอายุ กรุณาเข้าสู่ระบบอีกครั้ง") {
+    super(message);
+    this.name = "UnauthorizedError";
+  }
+}
+
 export class ApiClient {
   private readonly baseUrl: string;
   private readonly tokenProvider: TokenProvider;
@@ -118,7 +125,7 @@ export class ApiClient {
   private async authorizationHeaders(includeJson = true) {
     const token = await this.tokenProvider();
     if (!token) {
-      throw new Error("Session หมดอายุ กรุณาเข้าสู่ระบบอีกครั้ง");
+      throw new UnauthorizedError("Session หมดอายุ กรุณาเข้าสู่ระบบอีกครั้ง");
     }
     const headers = new Headers({ Authorization: `Bearer ${token}` });
     if (includeJson) headers.set("Content-Type", "application/json");
@@ -143,6 +150,11 @@ export class ApiClient {
     const payload = (await response.json().catch(() => null)) as
       | ApiEnvelope<T>
       | null;
+    if (response.status === 401) {
+      throw new UnauthorizedError(
+        apiErrorMessage(payload, "Session หมดอายุ กรุณาเข้าสู่ระบบอีกครั้ง"),
+      );
+    }
     if (!response.ok || !payload?.ok || payload.data === null) {
       throw new Error(apiErrorMessage(payload, "ไม่สามารถเชื่อมต่อบริการได้"));
     }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { apiClient } from "@/lib/api-client";
+import { apiClient, UnauthorizedError } from "@/lib/api-client";
 import { isActiveStatus, isTerminalStatus } from "@/lib/media-presenters";
 import { useToast } from "@/components/toast";
 import { useT } from "@/lib/i18n/context";
@@ -19,8 +19,10 @@ export function GlobalJobNotifier() {
 
   useEffect(() => {
     let dead = false;
+    let intervalId: NodeJS.Timeout | null = null;
 
     async function pollActiveJobs() {
+      if (dead) return;
       if (typeof window !== "undefined" && !window.navigator.onLine) {
         return;
       }
@@ -124,7 +126,21 @@ export function GlobalJobNotifier() {
           // Trigger events to update mounted JobLists or other page states
           window.dispatchEvent(new CustomEvent("media-loader:jobs-changed"));
         }
-      } catch (err) {
+      } catch (err: unknown) {
+        if (dead) return;
+        const isUnauthorized =
+          err instanceof UnauthorizedError ||
+          (err instanceof Error &&
+            (err.name === "UnauthorizedError" ||
+              err.message.includes("Session หมดอายุ") ||
+              err.message.includes("Unauthorized") ||
+              err.message.includes("401")));
+
+        if (isUnauthorized) {
+          dead = true;
+          if (intervalId) clearInterval(intervalId);
+          return;
+        }
         console.warn("[GlobalJobNotifier Error]:", err);
       }
     }
@@ -133,11 +149,11 @@ export function GlobalJobNotifier() {
     void pollActiveJobs();
 
     // Poll every 4 seconds
-    const interval = setInterval(pollActiveJobs, 4000);
+    intervalId = setInterval(pollActiveJobs, 4000);
 
     return () => {
       dead = true;
-      clearInterval(interval);
+      if (intervalId) clearInterval(intervalId);
     };
   }, [toast, t]);
 
