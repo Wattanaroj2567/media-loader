@@ -52,13 +52,13 @@ jobs:
       - name: Run API Tests
         run: |
           cd apps/api
-          uv sync
+          uv sync --extra dev
           uv run pytest
 
       - name: Run Worker Sync Check
         run: |
           cd apps/worker
-          uv sync
+          uv sync --extra dev
 
   docker-check:
     name: Docker Build Validation
