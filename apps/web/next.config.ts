@@ -14,7 +14,9 @@ if (fs.existsSync(rootEnvPath)) {
     if (firstEquals === -1) continue;
     const key = trimmed.slice(0, firstEquals).trim();
     const value = trimmed.slice(firstEquals + 1).trim().replace(/^['"]|['"]$/g, "");
-    if (key) {
+    // Only fill missing values — explicit environment variables (e.g. from
+    // the e2e mock harness) must win over the .env.local file.
+    if (key && process.env[key] === undefined) {
       process.env[key] = value;
     }
   }
@@ -46,6 +48,9 @@ const nextConfig: NextConfig = {
     root: path.resolve(__dirname, "../../"),
   },
   allowedDevOrigins: devOrigins,
+  // Allow e2e tests to run an isolated dev instance with its own build dir
+  // (defaults to ".next" so normal builds are unaffected).
+  distDir: process.env.NEXT_DIST_DIR || ".next",
 };
 
 export default nextConfig;

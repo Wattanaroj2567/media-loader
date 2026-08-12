@@ -78,6 +78,61 @@ async function currentAccessToken(): Promise<string | null> {
   return session?.access_token || null;
 }
 
+/**
+ * Whether the browser supports the Web Share API with files.
+ * Supported on iOS Safari 15+, Android Chrome 89+, and most mobile browsers.
+ */
+export function canShareFiles(): boolean {
+  return (
+    typeof navigator !== "undefined" &&
+    typeof navigator.share === "function" &&
+    typeof navigator.canShare === "function"
+  );
+}
+
+/** Rough mobile detection (Web Share API is most useful on phones/tablets). */
+export function isMobileDevice(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || "");
+}
+
+/** Trigger a browser download from an in-memory blob (saves to Downloads / Files). */
+function triggerBlobDownload(blob: Blob, filename: string) {
+  const objectUrl = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = objectUrl;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  // Revoke after a delay so Safari/Firefox have time to start reading the blob.
+  window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+}
+
+/** Infer a proper MIME type from the filename (the API serves octet-stream). */
+function mimeFromFilename(filename: string): string | null {
+  const extension = filename.split(".").pop()?.toLowerCase() ?? "";
+  const mimeByExtension: Record<string, string> = {
+    mp4: "video/mp4",
+    webm: "video/webm",
+    mkv: "video/x-matroska",
+    mov: "video/quicktime",
+    m4v: "video/x-m4v",
+    mp3: "audio/mpeg",
+    m4a: "audio/mp4",
+    aac: "audio/aac",
+    wav: "audio/wav",
+    ogg: "audio/ogg",
+    flac: "audio/flac",
+    jpg: "image/jpeg",
+    jpeg: "image/jpeg",
+    png: "image/png",
+    webp: "image/webp",
+    gif: "image/gif",
+  };
+  return mimeByExtension[extension] ?? null;
+}
+
 function apiErrorMessage(payload: unknown, fallback: string) {
   if (
     payload &&
@@ -284,15 +339,58 @@ export class ApiClient {
       response.headers.get("Content-Disposition"),
       preferredFilename,
     );
-    const objectUrl = URL.createObjectURL(await response.blob());
-    const anchor = document.createElement("a");
-    anchor.href = objectUrl;
-    anchor.download = filename;
-    document.body.appendChild(anchor);
-    anchor.click();
-    anchor.remove();
-    URL.revokeObjectURL(objectUrl);
+    triggerBlobDownload(await response.blob(), filename);
     return "download";
+  }
+
+  /**
+   * Deliver a completed file through the native share sheet (Web Share API).
+   *
+   * On iOS the share sheet includes "Save Video / Save Image" which saves
+   * straight into the Photos app; on Android the user can pick Photos, Files,
+   * Drive, etc. The completed file is one-shot (the API deletes it after this
+   * request), so when sharing is unavailable or dismissed we fall back to a
+   * regular browser download with the already-fetched blob instead of wasting it.
+   *
+   * Returns:
+   *   - "shared":      file handed to the native share sheet
+   *   - "downloaded":  share was unavailable/dismissed; file downloaded instead
+   *   - "unsupported": this browser has no Web Share API; nothing was consumed
+   */
+  async shareJobFile(
+    jobId: string,
+    preferredFilename: string,
+  ): Promise<"shared" | "downloaded" | "unsupported"> {
+    if (!canShareFiles()) return "unsupported";
+
+    const response = await this.fileResponse(jobId);
+    const blob = await response.blob();
+    const filename = getDownloadFilename(
+      response.headers.get("Content-Disposition"),
+      preferredFilename,
+    );
+    const file = new File([blob], filename, {
+      // The API always serves octet-stream, but iOS decides whether the share
+      // sheet offers "Save Video / Save Image" (into Photos) based on the
+      // MIME type, so infer a proper one from the file extension.
+      type: mimeFromFilename(filename) || blob.type || "application/octet-stream",
+    });
+
+    if (!navigator.canShare({ files: [file] })) {
+      triggerBlobDownload(blob, filename);
+      return "downloaded";
+    }
+
+    try {
+      await navigator.share({ files: [file], title: filename });
+      return "shared";
+    } catch {
+      // The one-shot server file is already consumed at response.blob(), so on
+      // any share failure (including the user dismissing the share sheet) we
+      // deliver the blob we already hold instead of losing the file.
+      triggerBlobDownload(blob, filename);
+      return "downloaded";
+    }
   }
 
 }

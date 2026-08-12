@@ -14,6 +14,7 @@ import {
   Pause,
   Play,
   RefreshCw,
+  Share2,
   Trash2,
 } from "lucide-react";
 
@@ -176,12 +177,12 @@ function getJobETA(job: Job): string {
 }
 
 /* ─── Job row card ───────────────────────────────────────────────────── */
-function JobCard({ job, mode, busy, busyAction, selectionMode, selected, onToggleSelection, onCancel, onDelete, onDownloadAgain, onPause, onResume }: {
+function JobCard({ job, mode, busy, busyAction, selectionMode, selected, onToggleSelection, onCancel, onDelete, onDownloadAgain, onShareFile, onPause, onResume }: {
   job: Job; mode: JobListMode; busy: boolean;
-  busyAction: "cancel" | "delete" | "pause" | "resume" | null;
+  busyAction: "cancel" | "delete" | "pause" | "resume" | "share" | null;
   selectionMode: boolean; selected: boolean; onToggleSelection: () => void;
   onCancel: () => void; onDelete: () => void; onDownloadAgain: () => void;
-  onPause: () => void; onResume: () => void;
+  onShareFile: () => void; onPause: () => void; onResume: () => void;
 }) {
   const { t } = useT();
   const canCancel     = mode === "queue" && (job.status === "DOWNLOADING" || job.status === "CONVERTING" || job.status === "PAUSED");
@@ -189,6 +190,11 @@ function JobCard({ job, mode, busy, busyAction, selectionMode, selected, onToggl
   const canResume     = mode === "queue" && job.status === "PAUSED";
   const canDeleteQ    = mode === "queue" && queuedDeletableStatuses.has(job.status);
   const canDownloadAgain = mode === "history" && job.status === "COMPLETED" && !selectionMode;
+  const canShareFile =
+    mode === "history" &&
+    job.status === "COMPLETED" &&
+    !!job.file_available &&
+    !selectionMode;
   const title         = job.title || job.output_filename || job.original_url;
   const time          = formatTime(job.completed_at || job.updated_at || job.created_at);
   const label         = outputLabel(job);
@@ -306,6 +312,19 @@ function JobCard({ job, mode, busy, busyAction, selectionMode, selected, onToggl
           />
         ) : (
           <>
+        {canShareFile && (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={onShareFile}
+            disabled={busy}
+            aria-label={t("file.shareButton", {}, "แชร์")}
+            className="h-11 flex-1 gap-1.5 border-primary/30 px-4 text-xs font-medium text-primary sm:h-8 sm:flex-none sm:px-3"
+          >
+            <Share2 className="size-3.5" />
+            <span>{t("file.shareButton", {}, "แชร์")}</span>
+          </Button>
+        )}
         {canDownloadAgain && (
           <Button size="sm" onClick={onDownloadAgain} disabled={busy}
             aria-label={t("history.downloadAgain", {}, "ดาวน์โหลดอีกครั้ง")}
@@ -566,7 +585,7 @@ export function JobList({ mode, compact = false, containerRef }: {
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedJobIds, setSelectedJobIds] = useState<Set<string>>(new Set());
   const [deletingSelection, setDeletingSelection] = useState(false);
-  const [busyState, setBusyState] = useState<{ id: string; action: "cancel" | "delete" | "pause" | "resume" } | null>(null);
+  const [busyState, setBusyState] = useState<{ id: string; action: "cancel" | "delete" | "pause" | "resume" | "share" } | null>(null);
   const [loadError, setLoadError] = useState("");
   const [confirmState, setConfirmState] = useState<{
     title: string;
@@ -709,6 +728,40 @@ export function JobList({ mode, compact = false, containerRef }: {
       toast("error", t("queue.actionError"), t("error.genericDesc"));
     } finally { setBusyState(null); }
   }, [fetchJobs, t, toast]);
+
+  const shareFile = useCallback(
+    async (job: Job) => {
+      setBusyState({ id: job.id, action: "share" });
+      try {
+        const filename = job.output_filename || job.title || "media";
+        const result = await apiClient.shareJobFile(job.id, filename);
+        if (result === "unsupported") {
+          // No Web Share API on this browser — deliver via a plain download.
+          await apiClient.downloadJobFile(job.id, filename, null);
+        }
+        toast(
+          "success",
+          result === "shared"
+            ? t("file.sharedSuccess", {}, "แชร์ไฟล์แล้ว")
+            : t("queue.completedToastTitle", {}, "ดาวน์โหลดสำเร็จแล้ว"),
+          filename,
+        );
+        // The one-shot file is consumed; refresh so the button disappears.
+        await fetchJobs(true);
+      } catch (e) {
+        console.warn("[Share File Error]:", e);
+        toast(
+          "error",
+          t("file.shareError", {}, "แชร์ไฟล์ไม่สำเร็จ"),
+          t("error.genericDesc"),
+        );
+        await fetchJobs(true);
+      } finally {
+        setBusyState(null);
+      }
+    },
+    [fetchJobs, t, toast],
+  );
 
   const deleteJob = useCallback((job: Job) => {
     showConfirm(
@@ -858,6 +911,7 @@ export function JobList({ mode, compact = false, containerRef }: {
               onCancel={() => void cancelJob(job)}
               onDelete={() => void deleteJob(job)}
               onDownloadAgain={() => void downloadAgain(job)}
+              onShareFile={() => void shareFile(job)}
               onPause={() => void pauseJob(job)}
               onResume={() => void resumeJob(job)} />
           ))}
