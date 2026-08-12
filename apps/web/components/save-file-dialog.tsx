@@ -79,6 +79,25 @@ export function SaveFileDialog({
         <div className="mt-4 grid gap-2.5">
           <Button
             type="button"
+            onClick={onDownload}
+            disabled={busy}
+            className="h-12 w-full gap-2 rounded-xl text-sm font-semibold cursor-pointer"
+          >
+            {busy && busyAction === "download" ? (
+              <LoadingIndicator
+                label={t("download.preparing", {}, "กำลังเตรียมดาวน์โหลด...")}
+                iconClassName="size-4"
+              />
+            ) : (
+              <>
+                <Download aria-hidden="true" className="size-4 shrink-0" />
+                <span>{t("file.downloadAction", {}, "ดาวน์โหลดไฟล์")}</span>
+              </>
+            )}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
             onClick={onShare}
             disabled={busy}
             className="h-12 w-full gap-2 rounded-xl text-sm font-semibold cursor-pointer"
@@ -90,20 +109,10 @@ export function SaveFileDialog({
               />
             ) : (
               <>
-                <Share2 aria-hidden="true" className="size-4 shrink-0" />
+                <Share2 aria-hidden="true" className="size-4 shrink-0 text-primary" />
                 <span>{t("file.shareAction", {}, "แชร์ / บันทึกลงแอปรูปภาพ")}</span>
               </>
             )}
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onDownload}
-            disabled={busy}
-            className="h-12 w-full gap-2 rounded-xl text-sm font-semibold cursor-pointer"
-          >
-            <Download aria-hidden="true" className="size-4 shrink-0 text-primary" />
-            <span>{t("file.downloadAction", {}, "ดาวน์โหลดไฟล์")}</span>
           </Button>
         </div>
       </div>
