@@ -542,7 +542,6 @@ export function MediaAnalyzer() {
       if (job) {
         registerPendingDownload(job.job_id, filename, null);
         window.dispatchEvent(new CustomEvent("media-loader:jobs-changed"));
-        toast("success", t("download.started"), t("download.startedDesc"));
       } else {
         toast("error", t("download.failed"), t("download.failedDesc"));
       }
@@ -778,13 +777,13 @@ export function MediaAnalyzer() {
 
             {/* Download Action Footer (Right-aligned, comfortable width on desktop/Windows) */}
             <div className="mt-5 flex justify-end">
-              <div className="w-full sm:w-auto">
+              <div className="flex w-full flex-col items-stretch sm:w-80 sm:items-end">
                 <Button
                   type="button"
                   onClick={() => void startDownload()}
                   disabled={!selectedFormat || queueing}
                   aria-describedby="download-consent"
-                  className="h-11 w-full rounded-xl px-8 text-xs font-semibold sm:w-auto sm:min-w-[200px] cursor-pointer"
+                  className="h-11 w-full rounded-xl px-8 text-xs font-semibold sm:w-50 cursor-pointer"
                 >
                   {queueing ? (
                     <LoadingIndicator label={t("download.preparing")} />
@@ -795,7 +794,7 @@ export function MediaAnalyzer() {
                     </>
                   )}
                 </Button>
-                <p id="download-consent" className="mt-1.5 text-center text-[10px] leading-relaxed text-text-dim">
+                <p id="download-consent" className="mt-1.5 w-full text-center text-[10px] leading-relaxed text-text-dim">
                   {t("download.downloadConsent")}
                 </p>
               </div>

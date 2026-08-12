@@ -116,6 +116,20 @@ function triggerBlobDownload(blob: Blob, filename: string) {
   window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
 }
 
+export function jobFileDownloadUrl(jobId: string) {
+  return `/api/files/download/${encodeURIComponent(jobId)}`;
+}
+
+/** Let the browser stream and save the file according to its own settings. */
+function triggerBrowserDownload(jobId: string, filename: string) {
+  const anchor = document.createElement("a");
+  anchor.href = jobFileDownloadUrl(jobId);
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+}
+
 /** Infer a proper MIME type from the filename (the API serves octet-stream). */
 function mimeFromFilename(filename: string): string | null {
   const extension = filename.split(".").pop()?.toLowerCase() ?? "";
@@ -404,12 +418,7 @@ export class ApiClient {
       return "picker";
     }
 
-    const response = await this.fileResponse(jobId);
-    const filename = getDownloadFilename(
-      response.headers.get("Content-Disposition"),
-      preferredFilename,
-    );
-    triggerBlobDownload(await response.blob(), filename);
+    triggerBrowserDownload(jobId, preferredFilename);
     return "download";
   }
 

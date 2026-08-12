@@ -78,6 +78,23 @@ Worker ใน pool เดียวกันดักรอคิวงาน ◄
 การแยก worker pool จำเป็นในโหมด Local Temp เพราะ local และ Railway สามารถใช้
 Supabase ชุดเดียวกันได้ แต่ไม่สามารถอ่านไฟล์ข้าม filesystem ของกันและกัน
 
+### 4. การส่งไฟล์เข้าเบราว์เซอร์
+
+```text
+งาน COMPLETED
+    ↓
+Desktop เปิด `/api/files/download/{job_id}` แบบ same-origin
+    ↓
+Next.js ตรวจ session และ stream ไฟล์จาก FastAPI โดยไม่โหลดทั้งไฟล์เข้า RAM
+    ↓
+Chrome บันทึกลง Downloads หรือแสดง Save As ตามการตั้งค่าของผู้ใช้
+```
+
+บน iOS และ Android ระบบจะแสดงตัวเลือกเฉพาะมือถือเมื่อไฟล์พร้อม ผู้ใช้เลือก
+Share Sheet เพื่อบันทึกลง Photos/Files หรือเลือกดาวน์โหลดตามปกติได้ โดย flow
+ที่รับผิดชอบส่งไฟล์จะเป็นผู้แสดงผลสำเร็จเพียงจุดเดียว เพื่อไม่ให้ polling
+ที่ซ้อนกันสร้าง Toast ซ้ำ
+
 ---
 
 ## การรักษาความปลอดภัยของรหัสผ่านและความลับ (Secrets Protocol)
