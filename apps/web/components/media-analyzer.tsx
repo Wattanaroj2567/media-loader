@@ -167,7 +167,7 @@ function formatCardMeta(
 ) {
   const sizeLabel = estimateFilesize(format, durationSeconds);
   const pieces = [
-    format.type === "video" && format.fps && format.fps > 30
+    format.type === "video" && format.fps && format.fps > 0
       ? `${format.fps} ${t("download.fps")}`
       : null,
     format.type === "audio" && format.bitrate
