@@ -507,8 +507,12 @@ export function MediaAnalyzer() {
       }
       console.warn("[Media Analysis Error]:", err);
       setState("error");
-      setErrorMessage(t("download.failedDesc"));
-      toast("error", t("download.failed"), t("download.failedDesc"));
+      const message =
+        err instanceof Error && err.message
+          ? err.message
+          : t("download.failedDesc");
+      setErrorMessage(message);
+      toast("error", t("download.failed"), message);
     } finally {
       if (abortControllerRef.current === controller) {
         abortControllerRef.current = null;

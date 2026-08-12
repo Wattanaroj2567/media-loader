@@ -34,3 +34,19 @@ def delete_local_output(path: str | None, temp_root: str | Path) -> bool:
         except OSError:
             pass
     return True
+
+
+def local_output_exists(path: str | None, temp_root: str | Path) -> bool:
+    """Return whether a persisted local output is still safe and available.
+
+    Database metadata can outlive a retention cleanup or an older deployment.
+    Treat an invalid or unavailable path as absent without attempting to touch
+    it, so the History UI never offers a file that cannot be delivered.
+    """
+    if not path:
+        return False
+    try:
+        candidate = resolve_local_output(path, temp_root)
+    except AppError:
+        return False
+    return candidate.is_file()

@@ -27,7 +27,7 @@ class Settings(BaseSettings):
 
     # Media processing
     max_file_size_mb: int = 500
-    temp_dir: str = "/app/tmp/media-loader"
+    temp_dir: str = "tmp/media-loader"
     media_output_mode: str = "local_temp"
     media_storage_bucket: str = "media-downloads"
     temp_file_retention_minutes: int = 60
@@ -41,10 +41,16 @@ class Settings(BaseSettings):
 
     @property
     def resolved_temp_dir(self) -> Path:
-        """Resolve temp_dir to an absolute path and ensure it exists."""
-        path = Path(self.temp_dir)
+        """Resolve the shared output directory from the repository root."""
+        configured_path = Path(self.temp_dir).expanduser()
+        project_root = Path(__file__).resolve().parents[3]
+        path = (
+            configured_path
+            if configured_path.is_absolute()
+            else project_root / configured_path
+        )
         path.mkdir(parents=True, exist_ok=True)
-        return path
+        return path.resolve()
 
     model_config = {
         "env_file": (".env.local", "../../.env.local"),

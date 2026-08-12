@@ -49,8 +49,11 @@ MEDIA_STORAGE_BUCKET=media-downloads
 WORKER_SECRET=
 WORKER_ID=local-worker-1
 MAX_FILE_SIZE_MB=500
-TEMP_DIR=.tmp/media-loader
+TEMP_DIR=tmp/media-loader
 ```
+
+ทั้ง API และ worker จะ resolve `TEMP_DIR` จาก root ของโปรเจกต์เดียวกัน
+ต้องกำหนดค่าเดียวกันเสมอ โดย Docker จะแชร์ผ่าน `/app/tmp`
 
 ---
 

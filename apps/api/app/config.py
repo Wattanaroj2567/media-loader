@@ -6,6 +6,7 @@ Never prints or logs secret values.
 """
 
 from functools import lru_cache
+from pathlib import Path
 from pydantic_settings import BaseSettings
 
 
@@ -32,17 +33,26 @@ class Settings(BaseSettings):
 
     # Media output
     media_output_mode: str = "local_temp"
-    temp_dir: str = "tmp"
+    temp_dir: str = "tmp/media-loader"
     max_file_size_mb: int = 500
     temp_file_retention_minutes: int = 60
 
     @property
-    def resolved_temp_dir(self) -> str:
-        """Resolve temp_dir to an absolute path and ensure it exists."""
-        import os
-        path = os.path.abspath(self.temp_dir)
-        os.makedirs(path, exist_ok=True)
-        return path
+    def resolved_temp_dir(self) -> Path:
+        """Resolve the shared output directory from the repository root.
+
+        API and worker have different working directories in Docker, so a
+        relative value must never be resolved from the current directory.
+        """
+        configured_path = Path(self.temp_dir).expanduser()
+        project_root = Path(__file__).resolve().parents[3]
+        path = (
+            configured_path
+            if configured_path.is_absolute()
+            else project_root / configured_path
+        )
+        path.mkdir(parents=True, exist_ok=True)
+        return path.resolve()
 
     model_config = {
         "env_file": (".env.local", "../../.env.local"),

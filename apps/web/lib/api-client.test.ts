@@ -137,3 +137,18 @@ test("ApiClient exposes the wrapped API error message", async () => {
     /Blocked by policy/,
   );
 });
+
+test("ApiClient gives a clear message when history deletion cannot reach the API", async () => {
+  const client = new ApiClient(
+    "http://api.test",
+    async () => "token",
+    async () => {
+      throw new TypeError("Failed to fetch");
+    },
+  );
+
+  await assert.rejects(
+    () => client.deleteJob("job-1"),
+    /ไม่สามารถเชื่อมต่อบริการได้/,
+  );
+});
