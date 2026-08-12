@@ -6,12 +6,17 @@ node_modules/
 .next/
 out/
 
-# Python virtual environments
+# Python virtual environments & build artifacts
 .venv/
 venv/
 ENV/
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+*.egg-info/
+.egg/
+.pytest_cache/
 
 # Local environment variables
 .env

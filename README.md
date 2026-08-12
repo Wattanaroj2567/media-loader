@@ -6,13 +6,53 @@
 [![Docker](https://img.shields.io/badge/Runtime-Docker%20Compose-2496ED?style=flat-square&logo=docker)](https://www.docker.com)
 [![License](https://img.shields.io/badge/License-Private-red?style=flat-square)](#)
 
-A premium, private, rights-aware media utility workspace built for personal daily use. Analyze media URLs, select quality/formats, queue download/conversion tasks, and manage files securely via a modern command-center dark interface.
+[English](README.md) | [ภาษาไทย](README.th.md)
 
-This application is architected with a decoupled monorepo approach: Next.js on Vercel, Supabase for auth/data, and Python backend services (FastAPI & Worker) running locally or inside Docker containers.
+A premium, private, rights-aware media downloader & converter application built for personal daily use. Analyze media URLs, select video/audio quality, queue download/conversion tasks, and manage files securely via a modern dark command-center interface.
 
 ---
 
-## Architecture Flow
+## Quick Start
+
+Get the entire monorepo stack running locally in 3 simple steps:
+
+### 1. Prerequisites
+Ensure you have Node.js (v18+), pnpm (`npm install -g pnpm`), Python 3.12+, uv, and FFmpeg installed.
+
+### 2. Setup Environment & Dependencies
+```bash
+# 1. Copy environment template
+cp .env.example .env.local
+
+# 2. Install Node & Python dependencies (from root)
+pnpm install
+pnpm setup:py
+```
+
+### 3. Run Development Servers
+Open 3 terminal windows at the repository root:
+
+| Terminal | Command | Service & URL |
+| :--- | :--- | :--- |
+| **Terminal 1** | `pnpm dev:web` | **Next.js Web UI** → `http://localhost:3000` |
+| **Terminal 2** | `pnpm dev:api` | **FastAPI Backend** → `http://localhost:8000` |
+| **Terminal 3** | `pnpm dev:worker` | **Python Media Worker** |
+
+> [!TIP]
+> Run `pnpm check-env` at any time to validate your environment configuration without leaking secret values.
+
+---
+
+## Key Features
+
+* **Command Center UI**: Modern dark dashboard with sharp typography (Inter/Outfit), responsive design, and Google OAuth login via Supabase Auth.
+* **Smart URL Analyzer**: SSRF-safe URL validation, live format extraction, size estimation, and quality previews.
+* **Decoupled Media Processing**: Isolated daemon worker handling downloads and FFmpeg audio/video transcoding with real-time speed tracking.
+* **Privacy & Rights Guard**: Strict non-bypass policy enforcing rights checks, Postgres Row Level Security (RLS), and zero-secret leakage protocols.
+
+---
+
+## Architecture
 
 ```mermaid
 graph TD
@@ -28,219 +68,31 @@ graph TD
 
 ---
 
-## Core Product Flow
-
-Every media request must pass through a strict security and policy layer before execution:
-
-```text
-URL Input ──> URL Validation ──> Policy Check ──> Analysis ──> Rights Confirmation ──> Job Queue ──> Worker Processing
-```
-
-> [!IMPORTANT]
-> **No Bypass Policy**: Media Loader does NOT bypass DRM, login walls, or platform protections. It enforces rights checking at the policy layer.
-
----
-
-## Key Features
-
-### 💻 User Command Center
-* **Modern Dark UI**: Clean, minimal, dashboard-style interface with sharp typography (Inter/Outfit) and responsive layouts.
-* **Google OAuth**: Integrated authentication flow utilizing Supabase Auth.
-* **Workspace Navigation**: Dashboard, Job Queue Tracker, Download History, and Account Management.
-
-### 🔍 Smart URL Analyzer
-* **SSR-safe Validation**: Protection against server-side request forgery (SSRF).
-* **Metadata Extraction**: Live formatting lists, size estimates, and quality previews.
-* **Platform Parsing**: Automatic domain recognition with localized custom parsers.
-
-### ⚡ Distributed Processing
-* **Decoupled Worker**: Heavy operations (downloads, FFmpeg transcoding) run isolated from the web-server.
-* **Format Selector**: Multi-option download target (e.g., 1080p, 720p, or Audio extraction to MP3).
-* **Speed & Progress Logs**: Real-time progress updates with speed tracking (`0002_add_download_speed.sql`).
-
-### 🔒 Privacy & Safety
-* **Zero-Secret Leakage**: Strict protocol preventing console logs or repository commits of credentials.
-* **RLS Policies**: Postgres-level Row Level Security securing user data.
-* **Automatic Cleanup**: Temporary files are cleared after a safe duration.
-
----
-
 ## Tech Stack
 
-| Component | Technology | Description |
+| Layer | Technology | Monorepo Path |
 | :--- | :--- | :--- |
-| **Frontend** | Next.js 16 (App Router), TS, TailwindCSS | Monorepo root `apps/web` |
-| **Styling** | Vanilla CSS Variable Tokens, shadcn/ui | UI component system |
-| **Database** | PostgreSQL (Supabase) | Core schema, profiles, jobs & policies |
-| **Auth** | Supabase Auth (Google Provider) | Secure user access & token session validation |
-| **Backend API** | FastAPI, Uvicorn, Python 3.12 | REST endpoints, token validation, policy execution |
-| **Worker** | Python 3.12 | Daemon pulling queued jobs |
-| **Tooling & Envs** | `pnpm` (Node.js), `uv` (Python) | Package & virtualenv management |
-| **Media Engines** | yt-dlp (restricted mode), FFmpeg | Core extraction and conversion engines |
-| **Deployment** | Vercel (Frontend), Local Python / Docker Compose (Backend) | Flexible dev setup & containerized hosting |
+| **Frontend** | Next.js 16 (App Router), TypeScript, TailwindCSS | [`apps/web`](apps/web) |
+| **Backend API** | FastAPI, Uvicorn, Python 3.12 | [`apps/api`](apps/api) |
+| **Media Worker** | Python 3.12, yt-dlp, FFmpeg | [`apps/worker`](apps/worker) |
+| **Database & Auth**| Supabase PostgreSQL, Supabase Auth | [`supabase`](supabase) |
+| **Tooling** | `pnpm` (Node.js), `uv` (Python) | Monorepo Root |
 
 ---
 
-## Repository Structure
+## Documentation & Guides
 
-This workspace is managed as a **pnpm monorepo**:
+Detailed guides are available in the [`docs/en/`](docs/en/DEVELOPER_GUIDE.md) directory:
 
-```text
-media-loader/
-├── apps/
-│   ├── web/                 # Next.js Frontend (Vercel deployment)
-│   ├── api/                 # FastAPI Backend Service (Local / Docker)
-│   └── worker/              # Python processing worker (Local / Docker)
-├── supabase/
-│   ├── schema.sql           # Database structures
-│   ├── rls_policies.sql     # Row level security scripts
-│   └── migrations/          # Version-controlled migrations
-├── docs/                    # Technical specs, roadmaps, and guides
-│   ├── ARCHITECTURE.md      # Detailed system blueprint
-│   ├── USER_SETUP_GUIDE.md  # Local and cloud environment instructions
-│   └── VERCEL_SETUP.md      # Step-by-step Vercel host instructions
-├── docker-compose.yml       # Optional containerized dev stack
-├── pnpm-workspace.yaml      # Monorepo workspace configuration
-├── AGENTS.md                # Agent instruction & project rules
-└── TODO.md                  # Development roadmap and shipping checklist
-```
-
----
-
-## Getting Started
-
-Follow these steps to run the complete workspace locally.
-
-### 1. Prerequisites
-Ensure you have the following installed:
-* [Node.js & pnpm](https://nodejs.org/) (v18+)
-* [Python 3.12+](https://www.python.org/), [uv](https://github.com/astral-sh/uv) & [FFmpeg](https://ffmpeg.org/) (for Direct Local Development)
-* [Docker & Docker Compose](https://www.docker.com/) (Optional: for containerized runtime)
-
-### 2. Configuration & Secrets
-Copy the environment template and fill in the values:
-```bash
-cp .env.example .env.local
-```
-> [!WARNING]
-> Never commit `.env.local` or raw credentials to the repository. Only write credentials to local config files.
-
-Refer to [docs/USER_SETUP_GUIDE.md](file:///d:/media-loader/docs/USER_SETUP_GUIDE.md) for generating Supabase & Google OAuth credentials.
-
-### 3. Database & Migrations Setup
-This project is equipped with **Drizzle ORM** ([`apps/web/drizzle.config.ts`](file:///d:/media-loader/apps/web/drizzle.config.ts)) for TypeScript schema management alongside Supabase PostgreSQL support.
-
-To apply the database schema to your Supabase / PostgreSQL instance:
-
-#### Option A: Automatic Push via Drizzle Kit (Recommended)
-Ensure `DATABASE_URL` is defined in `.env.local`, then push the schema directly via CLI:
-```bash
-pnpm --filter web db:push
-```
-
-#### Option B: Via Supabase CLI or SQL Editor
-* **Supabase CLI**:
-  ```bash
-  supabase db push
-  ```
-* **Supabase Dashboard**: Go to **SQL Editor** -> copy & run SQL files in numerical order from [`supabase/migrations/`](file:///d:/media-loader/supabase/migrations/) (see [`supabase/README.md`](file:///d:/media-loader/supabase/README.md)).
-
-> [!NOTE]
-> Frontend uses Drizzle ORM ([`apps/web/lib/db/schema.ts`](file:///d:/media-loader/apps/web/lib/db/schema.ts)) and Backend services (`apps/api` & `apps/worker`) connect using `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`.
-
-### 4. Start Backend Services
-
-#### Option A: Direct Local Python via `uv` (Recommended for Fast Dev Iteration)
-Running directly with `uv` allows instant code changes and hot-reloading without waiting for Docker image rebuilds.
-
-1. **FastAPI API (`apps/api`)**:
-   ```bash
-   cd apps/api
-   uv venv
-   # Windows: .venv\Scripts\activate | Linux/macOS: source .venv/bin/activate
-   uv pip install -e .
-   uv run uvicorn app.main:app --reload --port 8000
-   ```
-
-2. **Media Worker (`apps/worker`)**:
-   ```bash
-   # Open a separate terminal
-   cd apps/worker
-   uv pip install -e .
-   uv run python -m worker.main
-   ```
-
-#### Option B: Docker Compose (Optional / Containerized Runtime)
-If you prefer running isolated containers without installing local Python/FFmpeg dependencies:
-```bash
-docker compose up -d --build
-```
-This runs the FastAPI gateway at `http://localhost:8000` and initializes the media worker queue listener.
-
-### 5. Start Frontend Server
-Navigate to the web app, install dependencies, and run the Next.js dev server:
-```bash
-pnpm install
-pnpm run dev:web
-```
-Open `http://localhost:3000` to access the application dashboard.
-
----
-
-## Verification & Health Check
-
-You can verify environment setup and database connections using these commands:
-
-1. **Verify Environment Configuration**:
-   ```bash
-   pnpm check-env
-   ```
-   Validates required environment variables without printing secret values.
-
-2. **Check Backend API & Supabase Connection**:
-   ```bash
-   curl http://localhost:8000/health
-   ```
-   Expected response:
-   ```json
-   {
-     "status": "success",
-     "data": {
-       "status": "healthy",
-       "supabase_connected": true
-     }
-   }
-   ```
-
-3. **Verify Tables in Supabase Dashboard**:
-   Run in Supabase SQL Editor:
-   ```sql
-   SELECT table_name FROM information_schema.tables WHERE table_schema = 'public';
-   ```
-
----
-
-## Production Deployment
-
-### Frontend (Vercel)
-The root `vercel.json` coordinates monorepo building:
-1. Import repository to Vercel.
-2. Build Settings:
-   - Framework Preset: **Next.js**
-   - Build Command: `cd apps/web && pnpm build`
-   - Output Directory: `apps/web/.next`
-3. Environment Variables:
-   - `NEXT_PUBLIC_SUPABASE_URL`
-   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-   - `NEXT_PUBLIC_FASTAPI_BASE_URL` (points to your deployed backend API)
-
-For step-by-step configuration, check [docs/VERCEL_SETUP.md](file:///d:/media-loader/docs/VERCEL_SETUP.md).
-
-### Backend (Docker Container)
-Deploy the `apps/api` and `apps/worker` containers to cloud providers like Railway, Fly.io, or AWS ECS.
+* **[Developer Onboarding Guide](docs/en/DEVELOPER_GUIDE.md)** — Comprehensive architecture, command reference, sequence flow, and doc index.
+* **[User Setup Guide](docs/en/USER_SETUP_GUIDE.md)** — Step-by-step Supabase & Google OAuth credentials setup.
+* **[System Architecture](docs/en/ARCHITECTURE.md)** — In-depth blueprint, security boundary, and data flows.
+* **[Vercel Deployment Guide](docs/en/VERCEL_SETUP.md)** — Host the frontend monorepo on Vercel.
+* **[Secrets Protocol](docs/en/SECRETS_PROTOCOL.md)** — Zero-leakage protocol guidelines for developers and AI agents.
 
 ---
 
 ## License & Policy
-* **Private Codebase**: Intended for personal use only.
-* **Rights Compliance**: Respect platform Terms of Service. Avoid scraping or accessing restricted materials.
+
+* **Private Repository**: For personal use only.
+* **Rights Compliance**: Respects platform Terms of Service and enforces rights checking at the policy layer.

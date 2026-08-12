@@ -1,0 +1,86 @@
+name: Continuous Integration
+
+on:
+  push:
+    branches: [ main, master, dev ]
+  workflow_dispatch:
+
+jobs:
+  web-check:
+    name: Frontend Check (Next.js)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Lint Frontend
+        run: pnpm --filter web lint
+
+      - name: Build Frontend
+        run: pnpm --filter web build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.e30
+          NEXT_PUBLIC_FASTAPI_BASE_URL: http://localhost:8000
+
+  backend-check:
+    name: Backend API & Worker Check (Python)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Run API Tests
+        run: |
+          cd apps/api
+          uv sync
+          uv run pytest
+
+      - name: Run Worker Sync Check
+        run: |
+          cd apps/worker
+          uv sync
+
+  docker-check:
+    name: Docker Build Validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build API Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: apps/api/Dockerfile
+          push: false
+          tags: media-loader-api:test
+
+      - name: Build Worker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: apps/worker/Dockerfile
+          push: false
+          tags: media-loader-worker:test

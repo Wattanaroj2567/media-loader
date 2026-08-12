@@ -8,6 +8,11 @@
   },
   "scripts": {
     "dev:web": "pnpm --filter web dev",
+    "dev:api": "uv run --directory apps/api uvicorn app.main:app --reload --port 8000",
+    "dev:worker": "uv run --directory apps/worker python -m worker.main",
+    "setup:api": "uv pip install --directory apps/api -e .",
+    "setup:worker": "uv pip install --directory apps/worker -e .",
+    "setup:py": "pnpm setup:api && pnpm setup:worker",
     "build:web": "pnpm --filter web build",
     "start:web": "pnpm --filter web start",
     "lint:web": "pnpm --filter web lint",
