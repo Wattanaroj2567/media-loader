@@ -109,35 +109,36 @@ body {
 
 .dark {
   color-scheme: dark;
-  /* 
-     Dark Theme Palette (Soft Slate Navy, Luminous Sky Cyan):
-     - Background: Soft Slate Navy oklch(0.19 0.03 245)
-     - Card Elevation: Deep Slate oklch(0.27 0.04 245)
-     - Primary Button: Luminous Sky Cyan #38BDF8 oklch(0.68 0.15 240)
-     - Primary Foreground (Text on Button): Deep Navy Dark #06152B oklch(0.14 0.04 245)
+  /*
+     Dark Theme Palette (Graphite Command Center):
+     - Background: Deep Graphite Slate oklch(0.14 0.012 252)
+     - Card Elevation: Raised Graphite oklch(0.20 0.014 252)
+     - Primary Button: Luminous Electric Blue oklch(0.72 0.13 235)
+     - Primary Foreground (Text on Button): Deep Navy Ink oklch(0.15 0.03 245)
+     - Text: High-key Cool White oklch(0.965 0.005 250)
   */
-  --bg-base: oklch(0.19 0.03 245);
-  --bg-surface: oklch(0.23 0.035 245);
-  --bg-elevated: oklch(0.27 0.04 245);
-  --text: oklch(0.96 0.01 240);
-  --text-muted: oklch(0.78 0.03 240);
-  --text-dim: oklch(0.62 0.03 240);
-  --primary: oklch(0.74 0.15 240);
-  --primary-foreground: oklch(0.14 0.04 245);
-  --secondary: oklch(0.28 0.04 245);
+  --bg-base: oklch(0.14 0.012 252);
+  --bg-surface: oklch(0.17 0.013 252);
+  --bg-elevated: oklch(0.20 0.014 252);
+  --text: oklch(0.965 0.005 250);
+  --text-muted: oklch(0.75 0.012 250);
+  --text-dim: oklch(0.58 0.015 250);
+  --primary: oklch(0.72 0.13 235);
+  --primary-foreground: oklch(0.15 0.03 245);
+  --secondary: oklch(0.24 0.014 252);
   --secondary-foreground: var(--text);
-  --accent: oklch(0.30 0.045 245);
+  --accent: oklch(0.26 0.016 252);
   --accent-foreground: var(--text);
-  --destructive: oklch(0.64 0.2 25);
-  --destructive-foreground: oklch(0.97 0.01 25);
-  --border: oklch(0.35 0.035 245 / 0.65);
-  --input: oklch(0.31 0.04 245 / 0.8);
-  --ring: oklch(0.74 0.15 240 / 0.5);
-  --sidebar: oklch(0.16 0.03 245);
+  --destructive: oklch(0.63 0.19 25);
+  --destructive-foreground: oklch(0.98 0.01 25);
+  --border: oklch(0.33 0.016 252 / 0.65);
+  --input: oklch(0.27 0.014 252 / 0.85);
+  --ring: oklch(0.72 0.13 235 / 0.45);
+  --sidebar: oklch(0.115 0.012 252);
   --sidebar-foreground: var(--text-muted);
-  --sidebar-border: oklch(0.30 0.035 245 / 0.6);
-  --panel-shadow: 0 10px 32px oklch(0.10 0.03 245 / 0.25);
-  --panel-highlight: oklch(1 0 0 / 0.08);
+  --sidebar-border: oklch(0.28 0.014 252 / 0.6);
+  --panel-shadow: 0 12px 36px oklch(0.05 0.012 252 / 0.35);
+  --panel-highlight: oklch(1 0 0 / 0.06);
 }
 
 @layer base {
@@ -172,12 +173,12 @@ body {
   }
 
   ::selection {
-    background: oklch(0.74 0.125 225 / 0.3);
+    background: oklch(0.72 0.13 235 / 0.35);
     color: var(--text);
   }
 
   * {
-    scrollbar-color: oklch(0.34 0.02 245) transparent;
+    scrollbar-color: oklch(0.30 0.014 252) transparent;
     scrollbar-width: thin;
   }
 }
