@@ -15,6 +15,7 @@
   "nav.signOut": "Sign out",
 
   "common.back": "Back",
+  "common.close": "Close",
 
   "lang.en": "English",
   "lang.th": "ไทย",
@@ -22,7 +23,8 @@
   "theme.system": "System",
   "theme.dark": "Dark",
   "theme.light": "Light",
-  "theme.selectLabel": "Select Theme",
+  "theme.selectLabel": "Display Theme",
+  "theme.description": "Choose application color theme mode",
 
   "landing.eyebrow": "Simple, private downloads",
   "landing.howItWorks": "Four simple steps",
@@ -147,6 +149,16 @@
   "downloads.emptyFilter": "No items match your filters.",
   "downloads.justNow": "Just now",
   "downloads.summary": "items",
+
+  "file.saveTitle": "Your file is ready",
+  "file.saveDesc": "Choose how to save this file to your device",
+  "file.shareAction": "Share / Save to Photos",
+  "file.downloadAction": "Download file",
+  "file.shareButton": "Share",
+  "file.savedLaterTitle": "File kept for later",
+  "file.savedLaterDesc": "Your file is kept temporarily — open History to share or download it.",
+  "file.sharedSuccess": "File shared",
+  "file.shareError": "Could not share file",
 
   "account.title": "Account",
   "account.viewProfile": "View profile",

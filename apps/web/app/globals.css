@@ -35,6 +35,10 @@
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-border: var(--sidebar-border);
+  --color-brand-ice: #E3F2FD;
+  --color-brand-sky: #90CAF9;
+  --color-brand-blue: #2196F3;
+  --color-brand-navy: #0D47A1;
   --radius-sm: calc(var(--radius) * 0.55);
   --radius-md: calc(var(--radius) * 0.75);
   --radius-lg: var(--radius);
@@ -67,60 +71,73 @@ body {
 
 :root {
   color-scheme: light;
-  /* Primitive → semantic surface tokens */
-  --bg-base: oklch(0.975 0.006 235);
-  --bg-surface: oklch(0.945 0.009 235);
+  /* 
+     Light Theme Palette (Clean, High-contrast, Royal Sapphire Blue):
+     - Background: Soft Ice Slate oklch(0.965 0.008 245)
+     - Card Elevation: Pure White #FFFFFF
+     - Primary Button: Royal Sapphire Blue #1976D2 oklch(0.50 0.15 245)
+     - Text & Headings: Deep Navy #0D47A1 oklch(0.18 0.05 245)
+  */
+  --bg-base: oklch(0.965 0.008 245);
+  --bg-surface: oklch(0.985 0.005 245);
   --bg-elevated: oklch(1 0 0);
-  --text: oklch(0.185 0.02 240);
-  --text-muted: oklch(0.46 0.022 240);
-  --text-dim: oklch(0.59 0.018 240);
-  --primary: oklch(0.58 0.14 220);
-  --primary-foreground: oklch(0.99 0.004 230);
-  --secondary: oklch(0.92 0.014 235);
+  --text: oklch(0.18 0.05 245);
+  --text-muted: oklch(0.38 0.04 245);
+  --text-dim: oklch(0.52 0.03 245);
+  --primary: oklch(0.50 0.15 245);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.94 0.015 245);
   --secondary-foreground: var(--text);
-  --accent: oklch(0.925 0.025 220);
+  --accent: oklch(0.93 0.02 245);
   --accent-foreground: var(--text);
   --destructive: oklch(0.60 0.2 25);
-  --destructive-foreground: oklch(0.98 0.01 25);
-  --border: oklch(0.86 0.016 235);
-  --input: oklch(0.885 0.016 235);
-  --ring: oklch(0.58 0.14 220 / 0.5);
+  --destructive-foreground: oklch(1 0 0);
+  --border: oklch(0.87 0.02 245);
+  --input: oklch(0.92 0.015 245);
+  --ring: oklch(0.50 0.15 245 / 0.4);
   --card: var(--bg-elevated);
   --card-foreground: var(--text);
   --popover: var(--bg-elevated);
   --popover-foreground: var(--text);
-  --sidebar: oklch(0.955 0.009 235);
+  --sidebar: oklch(0.98 0.006 245);
   --sidebar-foreground: var(--text-muted);
-  --sidebar-border: oklch(0.875 0.014 235);
+  --sidebar-border: oklch(0.88 0.02 245);
   --radius: 0.9rem;
-  --panel-shadow: 0 8px 28px oklch(0.2 0.025 235 / 0.07);
-  --panel-highlight: oklch(1 0 0 / 0.72);
+  --panel-shadow: 0 10px 30px oklch(0.20 0.05 245 / 0.07);
+  --panel-highlight: oklch(1 0 0 / 0.95);
 }
 
 .dark {
   color-scheme: dark;
-  --bg-base: oklch(0.105 0.016 240);
-  --bg-surface: oklch(0.145 0.019 240);
-  --bg-elevated: oklch(0.185 0.022 240);
-  --text: oklch(0.955 0.01 230);
-  --text-muted: oklch(0.71 0.02 230);
-  --text-dim: oklch(0.54 0.022 230);
-  --primary: oklch(0.76 0.14 215);
-  --primary-foreground: oklch(0.105 0.025 235);
-  --secondary: oklch(0.205 0.025 238);
+  /* 
+     Dark Theme Palette (Soft Slate Navy, Luminous Sky Cyan):
+     - Background: Soft Slate Navy oklch(0.19 0.03 245)
+     - Card Elevation: Deep Slate oklch(0.27 0.04 245)
+     - Primary Button: Luminous Sky Cyan #38BDF8 oklch(0.68 0.15 240)
+     - Primary Foreground (Text on Button): Deep Navy Dark #06152B oklch(0.14 0.04 245)
+  */
+  --bg-base: oklch(0.19 0.03 245);
+  --bg-surface: oklch(0.23 0.035 245);
+  --bg-elevated: oklch(0.27 0.04 245);
+  --text: oklch(0.96 0.01 240);
+  --text-muted: oklch(0.78 0.03 240);
+  --text-dim: oklch(0.62 0.03 240);
+  --primary: oklch(0.74 0.15 240);
+  --primary-foreground: oklch(0.14 0.04 245);
+  --secondary: oklch(0.28 0.04 245);
   --secondary-foreground: var(--text);
-  --accent: oklch(0.22 0.035 225);
+  --accent: oklch(0.30 0.045 245);
   --accent-foreground: var(--text);
   --destructive: oklch(0.64 0.2 25);
   --destructive-foreground: oklch(0.97 0.01 25);
-  --border: oklch(0.31 0.025 238 / 0.7);
-  --input: oklch(0.27 0.025 238 / 0.86);
-  --ring: oklch(0.76 0.14 215 / 0.55);
-  --sidebar: oklch(0.09 0.016 240);
+  --border: oklch(0.35 0.035 245 / 0.65);
+  --input: oklch(0.31 0.04 245 / 0.8);
+  --ring: oklch(0.74 0.15 240 / 0.5);
+  --sidebar: oklch(0.16 0.03 245);
   --sidebar-foreground: var(--text-muted);
-  --sidebar-border: oklch(0.27 0.022 238 / 0.7);
-  --panel-shadow: 0 10px 32px oklch(0.02 0.01 240 / 0.24);
-  --panel-highlight: oklch(1 0 0 / 0.055);
+  --sidebar-border: oklch(0.30 0.035 245 / 0.6);
+  --panel-shadow: 0 10px 32px oklch(0.10 0.03 245 / 0.25);
+  --panel-highlight: oklch(1 0 0 / 0.08);
 }
 
 @layer base {
@@ -135,7 +152,7 @@ body {
 
   body {
     @apply min-h-dvh bg-bg-base font-sans text-foreground antialiased;
-    background-image: linear-gradient(180deg, color-mix(in oklch, var(--bg-surface), transparent 58%), transparent 18rem);
+    background-image: linear-gradient(180deg, color-mix(in srgb, var(--bg-surface), transparent 58%), transparent 18rem);
   }
 
   h1,
@@ -168,7 +185,7 @@ body {
 @layer components {
   .ui-panel {
     border: 1px solid var(--border);
-    background: color-mix(in oklch, var(--bg-elevated), transparent 8%);
+    background: color-mix(in srgb, var(--bg-elevated), transparent 6%);
     box-shadow: inset 0 1px 0 var(--panel-highlight), var(--panel-shadow);
     backdrop-filter: blur(18px);
   }

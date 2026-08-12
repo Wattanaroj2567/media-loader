@@ -96,17 +96,17 @@ export function AppShell({ children, user }: AppShellProps) {
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-68 flex-col border-r border-sidebar-border bg-sidebar/92 backdrop-blur-2xl lg:flex">
         <Link href="/dashboard" prefetch={true} className="flex h-21 items-center border-b border-sidebar-border px-5">
           <span className="min-w-0">
-            <span className="block font-heading text-lg font-semibold tracking-tight text-text">{t("app.name")}</span>
-            <span className="mt-0.5 block text-[11px] text-text-dim">{t("app.localWorkspace")}</span>
+            <span className="block font-heading text-xl font-bold tracking-tight text-text">{t("app.name")}</span>
+            <span className="mt-0.5 block text-xs text-text-muted">{t("app.localWorkspace")}</span>
           </span>
         </Link>
 
-        <div className="px-4 pb-3 pt-6">
-          <p className="px-3 font-mono text-[10px] font-semibold uppercase tracking-[0.22em] text-text-dim">
+        <div className="px-4 pb-2 pt-5">
+          <p className="px-3 font-mono text-xs font-bold uppercase tracking-wider text-text-muted">
             {t("nav.workspace")}
           </p>
         </div>
-        <nav aria-label={t("nav.primary")} className="flex-1 space-y-1 py-1">
+        <nav aria-label={t("nav.primary")} className="flex-1 space-y-1.5 py-1">
           {navigation.map(({ href, label, icon: Icon }) => {
             const active = href === "/dashboard" ? pathname === href : pathname.startsWith(href);
             return (
@@ -115,58 +115,65 @@ export function AppShell({ children, user }: AppShellProps) {
                 href={href}
                 prefetch={true}
                 aria-current={active ? "page" : undefined}
-                className={`group flex min-h-11 items-center gap-3.5 border-l-3 px-5 py-2.5 text-[13.5px] font-medium transition-colors ${
+                className={`group flex min-h-12 items-center gap-3.5 border-l-3 px-5 py-3 text-sm transition-all ${
                   active
-                    ? "border-primary bg-primary/12 text-primary font-semibold"
-                    : "border-transparent text-text-muted hover:bg-bg-surface/60 hover:text-text"
+                    ? "border-primary bg-primary/14 text-primary font-semibold"
+                    : "border-transparent text-text-muted hover:bg-bg-surface/70 hover:text-text font-medium"
                 }`}
               >
-                <Icon aria-hidden="true" className="size-4.5 shrink-0" />
+                <Icon aria-hidden="true" className="size-5 shrink-0" />
                 <span>{t(label)}</span>
               </Link>
             );
           })}
         </nav>
 
-        {/* Full-width Sidebar Footer (Seamless Edge-to-Edge) */}
-        <div className="border-t border-sidebar-border bg-bg-surface/30">
+        {/* Full-width Sidebar Footer */}
+        <div className="mt-auto border-t border-sidebar-border bg-bg-surface/30">
+          {/* User Profile item styled as nav menu item */}
           <Link
             href="/settings"
             prefetch={true}
             title={t("account.viewProfile", {}, "ดูโปรไฟล์")}
-            className={`group flex min-w-0 items-center gap-3.5 border-l-3 px-5 py-3 text-[13.5px] font-medium transition-colors outline-none ${
+            className={`group flex min-h-12 items-center gap-3.5 border-l-3 px-5 py-3 transition-all outline-none ${
               pathname.startsWith("/settings")
-                ? "border-primary bg-primary/12 text-primary font-semibold"
-                : "border-transparent text-text hover:bg-bg-surface/60"
+                ? "border-primary bg-primary/14 text-primary font-semibold"
+                : "border-transparent text-text-muted hover:bg-bg-surface/70 hover:text-text font-medium"
             }`}
           >
-            <UserAvatar name={user.name} avatarUrl={user.avatar_url} className="size-9" />
+            <UserAvatar name={user.name} avatarUrl={user.avatar_url} className="size-7.5 shrink-0" />
             <span className="min-w-0 flex-1">
-              <span className="block truncate text-xs font-semibold text-text">{user.name}</span>
-              <span className="mt-0.5 block text-[10px] text-text-dim">{t("account.viewProfile", {}, "ดูโปรไฟล์")}</span>
+              <span className="block truncate text-sm font-semibold text-text group-hover:text-primary transition-colors">{user.name}</span>
+              <span className="block text-xs text-text-muted truncate font-normal">{t("account.viewProfile", {}, "ดูโปรไฟล์")}</span>
             </span>
           </Link>
-          <div className="mx-4 mb-3.5 grid grid-cols-3 gap-2 border-t border-border/50 pt-2.5">
-            <button
-              type="button"
-              onClick={toggleLocale}
-              title={locale === "th" ? "Switch to English" : "เปลี่ยนเป็นภาษาไทย"}
-              className="flex h-9 items-center justify-center gap-1 rounded-xl border border-border bg-bg-base/60 px-2 text-xs font-semibold text-text transition-colors hover:border-primary/40 hover:bg-primary/10 hover:text-primary cursor-pointer"
-            >
-              <Languages aria-hidden="true" className="size-3.5 text-primary shrink-0" />
-              <span className="font-mono text-[11px] font-bold tracking-wider">{locale === "th" ? "EN" : "TH"}</span>
-            </button>
-            <ThemeToggle className="w-full bg-bg-base/60" />
-            <form action="/auth/signout" method="post" className="w-full">
+
+          {/* Footer Action Row: Theme + Language + Sign Out */}
+          <div className="p-3 pt-2">
+            <div className="grid grid-cols-3 gap-1.5">
+              <ThemeToggle variant="dropdown" dropdownAlign="top" showLabel={false} className="w-full" />
+
               <button
-                type="submit"
-                aria-label={t("nav.signOut")}
-                title={t("nav.signOut")}
-                className="flex h-9 w-full cursor-pointer items-center justify-center rounded-xl border border-border bg-bg-base/60 text-text-muted transition-colors hover:border-rose-500/30 hover:bg-rose-500/10 hover:text-rose-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 dark:hover:text-rose-400"
+                type="button"
+                onClick={toggleLocale}
+                title={locale === "th" ? "Switch to English" : "เปลี่ยนเป็นภาษาไทย"}
+                className="flex h-9 w-full items-center justify-center gap-1.5 rounded-xl border border-border/80 bg-bg-surface/50 px-1 text-xs font-semibold text-text transition-all hover:border-primary/40 hover:bg-primary/10 hover:text-primary cursor-pointer"
               >
-                <LogOut aria-hidden="true" className="size-4" />
+                <Languages aria-hidden="true" className="size-3.5 text-primary shrink-0" />
+                <span className="font-mono text-xs font-bold tracking-wider">{locale === "th" ? "EN" : "TH"}</span>
               </button>
-            </form>
+
+              <form action="/auth/signout" method="post" className="w-full">
+                <button
+                  type="submit"
+                  aria-label={t("nav.signOut")}
+                  title={t("nav.signOut", {}, "ออกจากระบบ")}
+                  className="flex h-9 w-full items-center justify-center rounded-xl border border-border/80 bg-bg-surface/50 text-text-muted transition-all hover:border-rose-500/30 hover:bg-rose-500/10 hover:text-rose-600 dark:hover:text-rose-400 cursor-pointer"
+                >
+                  <LogOut aria-hidden="true" className="size-4 shrink-0" />
+                </button>
+              </form>
+            </div>
           </div>
         </div>
       </aside>
@@ -198,7 +205,7 @@ export function AppShell({ children, user }: AppShellProps) {
               <Languages aria-hidden="true" className="size-4 text-primary shrink-0" />
               <span className="font-mono font-bold tracking-wider max-[359px]:sr-only">{locale === "th" ? "EN" : "TH"}</span>
             </button>
-            <div className="lg:hidden"><ThemeToggle /></div>
+            <div className="lg:hidden"><ThemeToggle variant="dropdown" /></div>
             <Link
               href="/settings"
               aria-label={t("nav.account")}
@@ -236,7 +243,7 @@ export function AppShell({ children, user }: AppShellProps) {
                 key={href}
                 href={href}
                 aria-current={active ? "page" : undefined}
-                className={`flex min-h-12 flex-col items-center justify-center gap-1 rounded-xl text-[10px] font-medium transition-colors ${
+                className={`flex min-h-12 flex-col items-center justify-center gap-1 rounded-xl text-xs font-medium transition-colors ${
                   active ? "bg-primary/12 text-primary font-semibold" : "text-text-muted hover:bg-bg-surface hover:text-text"
                 }`}
               >

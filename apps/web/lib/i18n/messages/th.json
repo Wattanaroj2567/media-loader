@@ -15,6 +15,7 @@
   "nav.signOut": "ออกจากระบบ",
 
   "common.back": "กลับ",
+  "common.close": "ปิด",
 
   "lang.en": "English",
   "lang.th": "ไทย",
@@ -22,7 +23,8 @@
   "theme.system": "ตามระบบ",
   "theme.dark": "มืด",
   "theme.light": "สว่าง",
-  "theme.selectLabel": "เลือกธีม",
+  "theme.selectLabel": "ธีมการแสดงผล",
+  "theme.description": "เลือกโหมดธีมสีของการแสดงผลในแอปพลิเคชัน",
 
   "landing.eyebrow": "ดาวน์โหลดง่าย เป็นส่วนตัว",
   "landing.howItWorks": "ใช้งานง่ายใน 4 ขั้นตอน",
@@ -147,6 +149,16 @@
   "downloads.emptyFilter": "ไม่มีรายการที่ตรงกับเงื่อนไข",
   "downloads.justNow": "เมื่อสักครู่",
   "downloads.summary": "รายการ",
+
+  "file.saveTitle": "ไฟล์พร้อมแล้ว",
+  "file.saveDesc": "เลือกวิธีบันทึกไฟล์ลงเครื่องของคุณ",
+  "file.shareAction": "แชร์ / บันทึกลงแอปรูปภาพ",
+  "file.downloadAction": "ดาวน์โหลดไฟล์",
+  "file.shareButton": "แชร์",
+  "file.savedLaterTitle": "เก็บไฟล์ไว้ให้แล้ว",
+  "file.savedLaterDesc": "ไฟล์ถูกเก็บไว้ชั่วคราว ไปที่หน้าประวัติเพื่อแชร์หรือดาวน์โหลดได้",
+  "file.sharedSuccess": "แชร์ไฟล์แล้ว",
+  "file.shareError": "แชร์ไฟล์ไม่สำเร็จ",
 
   "account.title": "บัญชี",
   "account.viewProfile": "ดูโปรไฟล์",

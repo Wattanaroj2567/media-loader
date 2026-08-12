@@ -164,7 +164,7 @@ export function TopNav({ user }: TopNavProps) {
           </button>
 
           {/* Theme Switcher Button */}
-          <ThemeToggle />
+          <ThemeToggle variant="dropdown" />
 
           {/* Account button */}
           <div className="relative" ref={dropdownRef}>

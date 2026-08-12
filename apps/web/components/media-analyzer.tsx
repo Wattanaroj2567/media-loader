@@ -13,6 +13,7 @@ import {
   Globe2,
   Heart,
   Info,
+  Play,
   Search,
   ShieldAlert,
   UserRound,
@@ -275,6 +276,31 @@ function tryConvertThaiLayout(text: string): string {
     .join("");
 }
 
+function getYouTubeEmbedUrl(url?: string | null): string | null {
+  if (!url) return null;
+  try {
+    const parsed = new URL(url);
+    if (parsed.hostname.includes("youtube.com") || parsed.hostname.includes("youtu.be")) {
+      let videoId: string | null = null;
+      if (parsed.hostname.includes("youtu.be")) {
+        videoId = parsed.pathname.slice(1);
+      } else if (parsed.pathname.startsWith("/shorts/")) {
+        videoId = parsed.pathname.split("/")[2];
+      } else if (parsed.pathname.startsWith("/embed/")) {
+        videoId = parsed.pathname.split("/")[2];
+      } else {
+        videoId = parsed.searchParams.get("v");
+      }
+      if (videoId) {
+        return `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1`;
+      }
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
 export function MediaAnalyzer() {
   const { t, locale } = useT();
   const { toast } = useToast();
@@ -287,10 +313,27 @@ export function MediaAnalyzer() {
   const [errorMessage, setErrorMessage] = useState("");
   const [queueing, setQueueing] = useState(false);
   const [showLightbox, setShowLightbox] = useState(false);
+  const [lightboxTab, setLightboxTab] = useState<"video" | "image">("video");
+  const [isVideoLoading, setIsVideoLoading] = useState(true);
   const [requestedAnalysisUrl, setRequestedAnalysisUrl] = useState("");
 
   const [isLoaded, setIsLoaded] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
+
+  const embedUrl = useMemo(() => getYouTubeEmbedUrl(analyzedUrl), [analyzedUrl]);
+
+  // Handle ESC key to close Lightbox Modal
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setShowLightbox(false);
+      }
+    };
+    if (showLightbox) {
+      window.addEventListener("keydown", handleKeyDown);
+    }
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [showLightbox]);
 
   // Clean up pending abort controller on unmount
   useEffect(() => {
@@ -514,8 +557,8 @@ export function MediaAnalyzer() {
         <p className="ui-kicker mb-3">
           {t("download.placeholderLabel", {}, "วางลิงก์วิดีโอหรือเสียง")}
         </p>
-        <div className="group flex min-h-16 gap-2 rounded-2xl border border-border bg-bg-base/45 p-2 shadow-[inset_0_1px_0_var(--panel-highlight)] transition-[border-color,background-color,box-shadow] duration-200 focus-within:border-primary/55 focus-within:bg-bg-surface/70 focus-within:ring-3 focus-within:ring-primary/15">
-          <span className="grid size-11 shrink-0 place-items-center self-center rounded-xl bg-primary/10 text-primary">
+        <div className="group flex min-h-16 gap-2 rounded-2xl border border-border bg-bg-surface/60 p-2 shadow-xs transition-all duration-200 focus-within:border-primary/60 focus-within:bg-bg-elevated focus-within:ring-3 focus-within:ring-primary/15">
+          <span className="grid size-11 shrink-0 place-items-center self-center rounded-xl bg-primary/12 text-primary">
             <Search className="size-5" />
           </span>
           <input
@@ -568,7 +611,7 @@ export function MediaAnalyzer() {
             </button>
           )}
         </div>
-        <div className="mt-3 flex items-start gap-2.5 rounded-xl border border-border/70 bg-bg-base/25 px-3.5 py-2.5 text-[11px] leading-relaxed text-text-muted">
+        <div className="mt-3 flex items-start gap-2.5 rounded-xl border border-border/70 bg-bg-surface/40 px-3.5 py-2.5 text-[11px] leading-relaxed text-text-muted">
           <Info className="mt-0.5 size-3.5 shrink-0 text-primary" />
           <p className="font-medium">
             {t("download.policyNote")}
@@ -615,13 +658,16 @@ export function MediaAnalyzer() {
         <div className="space-y-6">
           {/* Media Info Section */}
           <div className="grid gap-4 sm:grid-cols-[200px_1fr] lg:gap-6 xl:grid-cols-[240px_1fr]">
-            {/* Thumbnail Button -> Opens Lightbox */}
+            {/* Clean Thumbnail Card -> Click to open Fullscreen Viewer */}
             {media.thumbnail_url ? (
               <button
                 type="button"
-                onClick={() => setShowLightbox(true)}
-                title={t("download.viewThumbnail", {}, "คลิกเพื่อดูรูปภาพ")}
-                className="group block aspect-video w-full overflow-hidden rounded-2xl border border-border/80 bg-cover bg-center text-left shadow-md transition-[border-color,opacity,transform] duration-200 hover:border-primary/50 hover:opacity-90 active:scale-[0.99] cursor-pointer"
+                onClick={() => {
+                  setLightboxTab(embedUrl ? "video" : "image");
+                  setShowLightbox(true);
+                }}
+                title={t("download.viewMedia", {}, "คลิกเพื่อรับชมมีเดียแบบเต็มจอ")}
+                className="group block aspect-video w-full overflow-hidden rounded-2xl border border-border/80 bg-cover bg-center text-left shadow-md transition-all duration-200 hover:border-primary/50 hover:shadow-lg active:scale-[0.99] cursor-pointer"
                 style={{ backgroundImage: `url("${media.thumbnail_url}")` }}
               />
             ) : (
@@ -754,47 +800,82 @@ export function MediaAnalyzer() {
         </div>
       )}
 
-      {/* ── Lightbox Modal Overlay (Mounted directly on document.body via Portal) ── */}
+      {/* ── Unified Media Viewer Lightbox Overlay ── */}
       {showLightbox && media?.thumbnail_url && typeof window !== "undefined" && createPortal(
         <div
           onClick={() => setShowLightbox(false)}
-          className="fixed inset-0 z-[9999] flex h-full w-full items-center justify-center bg-black/80 p-4 transition-all duration-200 animate-fade-in-up"
+          className="fixed inset-0 z-9999 flex h-full w-full items-center justify-center bg-black/85 p-3 sm:p-6 transition-all duration-200 animate-fade-in-up backdrop-blur-md"
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="ui-panel relative flex flex-col max-h-[90vh] max-w-[92vw] sm:max-w-[85vw] items-center justify-center overflow-hidden rounded-3xl border border-border/80 bg-bg-surface p-3 shadow-2xl sm:p-4"
+            className="ui-panel relative flex flex-col max-h-[92vh] w-full max-w-4xl items-center justify-center overflow-hidden rounded-3xl border border-border/80 bg-bg-surface p-3 shadow-2xl sm:p-5"
           >
-            {/* Action Bar: Title, Download Button & Close */}
-            <div className="mb-3 flex w-full items-center justify-between gap-3 px-1">
-              <span className="truncate text-xs font-semibold text-text-muted">
-                {t("download.thumbnailPreview", {}, "รูปภาพหน้าปก")}
-              </span>
-              <div className="flex items-center gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={async () => {
-                    try {
-                      const res = await fetch(media.thumbnail_url!);
-                      const blob = await res.blob();
-                      const blobUrl = URL.createObjectURL(blob);
-                      const a = document.createElement("a");
-                      a.href = blobUrl;
-                      a.download = safeDownloadFilename(media.title, "jpg");
-                      document.body.appendChild(a);
-                      a.click();
-                      document.body.removeChild(a);
-                      URL.revokeObjectURL(blobUrl);
-                    } catch {
-                      if (media.thumbnail_url) window.open(media.thumbnail_url, "_blank");
-                    }
-                  }}
-                  className="h-9 gap-1.5 rounded-xl px-3 text-xs font-semibold cursor-pointer"
-                >
-                  <Download className="size-3.5 text-primary" />
-                  <span>{t("download.saveImage", {}, "ดาวน์โหลดรูป")}</span>
-                </Button>
+            {/* Header Action Bar */}
+            <div className="mb-3 flex w-full flex-wrap items-center justify-between gap-2.5 border-b border-border/60 pb-3 px-1">
+              {embedUrl ? (
+                <div className="flex gap-1 rounded-xl border border-border/80 bg-bg-base/70 p-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLightboxTab("video");
+                      setIsVideoLoading(true);
+                    }}
+                    className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
+                      lightboxTab === "video"
+                        ? "bg-primary text-primary-foreground shadow-xs"
+                        : "text-text-muted hover:text-text"
+                    }`}
+                  >
+                    <Play className="size-3.5 fill-current" />
+                    <span>{t("download.playPreview", {}, "เล่นตัวอย่าง")}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setLightboxTab("image")}
+                    className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
+                      lightboxTab === "image"
+                        ? "bg-primary text-primary-foreground shadow-xs"
+                        : "text-text-muted hover:text-text"
+                    }`}
+                  >
+                    <Film className="size-3.5" />
+                    <span>{t("download.thumbnailPreview", {}, "รูปภาพหน้าปก")}</span>
+                  </button>
+                </div>
+              ) : (
+                <span className="truncate text-xs font-semibold text-text-muted">
+                  {t("download.thumbnailPreview", {}, "รูปภาพหน้าปก")}
+                </span>
+              )}
+
+              <div className="flex items-center gap-2 ml-auto">
+                {lightboxTab === "image" && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={async () => {
+                      try {
+                        const res = await fetch(media.thumbnail_url!);
+                        const blob = await res.blob();
+                        const blobUrl = URL.createObjectURL(blob);
+                        const a = document.createElement("a");
+                        a.href = blobUrl;
+                        a.download = safeDownloadFilename(media.title, "jpg");
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(blobUrl);
+                      } catch {
+                        if (media.thumbnail_url) window.open(media.thumbnail_url, "_blank");
+                      }
+                    }}
+                    className="h-9 gap-1.5 rounded-xl px-3 text-xs font-semibold cursor-pointer"
+                  >
+                    <Download className="size-3.5 text-primary" />
+                    <span>{t("download.saveImage", {}, "ดาวน์โหลดรูป")}</span>
+                  </Button>
+                )}
                 <button
                   type="button"
                   onClick={() => setShowLightbox(false)}
@@ -806,13 +887,36 @@ export function MediaAnalyzer() {
               </div>
             </div>
 
-            {/* Lightbox thumbnail image */}
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={media.thumbnail_url}
-              alt={media.title}
-              className="block max-h-[78vh] max-w-[88vw] rounded-2xl object-contain shadow-md"
-            />
+            {/* Main Content Area */}
+            <div className="flex w-full flex-1 items-center justify-center overflow-hidden">
+              {lightboxTab === "video" && embedUrl ? (
+                <div className="relative aspect-video w-full overflow-hidden rounded-2xl border border-border/80 bg-black shadow-lg">
+                  {isVideoLoading && (
+                    <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-black/90 text-white backdrop-blur-xs transition-opacity duration-300">
+                      <LoadingIndicator
+                        label={t("download.connectingVideo", {}, "กำลังเชื่อมต่อวิดีโอตัวอย่าง...")}
+                        className="text-xs font-medium text-primary"
+                      />
+                    </div>
+                  )}
+                  <iframe
+                    src={embedUrl}
+                    title={media.title}
+                    onLoad={() => setIsVideoLoading(false)}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    className="h-full w-full border-0"
+                  />
+                </div>
+              ) : (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img
+                  src={media.thumbnail_url}
+                  alt={media.title}
+                  className="block max-h-[75vh] max-w-full rounded-2xl object-contain shadow-md"
+                />
+              )}
+            </div>
           </div>
         </div>,
         document.body

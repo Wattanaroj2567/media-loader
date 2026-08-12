@@ -160,7 +160,6 @@ export default function AccountPage() {
                 </Button>
               </form>
             </div>
-
           </section>
 
           {/* Danger zone collapsible */}
