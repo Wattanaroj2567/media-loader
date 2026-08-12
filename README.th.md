@@ -14,10 +14,10 @@
 
 ## การเริ่มต้นใช้งานด่วน (Quick Start)
 
-เริ่มต้นรันระบบทั้ง Monorepo บนเครื่อง Local ได้ง่ายๆ ใน 3 ขั้นตอน:
+เริ่มต้นรันระบบทั้ง Monorepo บนเครื่อง Local ได้ง่ายๆ ในไม่กี่ขั้นตอน:
 
 ### 1. สิ่งที่ต้องเตรียม (Prerequisites)
-ตรวจสอบให้แน่ใจว่าติดตั้ง Node.js (v18+), pnpm (`npm install -g pnpm`), Python 3.12+, uv, และ FFmpeg บนเครื่องแล้ว
+ตรวจสอบให้แน่ใจว่าติดตั้ง Node.js (v18+), pnpm (`npm install -g pnpm`), Python 3.12+, `uv`, และ FFmpeg บนเครื่องแล้ว
 
 ### 2. ตั้งค่าไฟล์ Environment & ติดตั้ง Dependencies
 ```bash
@@ -29,14 +29,29 @@ pnpm install
 pnpm setup:py
 ```
 
-### 3. สั่งรันบริการ (Development Servers)
-เปิด 3 หน้าต่าง Terminal ที่ Root โฟลเดอร์ของโปรเจกต์:
+### 3. คำสั่งสั่งรันระบบ (Run Development Servers)
 
-| Terminal | คำสั่ง (Command) | บริการและ URL |
-| :--- | :--- | :--- |
-| **Terminal 1** | `pnpm dev:web` | **Next.js Web UI** → `http://localhost:3000` |
-| **Terminal 2** | `pnpm dev:api` | **FastAPI Backend** → `http://localhost:8000` |
-| **Terminal 3** | `pnpm dev:worker` | **Python Media Worker** |
+#### ทางเลือก A: สั่งรันแยกทีละบริการ (Local Development - 3 หน้าต่าง Terminal)
+รันบริการใน Terminal แยกกันที่ Root โฟลเดอร์ของโปรเจกต์:
+
+```bash
+# Terminal 1: Next.js Web UI (http://localhost:3000)
+pnpm dev:web
+
+# Terminal 2: FastAPI Backend API (http://localhost:8000)
+pnpm dev:api
+
+# Terminal 3: Python Media Worker
+pnpm dev:worker
+```
+
+#### ทางเลือก B: สั่งรันผ่าน Docker Compose (Local Docker Mode)
+สั่งรันบริการ Backend API และ Worker ผ่าน Docker Container:
+
+```bash
+# สั่งรันทั้ง API และ Worker บน Docker Containers
+docker compose --profile worker up --build
+```
 
 > [!TIP]
 > สั่งรัน `pnpm check-env` ได้ตลอดเวลาเพื่อตรวจสอบความถูกต้องของค่าแปรสภาพแวดล้อมโดยไม่พิมพ์รหัสลับออกมา

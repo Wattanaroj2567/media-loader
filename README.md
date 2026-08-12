@@ -14,29 +14,44 @@ A premium, private, rights-aware media downloader & converter application built 
 
 ## Quick Start
 
-Get the entire monorepo stack running locally in 3 simple steps:
+Get the entire monorepo stack running locally in simple steps:
 
 ### 1. Prerequisites
-Ensure you have Node.js (v18+), pnpm (`npm install -g pnpm`), Python 3.12+, uv, and FFmpeg installed.
+Ensure you have Node.js (v18+), pnpm (`npm install -g pnpm`), Python 3.12+, `uv`, and FFmpeg installed.
 
 ### 2. Setup Environment & Dependencies
 ```bash
 # 1. Copy environment template
 cp .env.example .env.local
 
-# 2. Install Node & Python dependencies (from root)
+# 2. Install Node & Python dependencies (from monorepo root)
 pnpm install
 pnpm setup:py
 ```
 
 ### 3. Run Development Servers
-Open 3 terminal windows at the repository root:
 
-| Terminal | Command | Service & URL |
-| :--- | :--- | :--- |
-| **Terminal 1** | `pnpm dev:web` | **Next.js Web UI** → `http://localhost:3000` |
-| **Terminal 2** | `pnpm dev:api` | **FastAPI Backend** → `http://localhost:8000` |
-| **Terminal 3** | `pnpm dev:worker` | **Python Media Worker** |
+#### Option A: Local Development Mode (3 Terminals)
+Run the services in separate terminal windows at the repository root:
+
+```bash
+# Terminal 1: Next.js Web UI (http://localhost:3000)
+pnpm dev:web
+
+# Terminal 2: FastAPI Backend API (http://localhost:8000)
+pnpm dev:api
+
+# Terminal 3: Python Media Worker
+pnpm dev:worker
+```
+
+#### Option B: Local Docker Backend Mode
+Run the FastAPI backend and Media Worker via Docker Compose:
+
+```bash
+# Run API and Worker in local Docker containers
+docker compose --profile worker up --build
+```
 
 > [!TIP]
 > Run `pnpm check-env` at any time to validate your environment configuration without leaking secret values.
