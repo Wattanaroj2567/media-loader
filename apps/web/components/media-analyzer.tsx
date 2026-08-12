@@ -782,7 +782,6 @@ export function MediaAnalyzer() {
                   type="button"
                   onClick={() => void startDownload()}
                   disabled={!selectedFormat || queueing}
-                  aria-describedby="download-consent"
                   className="h-11 w-full rounded-xl px-8 text-xs font-semibold sm:w-50 cursor-pointer"
                 >
                   {queueing ? (
@@ -794,9 +793,6 @@ export function MediaAnalyzer() {
                     </>
                   )}
                 </Button>
-                <p id="download-consent" className="mt-1.5 w-full text-center text-[10px] leading-relaxed text-text-dim">
-                  {t("download.downloadConsent")}
-                </p>
               </div>
             </div>
           </div>
