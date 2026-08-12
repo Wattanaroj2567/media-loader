@@ -3,6 +3,10 @@ name: Continuous Integration
 on:
   push:
     branches: [ main, master, dev ]
+    paths-ignore:
+      - 'docs/**'
+      - '**.md'
+      - '.agents/**'
   workflow_dispatch:
 
 jobs:
