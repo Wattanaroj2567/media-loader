@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "engines": {
-    "node": ">=18.0.0",
-    "pnpm": ">=8.0.0"
+    "node": ">=22.13.0",
+    "pnpm": ">=11.0.0"
   },
   "scripts": {
     "dev": "concurrently -n web,api,worker -c cyan,blue,magenta \"pnpm dev:web\" \"pnpm dev:api\" \"pnpm dev:worker\"",
