@@ -1,7 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { ApiClient } from "./api-client.ts";
+import { ApiClient, jobFileDownloadUrl } from "./api-client.ts";
+
+test("browser download URL safely targets the same-origin streaming route", () => {
+  assert.equal(
+    jobFileDownloadUrl("job/with spaces"),
+    "/api/files/download/job%2Fwith%20spaces",
+  );
+});
 
 test("ApiClient attaches the current Supabase access token", async () => {
   let request: { url: string; init?: RequestInit } | undefined;

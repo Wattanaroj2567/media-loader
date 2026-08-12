@@ -115,13 +115,15 @@ export function GlobalJobNotifier() {
 
   useEffect(() => {
     let dead = false;
+    let polling = false;
     let intervalId: NodeJS.Timeout | null = null;
 
     async function pollActiveJobs() {
-      if (dead) return;
+      if (dead || polling) return;
       if (typeof window !== "undefined" && !window.navigator.onLine) {
         return;
       }
+      polling = true;
       try {
         const jobs = await apiClient.listJobs({ limit: 100 });
         if (dead) return;
@@ -135,6 +137,12 @@ export function GlobalJobNotifier() {
           const pendingDownload = getPendingDownload(job.id);
           let handledPendingDownload = false;
           if (job.status === "COMPLETED" && pendingDownload) {
+            // This job's delivery flow owns the completion notification even
+            // when another poll already claimed and is currently fetching the
+            // file. Otherwise a generic completion toast can fire before the
+            // browser Save As prompt, followed by a second toast afterwards.
+            handledPendingDownload = true;
+
             // On phones/tablets, let the user pick how to save the file: the
             // native share sheet can save straight into Photos (iOS) or to
             // Photos/Files/Drive (Android). Desktop keeps the automatic
@@ -153,7 +161,6 @@ export function GlobalJobNotifier() {
 
             if (beginDownloadDelivery(job.id)) {
               changed = true;
-              handledPendingDownload = true;
 
               if (preferShareSheet) {
                 choiceRef.current = {
@@ -263,6 +270,8 @@ export function GlobalJobNotifier() {
           return;
         }
         console.warn("[GlobalJobNotifier Error]:", err);
+      } finally {
+        polling = false;
       }
     }
 

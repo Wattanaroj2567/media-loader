@@ -52,7 +52,6 @@
   "download.analyzing": "Checking...",
   "download.policyNote": "Automated policy check: Protected media (DRM), private videos, login-walled links, or restricted content cannot be processed.",
   "download.autoCheck": "Automatic link check",
-  "download.downloadConsent": "Downloading confirms that you have the rights to use this media.",
   "download.ready": "Ready to queue",
   "download.download": "Download",
   "download.preparing": "Preparing download...",

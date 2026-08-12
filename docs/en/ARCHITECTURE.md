@@ -118,14 +118,20 @@ Worker updates job status to COMPLETED
 ```text
 User clicks download
   ↓
-Next.js requests `/files/download/{job_id}` with the Supabase access token
+Desktop opens the same-origin `/api/files/download/{job_id}` route
   ↓
-FastAPI streams the local temp file
+Next.js authenticates from the session cookie and streams FastAPI's response
   ↓
-User saves through the browser/Explorer dialog
+Chrome saves automatically or shows Save As according to its own settings
   ↓
 FastAPI deletes the temp file and clears the file path; history metadata remains
 ```
+
+On iOS and Android, completed jobs show a mobile-only choice. Native sharing
+uses a fetched `File` object so the OS share sheet can offer Photos/Files;
+regular download uses the same streaming route as desktop. A pending delivery
+owns its completion notification, preventing overlapping polls from showing
+duplicate toasts.
 
 ---
 
