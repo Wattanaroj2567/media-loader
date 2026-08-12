@@ -29,29 +29,18 @@ pnpm install
 pnpm setup:py
 ```
 
-### 3. Run Development Servers
+### 3. Run All Services with One Command
 
-#### Option A: Local Development Mode (3 Terminals)
-Run the services in separate terminal windows at the repository root:
-
-```bash
-# Terminal 1: Next.js Web UI (http://localhost:3000)
-pnpm dev:web
-
-# Terminal 2: FastAPI Backend API (http://localhost:8000)
-pnpm dev:api
-
-# Terminal 3: Python Media Worker
-pnpm dev:worker
-```
-
-#### Option B: Local Docker Backend Mode
-Run the FastAPI backend and Media Worker via Docker Compose:
+Run Next.js Web UI, FastAPI Backend, and Python Media Worker all together in a single terminal window:
 
 ```bash
-# Run API and Worker in local Docker containers
-docker compose --profile worker up --build
+# Run all 3 services concurrently in 1 terminal
+pnpm dev
 ```
+
+> **Prefer separate terminals or Docker?**
+> * **Separate Terminals**: Run `pnpm dev:web`, `pnpm dev:api`, or `pnpm dev:worker` individually.
+> * **Docker Mode**: Run `docker compose --profile worker up --build`.
 
 > [!TIP]
 > Run `pnpm check-env` at any time to validate your environment configuration without leaking secret values.

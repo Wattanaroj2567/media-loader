@@ -29,29 +29,18 @@ pnpm install
 pnpm setup:py
 ```
 
-### 3. คำสั่งสั่งรันระบบ (Run Development Servers)
+### 3. คำสั่งรันทั้ง 3 บริการพร้อมกันในคำสั่งเดียว (Single Terminal Command)
 
-#### ทางเลือก A: สั่งรันแยกทีละบริการ (Local Development - 3 หน้าต่าง Terminal)
-รันบริการใน Terminal แยกกันที่ Root โฟลเดอร์ของโปรเจกต์:
-
-```bash
-# Terminal 1: Next.js Web UI (http://localhost:3000)
-pnpm dev:web
-
-# Terminal 2: FastAPI Backend API (http://localhost:8000)
-pnpm dev:api
-
-# Terminal 3: Python Media Worker
-pnpm dev:worker
-```
-
-#### ทางเลือก B: สั่งรันผ่าน Docker Compose (Local Docker Mode)
-สั่งรันบริการ Backend API และ Worker ผ่าน Docker Container:
+สั่งรันทั้ง Next.js Web UI, FastAPI Backend API และ Python Media Worker พร้อมกันในหน้าต่าง Terminal เดียว:
 
 ```bash
-# สั่งรันทั้ง API และ Worker บน Docker Containers
-docker compose --profile worker up --build
+# สั่งรันทั้ง 3 บริการขนานกันใน Terminal เดียว
+pnpm dev
 ```
+
+> **หากต้องการสั่งรันแยก Terminal หรือใช้ Docker?**
+> * **รันแยก Terminal**: สั่งรัน `pnpm dev:web`, `pnpm dev:api`, หรือ `pnpm dev:worker` แยกทีละตัวได้ตามสะดวก
+> * **รันผ่าน Docker Mode**: สั่งรัน `docker compose --profile worker up --build`
 
 > [!TIP]
 > สั่งรัน `pnpm check-env` ได้ตลอดเวลาเพื่อตรวจสอบความถูกต้องของค่าแปรสภาพแวดล้อมโดยไม่พิมพ์รหัสลับออกมา

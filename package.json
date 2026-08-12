@@ -7,6 +7,7 @@
     "pnpm": ">=8.0.0"
   },
   "scripts": {
+    "dev": "concurrently -n web,api,worker -c cyan,blue,magenta \"pnpm dev:web\" \"pnpm dev:api\" \"pnpm dev:worker\"",
     "dev:web": "pnpm --filter web dev",
     "dev:api": "uv run --directory apps/api uvicorn app.main:app --reload --port 8000",
     "dev:worker": "uv run --directory apps/worker python -m worker.main",
@@ -20,6 +21,7 @@
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
+    "concurrently": "^9.1.2",
     "tsx": "^4.19.0",
     "typescript": "^5.0.0"
   }
