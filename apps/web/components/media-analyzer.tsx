@@ -354,27 +354,6 @@ export function MediaAnalyzer() {
     }
   }, [isLoaded, url, analyzedUrl, state, analysis, selectedFormatId, activeTab]);
 
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  // Attach non-passive native wheel listener to completely block outer page vertical scroll
-  useEffect(() => {
-    const inputEl = inputRef.current;
-    if (!inputEl) return;
-
-    const handleWheel = (e: WheelEvent) => {
-      if (e.deltaY !== 0) {
-        e.preventDefault();
-        e.stopPropagation();
-        inputEl.scrollLeft += e.deltaY;
-      }
-    };
-
-    inputEl.addEventListener("wheel", handleWheel, { passive: false });
-    return () => {
-      inputEl.removeEventListener("wheel", handleWheel);
-    };
-  }, []);
-
   const media = analysis?.media;
   const sourceDomain = media?.source_domain;
 
@@ -540,44 +519,16 @@ export function MediaAnalyzer() {
             <Search className="size-5" />
           </span>
           <input
-            ref={inputRef}
             type="url"
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter") {
                 void analyze();
-              } else if (e.ctrlKey && (e.key === "อ" || e.key === "v" || e.key === "V")) {
-                if (e.key === "อ") {
-                  e.preventDefault();
-                  navigator.clipboard.readText().then((text) => {
-                    if (text) {
-                      const converted = tryConvertThaiLayout(text);
-                      setUrl(converted);
-                      if (converted.trim()) {
-                        void analyze(converted);
-                      }
-                    }
-                  }).catch((err) => {
-                    console.warn("Failed to read clipboard:", err);
-                  });
-                }
-              }
-            }}
-            onPaste={(e) => {
-              const pastedText = e.clipboardData.getData("text");
-              if (pastedText) {
-                e.preventDefault();
-                const converted = tryConvertThaiLayout(pastedText);
-                setUrl(converted);
-                if (converted.trim()) {
-                  void analyze(converted);
-                }
               }
             }}
             placeholder="https://..."
-            disabled={state === "analyzing"}
-            className="min-w-0 flex-1 overflow-x-auto bg-transparent py-2 text-base font-medium text-text placeholder:font-normal placeholder:text-text-dim outline-none disabled:opacity-60 sm:text-lg no-scrollbar"
+            className="min-w-0 flex-1 bg-transparent py-2 text-base font-medium text-text placeholder:font-normal placeholder:text-text-dim outline-none sm:text-lg"
             aria-label={t("download.placeholder")}
           />
           {url ? (
