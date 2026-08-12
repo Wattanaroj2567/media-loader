@@ -111,12 +111,12 @@ export default function LandingPage() {
   ];
 
   return (
-    <main className="relative min-h-dvh w-full bg-bg-base px-4 py-8 text-foreground sm:px-6 md:py-12 lg:px-12 lg:py-16 xl:px-16 2xl:py-24 flex flex-col justify-center items-center">
+    <main className="relative min-h-dvh w-full bg-bg-base px-4 py-4 text-foreground sm:px-6 md:py-6 lg:h-dvh lg:overflow-hidden lg:px-10 lg:py-5 xl:px-14 flex flex-col justify-center items-center">
       
-      <div className="relative mx-auto grid w-full max-w-7xl items-center gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:gap-12 xl:gap-16 2xl:max-w-screen-2xl 2xl:gap-20">
+      <div className="relative mx-auto grid w-full max-w-7xl items-center gap-6 lg:grid-cols-[1.02fr_0.98fr] lg:gap-10 xl:gap-14 2xl:max-w-screen-2xl">
         <section className="w-full max-w-3xl">
           {/* 1. Header (delay 100ms) */}
-          <div className="mb-6 sm:mb-8 animate-fade-in-up [animation-delay:100ms]">
+          <div className="mb-4 sm:mb-5 lg:mb-3.5 animate-fade-in-up [animation-delay:100ms]">
             <p className="font-heading text-base font-semibold tracking-tight text-text sm:text-lg">
               {t("app.name")}
             </p>
@@ -126,30 +126,30 @@ export default function LandingPage() {
           <div className="animate-fade-in-up [animation-delay:200ms]">
             <Badge
               variant="outline"
-              className="rounded-full border-primary/20 bg-primary/10 px-3.5 py-1 text-xs sm:text-sm text-primary"
+              className="rounded-full border-primary/20 bg-primary/10 px-3 py-0.5 text-xs text-primary"
             >
               {t("landing.eyebrow")}
             </Badge>
           </div>
 
           {/* 3. Main title (delay 300ms) */}
-          <h1 className="mt-4 max-w-3xl font-heading text-3xl font-semibold leading-[1.1] tracking-[-0.035em] text-text sm:text-4xl lg:text-5xl xl:text-6xl 2xl:text-7xl animate-fade-in-up [animation-delay:300ms]">
+          <h1 className="mt-3 max-w-3xl font-heading text-2xl font-semibold leading-[1.1] tracking-[-0.035em] text-text sm:text-3xl lg:text-4xl xl:text-5xl 2xl:text-6xl animate-fade-in-up [animation-delay:300ms]">
             {t("landing.title")}
           </h1>
 
           {/* 4. Subtitle description (delay 400ms) */}
-          <p className="mt-4 max-w-2xl text-sm leading-relaxed text-text-muted sm:text-base lg:text-lg animate-fade-in-up [animation-delay:400ms]">
+          <p className="mt-3 max-w-2xl text-xs leading-relaxed text-text-muted sm:text-sm lg:text-base animate-fade-in-up [animation-delay:400ms]">
             {t("landing.subtitle")}
           </p>
 
           {/* 5. CTA container (delay 500ms) */}
-          <div className="mt-6 sm:mt-8 flex flex-col gap-3 sm:flex-row animate-fade-in-up [animation-delay:500ms]">
+          <div className="mt-5 flex flex-col gap-2.5 sm:flex-row animate-fade-in-up [animation-delay:500ms]">
             <Button
               type="button"
               size="lg"
               onClick={handleLogin}
               disabled={loading}
-              className="h-12 rounded-xl px-7 text-sm font-semibold transition-colors duration-200 cursor-pointer sm:text-base"
+              className="h-11 rounded-xl px-6 text-xs font-semibold transition-colors duration-200 cursor-pointer sm:text-sm"
             >
               {loading ? (
                 <LoadingIndicator label={t("landing.signingIn")} />
@@ -157,13 +157,13 @@ export default function LandingPage() {
                 <>
                   <GoogleIcon />
                   {t("landing.signIn")}
-                  <ArrowRight className="size-4 sm:size-5" />
+                  <ArrowRight className="size-4" />
                 </>
               )}
             </Button>
           </div>
 
-          <div className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1.5 text-xs sm:text-sm text-text-dim animate-fade-in-up [animation-delay:600ms]">
+          <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-text-dim animate-fade-in-up [animation-delay:600ms]">
             <span>{t("landing.supportedPlatformsPrefix", {}, "รองรับการดาวน์โหลด:")}</span>
             <span className="font-semibold text-text-muted">YouTube</span>
             <span className="text-border">•</span>
@@ -174,7 +174,7 @@ export default function LandingPage() {
             <span className="font-semibold text-text-muted">Facebook</span>
           </div>
 
-          <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs sm:text-sm text-text-dim animate-fade-in-up [animation-delay:650ms]">
+          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-text-dim animate-fade-in-up [animation-delay:650ms]">
             <span>{t("landing.outputFormatsPrefix", {}, "รูปแบบไฟล์:")}</span>
             <span className="font-semibold text-text-muted">MP4</span>
             <span className="text-border">•</span>
@@ -186,51 +186,51 @@ export default function LandingPage() {
           </Suspense>
 
           {/* 6. Assurances cards (staggered delay starting at 700ms) */}
-          <div className="mt-8 grid gap-3 sm:grid-cols-3">
+          <div className="mt-5 grid gap-2.5 sm:grid-cols-3">
             {assurances.map((item, index) => (
               <div
                 key={item}
-                className="flex items-center gap-3 rounded-2xl border border-border bg-bg-elevated/45 p-3.5 shadow-[inset_0_1px_0_var(--panel-highlight)] backdrop-blur sm:flex-col sm:items-start sm:p-4 animate-fade-in-up"
+                className="flex items-center gap-2.5 rounded-2xl border border-border bg-bg-elevated/45 p-3 shadow-[inset_0_1px_0_var(--panel-highlight)] backdrop-blur sm:flex-col sm:items-start sm:p-3.5 animate-fade-in-up"
                 style={{ animationDelay: `${700 + index * 100}ms` }}
               >
-                <ShieldCheck className="size-5 shrink-0 text-primary" />
-                <p className="text-xs font-medium leading-relaxed text-text-muted sm:mt-2 sm:text-sm">{item}</p>
+                <ShieldCheck className="size-4 shrink-0 text-primary" />
+                <p className="text-xs font-medium leading-relaxed text-text-muted sm:mt-1.5">{item}</p>
               </div>
             ))}
           </div>
         </section>
 
         {/* 7. Right flow card (delay 900ms) */}
-        <section className="ui-panel relative rounded-3xl p-4 sm:p-6 lg:p-6 xl:p-8 animate-fade-in-up [animation-delay:900ms]">
+        <section className="ui-panel relative rounded-3xl p-3 sm:p-4 lg:p-4 xl:p-5 animate-fade-in-up [animation-delay:900ms]">
           <div className="absolute inset-x-12 -top-px h-px bg-linear-to-r from-transparent via-primary/70 to-transparent" />
-          <div className="rounded-2xl border border-border bg-bg-base/35 p-4 sm:p-6 lg:p-6 xl:p-8">
+          <div className="rounded-2xl border border-border bg-bg-base/35 p-3.5 sm:p-4 lg:p-4 xl:p-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-text-dim sm:text-xs">
+                <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-text-dim sm:text-[11px]">
                   {t("landing.howItWorks", {}, "ใช้งานง่ายใน 4 ขั้นตอน")}
                 </p>
-                <h2 className="mt-1.5 font-heading text-lg font-semibold text-text sm:text-xl lg:text-2xl">
+                <h2 className="mt-1 font-heading text-base font-semibold text-text sm:text-lg lg:text-xl">
                   {t("landing.panelTitle")}
                 </h2>
               </div>
-              <div className="grid size-10 place-items-center rounded-2xl border border-emerald-500/20 bg-emerald-500/10">
-                <CheckCircle2 className="size-5 text-emerald-600 dark:text-emerald-300" />
+              <div className="grid size-8.5 place-items-center rounded-2xl border border-emerald-500/20 bg-emerald-500/10">
+                <CheckCircle2 className="size-4 text-emerald-600 dark:text-emerald-300" />
               </div>
             </div>
 
             {/* Steps list with staggered progress bars */}
-            <div className="mt-6 grid gap-3">
+            <div className="mt-4 grid gap-2.5">
               {steps.map((step, index) => (
                 <div
                   key={step}
-                  className="flex gap-3.5 rounded-2xl border border-border bg-bg-surface/50 p-3 sm:p-4"
+                  className="flex gap-3 rounded-2xl border border-border bg-bg-surface/50 p-2.5 sm:p-3"
                 >
-                  <span className="grid size-8 shrink-0 place-items-center rounded-xl border border-primary/20 bg-primary/10 font-mono text-xs font-bold text-primary sm:text-sm">
+                  <span className="grid size-7 shrink-0 place-items-center rounded-xl border border-primary/20 bg-primary/10 font-mono text-xs font-bold text-primary">
                     {String(index + 1).padStart(2, "0")}
                   </span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs sm:text-sm lg:text-base font-medium text-text">{step}</p>
-                    <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-bg-base/40">
+                    <p className="text-xs sm:text-sm font-medium text-text">{step}</p>
+                    <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-bg-base/40">
                       <div
                         className="h-full rounded-full bg-primary transition-all ease-out duration-700"
                         style={{
