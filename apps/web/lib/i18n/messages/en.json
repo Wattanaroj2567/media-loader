@@ -19,6 +19,11 @@
   "lang.en": "English",
   "lang.th": "ไทย",
 
+  "theme.system": "System",
+  "theme.dark": "Dark",
+  "theme.light": "Light",
+  "theme.selectLabel": "Select Theme",
+
   "landing.eyebrow": "Simple, private downloads",
   "landing.howItWorks": "Four simple steps",
   "landing.title": "Download video and audio privately",

@@ -19,6 +19,11 @@
   "lang.en": "English",
   "lang.th": "ไทย",
 
+  "theme.system": "ตามระบบ",
+  "theme.dark": "มืด",
+  "theme.light": "สว่าง",
+  "theme.selectLabel": "เลือกธีม",
+
   "landing.eyebrow": "ดาวน์โหลดง่าย เป็นส่วนตัว",
   "landing.howItWorks": "ใช้งานง่ายใน 4 ขั้นตอน",
   "landing.title": "ดาวน์โหลดวิดีโอและเสียงแบบส่วนตัว",
