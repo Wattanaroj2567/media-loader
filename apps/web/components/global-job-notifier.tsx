@@ -33,6 +33,7 @@ export function GlobalJobNotifier() {
     filename: string;
   } | null>(null);
   const [delivering, setDelivering] = useState(false);
+  const [deliveryAction, setDeliveryAction] = useState<"share" | "download" | null>(null);
 
   const closeChoice = useCallback(() => {
     choiceRef.current = null;
@@ -41,6 +42,7 @@ export function GlobalJobNotifier() {
 
   const deliverSharedFile = useCallback(async () => {
     if (!choice) return;
+    setDeliveryAction("share");
     setDelivering(true);
     try {
       const result = await apiClient.shareJobFile(
@@ -67,11 +69,13 @@ export function GlobalJobNotifier() {
       );
     } finally {
       setDelivering(false);
+      setDeliveryAction(null);
     }
   }, [choice, t, toast, closeChoice]);
 
   const deliverDownloadFile = useCallback(async () => {
     if (!choice) return;
+    setDeliveryAction("download");
     setDelivering(true);
     try {
       await apiClient.downloadJobFile(choice.jobId, choice.filename, null);
@@ -93,6 +97,7 @@ export function GlobalJobNotifier() {
       );
     } finally {
       setDelivering(false);
+      setDeliveryAction(null);
     }
   }, [choice, t, toast, closeChoice]);
 
@@ -292,6 +297,7 @@ export function GlobalJobNotifier() {
       open={choice !== null}
       title={choice?.title ?? ""}
       busy={delivering}
+      busyAction={deliveryAction}
       onShare={() => void deliverSharedFile()}
       onDownload={() => void deliverDownloadFile()}
       onDismiss={dismissChoice}

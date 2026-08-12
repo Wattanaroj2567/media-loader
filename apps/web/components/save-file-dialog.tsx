@@ -11,6 +11,7 @@ interface SaveFileDialogProps {
   open: boolean;
   title: string;
   busy?: boolean;
+  busyAction?: "share" | "download" | null;
   onShare: () => void;
   onDownload: () => void;
   onDismiss: () => void;
@@ -27,6 +28,7 @@ export function SaveFileDialog({
   open,
   title,
   busy = false,
+  busyAction = null,
   onShare,
   onDownload,
   onDismiss,
@@ -41,7 +43,7 @@ export function SaveFileDialog({
       aria-modal="true"
       aria-label={t("file.saveTitle", {}, "ไฟล์พร้อมแล้ว")}
       onClick={onDismiss}
-      className="fixed inset-0 z-9999 flex items-end justify-center bg-black/60 p-3 backdrop-blur-sm sm:items-center sm:p-6"
+      className="fixed inset-0 z-9999 flex items-end justify-center bg-black/55 p-3 backdrop-blur-[2px] sm:items-center sm:p-6"
     >
       <div
         onClick={(e) => e.stopPropagation()}
@@ -77,31 +79,40 @@ export function SaveFileDialog({
         <div className="mt-4 grid gap-2.5">
           <Button
             type="button"
-            onClick={onShare}
+            onClick={onDownload}
             disabled={busy}
             className="h-12 w-full gap-2 rounded-xl text-sm font-semibold cursor-pointer"
           >
-            {busy ? (
+            {busy && busyAction === "download" ? (
               <LoadingIndicator
-                label={t("common.loading", {}, "กำลังโหลด...")}
+                label={t("download.preparing", {}, "กำลังเตรียมดาวน์โหลด...")}
                 iconClassName="size-4"
               />
             ) : (
               <>
-                <Share2 aria-hidden="true" className="size-4 shrink-0" />
-                <span>{t("file.shareAction", {}, "แชร์ / บันทึกลงแอปรูปภาพ")}</span>
+                <Download aria-hidden="true" className="size-4 shrink-0" />
+                <span>{t("file.downloadAction", {}, "ดาวน์โหลดไฟล์")}</span>
               </>
             )}
           </Button>
           <Button
             type="button"
             variant="outline"
-            onClick={onDownload}
+            onClick={onShare}
             disabled={busy}
             className="h-12 w-full gap-2 rounded-xl text-sm font-semibold cursor-pointer"
           >
-            <Download aria-hidden="true" className="size-4 shrink-0 text-primary" />
-            <span>{t("file.downloadAction", {}, "ดาวน์โหลดไฟล์")}</span>
+            {busy && busyAction === "share" ? (
+              <LoadingIndicator
+                label={t("download.preparing", {}, "กำลังเตรียมดาวน์โหลด...")}
+                iconClassName="size-4"
+              />
+            ) : (
+              <>
+                <Share2 aria-hidden="true" className="size-4 shrink-0 text-primary" />
+                <span>{t("file.shareAction", {}, "แชร์ / บันทึกลงแอปรูปภาพ")}</span>
+              </>
+            )}
           </Button>
         </div>
       </div>
