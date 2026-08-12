@@ -1,4 +1,4 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "ignoreCommand": "[ -z \"$VERCEL_GIT_PREVIOUS_SHA\" ] && exit 1; PREV=\"$VERCEL_GIT_PREVIOUS_SHA\"; git diff --quiet \"$PREV\" HEAD -- apps/web 2>/dev/null; CODE=$?; if [ $CODE -gt 1 ]; then git diff --quiet HEAD^ HEAD -- apps/web 2>/dev/null; CODE=$?; fi; [ $CODE -eq 0 ] && exit 0 || exit 1"
+  "ignoreCommand": "[ -z \"$VERCEL_GIT_PREVIOUS_SHA\" ] && exit 1; git diff --quiet \"$VERCEL_GIT_PREVIOUS_SHA\" HEAD -- apps/web 2>/dev/null; c=$?; [ $c -le 1 ] && exit $c; git diff --quiet HEAD^ HEAD -- apps/web"
 }
