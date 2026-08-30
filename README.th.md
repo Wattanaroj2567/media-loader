@@ -58,7 +58,16 @@ pnpm dev
 
 ## ผังสถาปัตยกรรมระบบ (Architecture)
 
-![ผังสถาปัตยกรรม Media Loader](docs/diagrams/media-loader-architecture.svg)
+<p align="center">
+  <a href="docs/diagrams/media-loader-architecture.svg" target="_blank">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="docs/diagrams/media-loader-architecture-dark.svg">
+      <source media="(prefers-color-scheme: light)" srcset="docs/diagrams/media-loader-architecture.svg">
+      <img alt="ผังสถาปัตยกรรม Media Loader" src="docs/diagrams/media-loader-architecture.svg" width="100%">
+    </picture>
+  </a>
+</p>
+<p align="center"><sub>💡 <em>คลิกที่รูปภาพเพื่อเปิดดูผังขนาดเต็ม (Full-Resolution Vector SVG)</em></sub></p>
 
 ---
 

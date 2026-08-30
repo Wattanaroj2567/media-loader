@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg viewBox="0 0 1040 536" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="media-loader-arch-title media-loader-arch-desc">
+<svg width="100%" height="auto" viewBox="0 0 1040 536" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="media-loader-arch-title media-loader-arch-desc">
     <title id="media-loader-arch-title">Media Loader System Architecture</title>
     <desc id="media-loader-arch-desc">Actual 2-tier architecture diagram: Top lane handles Client, FastAPI Gateway and Supabase Auth/DB; Bottom lane handles Optimistic DB Queue, Isolated Media Worker and Local Disk File Delivery.</desc>
     
