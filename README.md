@@ -60,25 +60,6 @@ pnpm dev
 
 ![Media Loader Architecture](docs/diagrams/media-loader-architecture.svg)
 
-> Editorial — self-contained SVG, no Mermaid shadows. Interactive HTML: [`docs/diagrams/media-loader-architecture.html`](docs/diagrams/media-loader-architecture.html) — generated with [diagram-design](https://github.com/cathrynlavery/diagram-design) `architecture` type. Full spec: `docs/diagrams/README.md`.
-
-<details>
-<summary>Mermaid fallback</summary>
-
-```mermaid
-graph TD
-    User([User]) <--> WebApp["Next.js Frontend (Vercel)"]
-    WebApp <--> Supabase["Supabase (Auth / PostgreSQL / Storage)"]
-    WebApp <--> API["FastAPI API (Local / Docker)"]
-    API <--> Supabase
-    API <--> Queue[("Job Queue / DB")]
-    Queue <--> Worker["Python Media Worker (Local / Docker)"]
-    Worker <--> Tooling["yt-dlp / FFmpeg"]
-    Worker --> Supabase
-```
-
-</details>
-
 ---
 
 ## Tech Stack

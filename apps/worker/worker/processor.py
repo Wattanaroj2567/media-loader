@@ -1,5 +1,3 @@
-
-
 """
 Media Processor.
 
@@ -101,12 +99,12 @@ def create_progress_hook(
 ):
     last_progress = -1
     last_cancel_check_time = 0.0
-    cancel_check_interval = 4.0  # Check cancellation at most once every 4 seconds
+    cancel_check_interval = 1.0  # Check cancellation every 1.0s for instant response
     is_cancelled_cached = False
 
     def hook(progress_data: dict) -> None:
         nonlocal last_progress, last_cancel_check_time, is_cancelled_cached
-        
+
         now = time.time()
         if now - last_cancel_check_time >= cancel_check_interval:
             is_cancelled_cached = cancellation_checker(job_id)
@@ -126,7 +124,7 @@ def create_progress_hook(
         progress = calculate_download_progress(progress_data)
         speed = progress_data.get("speed")
         total = progress_data.get("total_bytes") or progress_data.get("total_bytes_estimate")
-        
+
         if progress >= last_progress + 2 or progress == 99:
             progress_updater(job_id, progress, speed, total)
             last_progress = progress
@@ -318,7 +316,7 @@ async def convert_to_mp3(
             str(settings.resolved_ffmpeg_executable),
             "-i", str(input_path),
             "-codec:a", "libmp3lame",
-            "-qscale:a", "0",  # VBR ~245kbps — maximum MP3 quality (was 2 / ~190kbps)
+            "-qscale:a", "0",  # VBR ~245kbps — maximum MP3 quality
             "-y",  # Overwrite output file
             str(output_path),
         ]
@@ -361,7 +359,7 @@ async def convert_to_mp4(
             "-i", str(input_path),
             "-c:v", "libx264",
             "-c:a", "aac",
-            "-b:a", "320k",  # Maximum-quality AAC audio (was 192k)
+            "-b:a", "320k",  # Maximum-quality AAC audio
             "-movflags", "+faststart",
             "-y",  # Overwrite output file
             str(output_path),
@@ -449,24 +447,23 @@ async def process_job(job: dict) -> bool:
         output_file: Optional[Path] = None
 
         if output_format == "mp3":
-            update_job_status(job_id, "CONVERTING")
-            output_file = job_dir / f"{downloaded_file.stem}.mp3"
-            success = await convert_to_mp3(
-                downloaded_file,
-                output_file,
-                job_id=job_id,
-            )
-            if not success:
-                update_job_status(job_id, "FAILED", error_message="MP3 conversion failed")
-                return False
-            # Clean up original file
-            downloaded_file.unlink()
+            if downloaded_file.suffix.lower() == ".mp3":
+                output_file = downloaded_file
+            else:
+                output_file = job_dir / f"{downloaded_file.stem}.mp3"
+                success = await convert_to_mp3(
+                    downloaded_file,
+                    output_file,
+                    job_id=job_id,
+                )
+                if not success:
+                    update_job_status(job_id, "FAILED", error_message="MP3 conversion failed")
+                    return False
+                downloaded_file.unlink()
         elif output_format == "mp4":
-            # If already MP4, keep it; otherwise convert
             if downloaded_file.suffix.lower() == ".mp4":
                 output_file = downloaded_file
             else:
-                update_job_status(job_id, "CONVERTING")
                 output_file = job_dir / f"{downloaded_file.stem}.mp4"
                 success = await convert_to_mp4(
                     downloaded_file,

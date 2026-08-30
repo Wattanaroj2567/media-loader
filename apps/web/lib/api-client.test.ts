@@ -96,6 +96,36 @@ test("ApiClient streams a completed job into the preselected destination", async
   assert.equal(new TextDecoder().decode(Buffer.concat(chunks)), "finished media");
 });
 
+test("ApiClient fetches direct download token and builds direct URL", async () => {
+  const client = new ApiClient(
+    "http://api.test",
+    async () => "access-token",
+    async (url) => {
+      if (String(url).includes("/files/token/job-1")) {
+        return new Response(
+          JSON.stringify({
+            ok: true,
+            data: {
+              job_id: "job-1",
+              download_token: "signed-token-xyz",
+              download_url: "/files/download/job-1?token=signed-token-xyz",
+              expires_in: 300,
+            },
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        );
+      }
+      return new Response("not found", { status: 404 });
+    },
+  );
+
+  const directUrl = await client.getDirectDownloadUrl("job-1");
+  assert.equal(
+    directUrl,
+    "http://api.test/files/download/job-1?token=signed-token-xyz",
+  );
+});
+
 test("ApiClient analyzes before rights confirmation", async () => {
   let body = "";
   const client = new ApiClient(

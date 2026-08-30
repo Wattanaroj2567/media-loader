@@ -57,10 +57,9 @@ TEMP_DIR=tmp/media-loader
 `TEMP_DIR` is resolved from the repository root by both the API and worker.
 Keep it identical for both services; Docker shares it through `/app/tmp`.
 
-`WORKER_POOL` isolates queues by runtime so a Railway worker cannot claim a
+`WORKER_POOL` isolates queues by runtime so a cloud worker (Oracle Cloud / VPS) cannot claim a
 local job whose output is stored on another filesystem. Use `local` during
-local development and `railway` on Railway. Railway is detected automatically
-when the value is empty.
+local development and `cloud` on Oracle Cloud / Cloud VPS.
 
 `NODE_PATH`, `DENO_PATH`, and `FFMPEG_PATH` are optional overrides. The worker
 prefers Deno, otherwise discovers Node from `PATH`, and falls back to its

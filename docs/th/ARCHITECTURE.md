@@ -13,6 +13,8 @@ apps/worker   → Python Media Worker สำหรับประมวลผล
 supabase      → Auth, PostgreSQL Database, Storage และ Row Level Security (RLS)
 ```
 
+ดูไดอะแกรมสถาปัตยกรรมฉบับเต็มได้ที่ [docs/diagrams/media-loader-architecture.html](../diagrams/media-loader-architecture.html) (หรือ [Dark Mode](../diagrams/media-loader-architecture-dark.html))
+
 ---
 
 ## สภาพแวดล้อม Backend แบบ Local & Docker (Local Docker Backend)
@@ -66,7 +68,7 @@ apps/worker/Dockerfile
 ### 3. การสร้างและประมวลผลคิวงาน (Job Queue Processing)
 ```text
 เลือกฟอร์แมต ──> Web App ──> บันทึก Job ลง Supabase DB (Status: QUEUED)
-                                     │ พร้อมเป้าหมาย pool:local / pool:railway
+                                     │ พร้อมเป้าหมาย pool:local / pool:cloud
 Worker ใน pool เดียวกันดักรอคิวงาน ◄─┘
     │
     ├──> ดาวน์โหลดสื่อผ่าน yt-dlp
@@ -75,7 +77,7 @@ Worker ใน pool เดียวกันดักรอคิวงาน ◄
     └──> บันทึกไฟล์ผลลัพธ์ลง Local Temp / Storage (Status: COMPLETED)
 ```
 
-การแยก worker pool จำเป็นในโหมด Local Temp เพราะ local และ Railway สามารถใช้
+การแยก worker pool จำเป็นในโหมด Local Temp เพราะ local และ cloud (Oracle Cloud / VPS) สามารถใช้
 Supabase ชุดเดียวกันได้ แต่ไม่สามารถอ่านไฟล์ข้าม filesystem ของกันและกัน
 
 ### 4. การส่งไฟล์เข้าเบราว์เซอร์

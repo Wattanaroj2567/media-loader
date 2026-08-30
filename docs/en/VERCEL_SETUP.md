@@ -11,9 +11,9 @@ Do not use Vercel Functions for heavy media download/conversion work.
 ## Recommended Deployment
 
 ```text
-apps/web → Vercel
-apps/api → local first, later Railway/Fly.io/Cloud Run
-apps/worker → local first, later Railway/Fly.io/Cloud Run/VPS
+apps/web → Vercel (Frontend UI)
+apps/api → Oracle Cloud Always Free (OCI) or Local
+apps/worker → Oracle Cloud Always Free (OCI) or Local
 ```
 
 ---
@@ -102,13 +102,10 @@ For production, you have options for the FastAPI backend and worker:
 - Set `NEXT_PUBLIC_FASTAPI_BASE_URL` to your backend URL
 - Use nginx or similar to proxy requests
 
-### Option 2: Cloud Deployment
-Deploy to one of:
-- Railway
-- Fly.io
-- Google Cloud Run
-- AWS ECS
-- DigitalOcean App Platform
+### Option 2: Cloud Deployment (Recommended: Oracle Cloud Always Free)
+Deploy to:
+- **Oracle Cloud Always Free (OCI)** (See [OCI Deployment Guide](OCI_DEPLOYMENT_GUIDE.md))
+- Fly.io / Google Cloud Run / VPS
 
 Update `NEXT_PUBLIC_FASTAPI_BASE_URL` to your deployed backend URL.
 

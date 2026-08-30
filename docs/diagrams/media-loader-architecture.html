@@ -4,187 +4,185 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Media Loader · Architecture</title>
-  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
     :root{
-      --color-paper:#f8f9fb;
-      --color-ink:#0f172a;
-      --color-muted:#475569;
-      --color-soft:#7a8399;
-      --color-accent:#0ea5e9;
-      --color-accent-tint:rgba(14,165,233,0.08);
-      --color-link:#0ea5e9;
-      --font-sans:'Geist',system-ui,sans-serif;
-      --font-serif:'Instrument Serif',serif;
-      --font-mono:'Geist Mono',ui-monospace,monospace;
+      --paper:#f8fafc;
+      --card-bg:#ffffff;
+      --ink:#0f172a;
+      --muted:#475569;
+      --subtle:#94a3b8;
+      --border:#cbd5e1;
+      --accent:#0284c7;
+      --sans:'Geist',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+      --serif:'Instrument Serif',Georgia,serif;
+      --mono:'Geist Mono',SFMono-Regular,Menlo,Monaco,Consolas,monospace;
     }
-    body{font-family:var(--font-sans);background:var(--color-paper);color:var(--color-ink);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:2.5rem 1.5rem}
-    .frame{max-width:1160px;width:100%}
-    .eyebrow{font-family:var(--font-mono);font-size:0.66rem;font-weight:500;letter-spacing:0.18em;text-transform:uppercase;color:var(--color-muted);margin-bottom:0.5rem}
-    h1{font-family:var(--font-serif);font-size:clamp(1.5rem,2.2vw + 0.75rem,2rem);font-weight:400;letter-spacing:-0.02em;line-height:1.15;color:var(--color-ink);margin-bottom:0.35rem}
-    .sub{font-family:var(--font-mono);font-size:0.78rem;color:var(--color-muted);margin-bottom:1.4rem;letter-spacing:0.02em}
-    .card{background:white;border:1px solid rgba(15,23,42,0.08);border-radius:12px;padding:1.4rem;box-shadow:0 1px 3px rgba(15,23,42,0.06)}
+    body{
+      font-family:var(--sans);
+      background:var(--paper);
+      color:var(--ink);
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:2rem 1.5rem;
+    }
+    .frame{max-width:1100px;width:100%}
+    .eyebrow{font-family:var(--mono);font-size:0.68rem;font-weight:600;letter-spacing:0.16em;text-transform:uppercase;color:var(--muted);margin-bottom:0.4rem}
+    h1{font-family:var(--serif);font-size:clamp(1.6rem,2.2vw + 0.8rem,2.2rem);font-weight:400;letter-spacing:-0.02em;line-height:1.15;margin-bottom:0.3rem}
+    .sub{font-family:var(--mono);font-size:0.75rem;color:var(--muted);margin-bottom:1.2rem;letter-spacing:0.01em}
     svg{width:100%;display:block}
-    .foot{margin-top:1rem;display:flex;gap:1rem;flex-wrap:wrap;font-family:var(--font-mono);font-size:0.68rem;color:var(--color-muted);letter-spacing:0.04em}
-    .foot span{display:inline-flex;align-items:center;gap:0.35rem}
-    .dot{width:10px;height:10px;border-radius:2px;display:inline-block}
   </style>
 </head>
 <body>
 <div class="frame">
-  <p class="eyebrow">Architecture · Media Loader — Private Rights-Aware Media Pipeline</p>
-  <h1>Decoupled: Next.js → FastAPI → Worker → Supabase</h1>
-  <p class="sub">Flow: URL → validation → policy check → analysis → rights confirm → queue → yt-dlp / FFmpeg → local temp / Storage</p>
-  <div class="card">
-  <svg viewBox="0 0 1080 520" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="ml-title ml-desc">
-    <title id="ml-title">Media Loader Architecture</title>
-    <desc id="ml-desc">User signs in via Supabase Google Auth to Next.js frontend, which calls FastAPI for URL validation, policy check and analysis, creates job queue in Supabase PostgreSQL, worker polls queue and processes with yt-dlp and FFmpeg, uploads to local temp or Supabase Storage, streams back to browser.</desc>
+  <p class="eyebrow">Architecture · Media Loader (Current Production Design)</p>
+  <h1>System Architecture &amp; Data Pipeline</h1>
+  <p class="sub">Lane 1 (Control Plane &amp; Auth) → Lane 2 (Execution &amp; Local Storage) → Direct File Delivery</p>
+  
+  <svg viewBox="0 0 1040 536" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="media-loader-arch-title media-loader-arch-desc">
+    <title id="media-loader-arch-title">Media Loader System Architecture</title>
+    <desc id="media-loader-arch-desc">Actual 2-tier architecture diagram: Top lane handles Client, FastAPI Gateway and Supabase Auth/DB; Bottom lane handles Optimistic DB Queue, Isolated Media Worker and Local Disk File Delivery.</desc>
+    
     <defs>
-      <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#475569"/></marker>
-      <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#0ea5e9"/></marker>
-      <marker id="arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#0284c7"/></marker>
+      <style>
+        text { font-family: 'Geist', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        .mono { font-family: 'Geist Mono', SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+      </style>
+      <marker id="arr-main" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#0f172a"/></marker>
+      <marker id="arr-muted" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#64748b"/></marker>
+      <marker id="arr-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#0284c7"/></marker>
     </defs>
-    <rect width="100%" height="100%" fill="white" rx="8"/>
 
-    <!-- Zones -->
-    <!-- Zone: Client -->
-    <rect x="16" y="28" width="170" height="180" rx="8" fill="rgba(15,23,42,0.02)" stroke="rgba(15,23,42,0.08)" stroke-width="0.8"/>
-    <rect x="48" y="32" width="106" height="12" rx="2" fill="white"/>
-    <text x="101" y="41" fill="rgba(15,23,42,0.40)" font-size="7" font-family="'Geist Mono',monospace" text-anchor="middle" letter-spacing="0.14em">CLIENT</text>
+    <!-- Background Canvas -->
+    <rect width="1040" height="536" fill="#f8fafc" rx="12"/>
 
-    <!-- Zone: Frontend -->
-    <rect x="208" y="28" width="200" height="180" rx="8" fill="rgba(15,23,42,0.02)" stroke="rgba(15,23,42,0.08)" stroke-width="0.8"/>
-    <rect x="268" y="32" width="80" height="12" rx="2" fill="white"/>
-    <text x="308" y="41" fill="rgba(15,23,42,0.40)" font-size="7" font-family="'Geist Mono',monospace" text-anchor="middle" letter-spacing="0.14em">FRONTEND</text>
+    <!-- Lane 1 Container: Control Plane (Top) -->
+    <rect x="24" y="24" width="992" height="224" rx="8" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.2"/>
+    <text x="44" y="44" fill="#94a3b8" font-size="8" class="mono" font-weight="600" letter-spacing="0.14em">LANE 1: CONTROL PLANE &amp; AUTH</text>
 
-    <!-- Zone: Backend Services -->
-    <rect x="430" y="28" width="380" height="320" rx="8" fill="rgba(14,165,233,0.03)" stroke="rgba(14,165,233,0.18)" stroke-width="0.8"/>
-    <rect x="566" y="32" width="108" height="12" rx="2" fill="white"/>
-    <text x="620" y="41" fill="rgba(14,165,233,0.85)" font-size="7" font-family="'Geist Mono',monospace" text-anchor="middle" letter-spacing="0.14em">BACKEND · DOCKER</text>
+    <!-- Lane 2 Container: Execution Plane (Bottom) -->
+    <rect x="24" y="264" width="992" height="224" rx="8" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.2"/>
+    <text x="44" y="284" fill="#94a3b8" font-size="8" class="mono" font-weight="600" letter-spacing="0.14em">LANE 2: EXECUTION &amp; LOCAL STORAGE</text>
 
-    <!-- Zone: Data -->
-    <rect x="832" y="28" width="230" height="320" rx="8" fill="rgba(15,23,42,0.02)" stroke="rgba(15,23,42,0.08)" stroke-width="0.8"/>
-    <rect x="896" y="32" width="104" height="12" rx="2" fill="white"/>
-    <text x="948" y="41" fill="rgba(15,23,42,0.40)" font-size="7" font-family="'Geist Mono',monospace" text-anchor="middle" letter-spacing="0.14em">SUPABASE CLOUD</text>
+    <!-- Connectors (Drawn behind nodes) -->
 
-    <!-- Arrows behind nodes -->
-    <!-- User -> Next.js -->
-    <line x1="186" y1="108" x2="208" y2="108" stroke="#0284c7" stroke-width="1.2" marker-end="url(#arrow-link)"/>
-    <!-- Next.js -> Supabase Auth -->
-    <path d="M 340,72 H 820 Q 828,72 828,80 V 88" fill="none" stroke="#475569" stroke-width="1" marker-end="url(#arrow)"/>
-    <!-- Next.js -> FastAPI -->
-    <line x1="408" y1="108" x2="430" y2="108" stroke="#0ea5e9" stroke-width="1.4" marker-end="url(#arrow-accent)"/>
-    <!-- FastAPI -> Supabase DB (policy + job create) -->
-    <path d="M 596,144 H 820 Q 828,144 828,152 V 168" fill="none" stroke="#0ea5e9" stroke-width="1.2" marker-end="url(#arrow-accent)"/>
-    <!-- FastAPI -> Queue dashed? actually solid -->
-    <line x1="620" y1="200" x2="620" y2="240" stroke="#475569" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
-    <!-- Worker polls queue -->
-    <path d="M 700,240 H 840 Q 848,240 848,232 V 208" fill="none" stroke="#0ea5e9" stroke-width="1.2" marker-end="url(#arrow-accent)"/>
-    <!-- Worker -> yt-dlp/FFmpeg -->
-    <line x1="620" y1="304" x2="620" y2="350" stroke="#475569" stroke-width="1" marker-end="url(#arrow)"/>
-    <!-- Worker -> Supabase Storage/progress -->
-    <path d="M 700,288 H 824 Q 832,288 832,296 V 304" fill="none" stroke="#475569" stroke-width="1" marker-end="url(#arrow)"/>
-    <!-- Stream back: FastAPI/Worker temp -> Next.js -> Browser download -->
-    <path d="M 560,360 H 308 Q 300,360 300,350 V 172" fill="none" stroke="#0284c7" stroke-width="1.2" marker-end="url(#arrow-link)"/>
-    <path d="M 308,172 H 186 Q 178,172 178,164 V 132" fill="none" stroke="#0284c7" stroke-width="1.2" marker-end="url(#arrow-link)"/>
+    <!-- 1. Client -> FastAPI (Request) -->
+    <line x1="324" y1="128" x2="376" y2="128" stroke="#0f172a" stroke-width="1.6" marker-end="url(#arr-main)"/>
+    
+    <!-- 2. FastAPI -> Supabase (Persist) -->
+    <line x1="668" y1="128" x2="720" y2="128" stroke="#64748b" stroke-width="1.4" stroke-dasharray="4,3" marker-end="url(#arr-muted)"/>
 
-    <!-- Arrow labels -->
-    <rect x="186" y="92" width="22" height="12" rx="2" fill="white"/><text x="197" y="101" fill="#0284c7" font-size="7" font-family="'Geist Mono',monospace" text-anchor="middle">HTTPS</text>
-    <rect x="448" y="92" width="44" height="12" rx="2" fill="white"/><text x="470" y="101" fill="#0ea5e9" font-size="7" font-family="'Geist Mono',monospace" text-anchor="middle">REST :8000</text>
-    <rect x="682" y="132" width="58" height="12" rx="2" fill="white"/><text x="711" y="141" fill="#475569" font-size="7" font-family="'Geist Mono',monospace" text-anchor="middle">JWT · RLS</text>
-    <rect x="628" y="210" width="34" height="12" rx="2" fill="white"/><text x="645" y="219" fill="#475569" font-size="7" font-family="'Geist Mono',monospace" text-anchor="middle">QUEUE</text>
-    <rect x="726" y="218" width="42" height="12" rx="2" fill="white"/><text x="747" y="227" fill="#0ea5e9" font-size="7" font-family="'Geist Mono',monospace" text-anchor="middle">POLL</text>
-    <rect x="628" y="318" width="52" height="12" rx="2" fill="white"/><text x="654" y="327" fill="#475569" font-size="7" font-family="'Geist Mono',monospace" text-anchor="middle">PROCESS</text>
-    <rect x="404" y="364" width="62" height="12" rx="2" fill="white"/><text x="435" y="373" fill="#0284c7" font-size="7" font-family="'Geist Mono',monospace" text-anchor="middle">STREAM FILE</text>
+    <!-- 3. Supabase DB Queue -> Worker (Poll & Optimistic Lock) -->
+    <path d="M 856,216 V 304" fill="none" stroke="#0f172a" stroke-width="1.6" marker-end="url(#arr-main)"/>
 
-    <!-- Nodes -->
-    <!-- User -->
-    <rect x="32" y="76" width="138" height="64" rx="6" fill="white" stroke="rgba(15,23,42,0.30)" stroke-width="1"/>
-    <rect x="40" y="84" width="28" height="12" rx="2" fill="transparent" stroke="rgba(15,23,42,0.22)" stroke-width="0.8"/><text x="54" y="93" fill="#7a8399" font-size="7" font-family="'Geist Mono',monospace" text-anchor="middle">USER</text>
-    <text x="101" y="116" fill="#0f172a" font-size="12" font-weight="600" font-family="'Geist',sans-serif" text-anchor="middle">Browser</text>
-    <text x="101" y="132" fill="#475569" font-size="9" font-family="'Geist Mono',monospace" text-anchor="middle">Google OAuth</text>
+    <!-- 4. Worker -> Supabase (Update Progress) -->
+    <line x1="668" y1="388" x2="720" y2="388" stroke="#64748b" stroke-width="1.4" stroke-dasharray="4,3" marker-end="url(#arr-muted)"/>
 
-    <!-- Next.js -->
-    <rect x="224" y="76" width="168" height="64" rx="6" fill="white" stroke="#0f172a" stroke-width="1"/>
-    <rect x="232" y="84" width="32" height="12" rx="2" fill="transparent" stroke="rgba(15,23,42,0.40)" stroke-width="0.8"/><text x="248" y="93" fill="#0f172a" font-size="7" font-family="'Geist Mono',monospace" text-anchor="middle">WEB</text>
-    <text x="308" y="116" fill="#0f172a" font-size="12" font-weight="600" font-family="'Geist',sans-serif" text-anchor="middle">Next.js 16</text>
-    <text x="308" y="132" fill="#475569" font-size="9" font-family="'Geist Mono',monospace" text-anchor="middle">Vercel · App Router</text>
+    <!-- 5. Client -> Supabase / FastAPI (Poll Status) -->
+    <line x1="376" y1="172" x2="324" y2="172" stroke="#64748b" stroke-width="1.4" stroke-dasharray="4,3" marker-end="url(#arr-muted)"/>
 
-    <!-- FastAPI (focal) -->
-    <rect x="446" y="76" width="168" height="72" rx="6" fill="white" stroke="#0ea5e9" stroke-width="1.2"/>
-    <rect x="446" y="76" width="168" height="72" rx="6" fill="rgba(14,165,233,0.08)"/>
-    <rect x="454" y="84" width="28" height="12" rx="2" fill="transparent" stroke="rgba(14,165,233,0.50)" stroke-width="0.8"/><text x="468" y="93" fill="#0ea5e9" font-size="7" font-family="'Geist Mono',monospace" text-anchor="middle">API</text>
-    <text x="530" y="114" fill="#0f172a" font-size="12" font-weight="600" font-family="'Geist',sans-serif" text-anchor="middle">FastAPI :8000</text>
-    <text x="530" y="130" fill="#475569" font-size="8" font-family="'Geist Mono',monospace" text-anchor="middle">validate · policy · analyze</text>
+    <!-- 6. Media Worker -> Local Temp Storage (Save output left) -->
+    <line x1="376" y1="388" x2="324" y2="388" stroke="#0f172a" stroke-width="1.6" marker-end="url(#arr-main)"/>
 
-    <!-- Job Queue -->
-    <rect x="546" y="168" width="148" height="56" rx="6" fill="white" stroke="#0f172a" stroke-width="1"/>
-    <rect x="554" y="176" width="32" height="12" rx="2" fill="transparent" stroke="rgba(15,23,42,0.40)" stroke-width="0.8"/><text x="570" y="185" fill="#0f172a" font-size="7" font-family="'Geist Mono',monospace" text-anchor="middle">QUEUE</text>
-    <text x="620" y="204" fill="#0f172a" font-size="11" font-weight="600" font-family="'Geist',sans-serif" text-anchor="middle">download_jobs</text>
-    <text x="620" y="216" fill="#475569" font-size="8" font-family="'Geist Mono',monospace" text-anchor="middle">PENDING → COMPLETED</text>
+    <!-- 7. Local Storage -> Client (Direct One-Time Token Download to Browser) -->
+    <line x1="184" y1="304" x2="184" y2="216" stroke="#0284c7" stroke-width="2" marker-end="url(#arr-accent)"/>
 
-    <!-- Worker (focal) -->
-    <rect x="546" y="240" width="148" height="64" rx="6" fill="white" stroke="#0ea5e9" stroke-width="1.2"/>
-    <rect x="546" y="240" width="148" height="64" rx="6" fill="rgba(14,165,233,0.08)"/>
-    <rect x="554" y="248" width="40" height="12" rx="2" fill="transparent" stroke="rgba(14,165,233,0.50)" stroke-width="0.8"/><text x="574" y="257" fill="#0ea5e9" font-size="7" font-family="'Geist Mono',monospace" text-anchor="middle">WORKER</text>
-    <text x="620" y="280" fill="#0f172a" font-size="12" font-weight="600" font-family="'Geist',sans-serif" text-anchor="middle">Media Worker</text>
-    <text x="620" y="296" fill="#475569" font-size="8" font-family="'Geist Mono',monospace" text-anchor="middle">poll · lock · progress</text>
+    <!-- Connector Badges with Clean White Masks -->
+    <rect x="330" y="112" width="40" height="14" rx="3" fill="#ffffff" stroke="#cbd5e1" stroke-width="0.8"/>
+    <text x="350" y="122" fill="#0f172a" font-size="7.5" class="mono" font-weight="600" text-anchor="middle">① REQ</text>
 
-    <!-- yt-dlp / FFmpeg -->
-    <rect x="546" y="360" width="148" height="56" rx="6" fill="rgba(15,23,42,0.03)" stroke="rgba(15,23,42,0.18)" stroke-width="1"/>
-    <rect x="554" y="368" width="32" height="12" rx="2" fill="transparent" stroke="rgba(15,23,42,0.22)" stroke-width="0.8"/><text x="570" y="377" fill="#475569" font-size="7" font-family="'Geist Mono',monospace" text-anchor="middle">TOOL</text>
-    <text x="620" y="392" fill="#0f172a" font-size="11" font-weight="600" font-family="'Geist',sans-serif" text-anchor="middle">yt-dlp + FFmpeg</text>
-    <text x="620" y="406" fill="#475569" font-size="8" font-family="'Geist Mono',monospace" text-anchor="middle">restricted · tmp cleanup</text>
+    <rect x="674" y="112" width="40" height="14" rx="3" fill="#ffffff" stroke="#cbd5e1" stroke-width="0.8"/>
+    <text x="694" y="122" fill="#64748b" font-size="7.5" class="mono" font-weight="600" text-anchor="middle">② ENQUEUE</text>
 
-    <!-- Supabase Auth -->
-    <rect x="848" y="76" width="200" height="56" rx="6" fill="white" stroke="rgba(15,23,42,0.18)" stroke-width="1"/>
-    <rect x="856" y="84" width="32" height="12" rx="2" fill="transparent" stroke="rgba(15,23,42,0.22)" stroke-width="0.8"/><text x="872" y="93" fill="#475569" font-size="7" font-family="'Geist Mono',monospace" text-anchor="middle">AUTH</text>
-    <text x="948" y="108" fill="#0f172a" font-size="11" font-weight="600" font-family="'Geist',sans-serif" text-anchor="middle">Supabase Auth</text>
-    <text x="948" y="122" fill="#475569" font-size="8" font-family="'Geist Mono',monospace" text-anchor="middle">Google OAuth · JWT</text>
+    <rect x="816" y="250" width="80" height="15" rx="3" fill="#ffffff" stroke="#cbd5e1" stroke-width="0.8"/>
+    <text x="856" y="261" fill="#0f172a" font-size="7.5" class="mono" font-weight="600" text-anchor="middle">③ POLL &amp; LOCK</text>
 
-    <!-- Supabase DB -->
-    <rect x="848" y="148" width="200" height="72" rx="6" fill="white" stroke="#0f172a" stroke-width="1"/>
-    <rect x="856" y="156" width="24" height="12" rx="2" fill="transparent" stroke="rgba(15,23,42,0.40)" stroke-width="0.8"/><text x="868" y="165" fill="#0f172a" font-size="7" font-family="'Geist Mono',monospace" text-anchor="middle">DB</text>
-    <text x="948" y="184" fill="#0f172a" font-size="11" font-weight="600" font-family="'Geist',sans-serif" text-anchor="middle">PostgreSQL + RLS</text>
-    <text x="948" y="198" fill="#475569" font-size="8" font-family="'Geist Mono',monospace" text-anchor="middle">profiles · jobs · policy_logs</text>
+    <rect x="674" y="372" width="40" height="14" rx="3" fill="#ffffff" stroke="#cbd5e1" stroke-width="0.8"/>
+    <text x="694" y="382" fill="#64748b" font-size="7.5" class="mono" font-weight="600" text-anchor="middle">UPDATE</text>
 
-    <!-- Storage -->
-    <rect x="848" y="236" width="200" height="64" rx="6" fill="rgba(15,23,42,0.04)" stroke="rgba(15,23,42,0.18)" stroke-width="1"/>
-    <rect x="856" y="244" width="44" height="12" rx="2" fill="transparent" stroke="rgba(15,23,42,0.22)" stroke-width="0.8"/><text x="878" y="253" fill="#475569" font-size="7" font-family="'Geist Mono',monospace" text-anchor="middle">STORAGE</text>
-    <text x="948" y="276" fill="#0f172a" font-size="11" font-weight="600" font-family="'Geist',sans-serif" text-anchor="middle">Storage / tmp</text>
-    <text x="948" y="290" fill="#475569" font-size="8" font-family="'Geist Mono',monospace" text-anchor="middle">local temp default</text>
+    <rect x="330" y="156" width="40" height="14" rx="3" fill="#ffffff" stroke="#cbd5e1" stroke-width="0.8"/>
+    <text x="350" y="166" fill="#64748b" font-size="7.5" class="mono" font-weight="600" text-anchor="middle">④ STATUS</text>
 
-    <!-- Bottom flow timeline -->
-    <rect x="16" y="380" width="1048" height="56" rx="8" fill="rgba(15,23,42,0.02)" stroke="rgba(15,23,42,0.08)" stroke-width="0.8"/>
-    <text x="32" y="398" fill="rgba(15,23,42,0.45)" font-size="7" font-family="'Geist Mono',monospace" letter-spacing="0.14em">REQUEST FLOW — RIGHTS-AWARE PIPELINE</text>
-    <text x="32" y="418" fill="#0f172a" font-size="9" font-family="'Geist Mono',monospace">URL input</text><text x="120" y="418" fill="#7a8399" font-size="9">→</text>
-    <text x="140" y="418" fill="#0f172a" font-size="9" font-family="'Geist Mono',monospace">validation</text><text x="228" y="418" fill="#7a8399" font-size="9">→</text>
-    <text x="248" y="418" fill="#0ea5e9" font-size="9" font-weight="600" font-family="'Geist Mono',monospace">policy check</text><text x="350" y="418" font-size="9" fill="#7a8399">→</text>
-    <text x="370" y="418" fill="#0f172a" font-size="9" font-family="'Geist Mono',monospace">analysis</text><text x="438" y="418" fill="#7a8399" font-size="9">→</text>
-    <text x="458" y="418" fill="#0f172a" font-size="9" font-family="'Geist Mono',monospace">rights confirm</text><text x="566" y="418" fill="#7a8399" font-size="9">→</text>
-    <text x="586" y="418" fill="#0f172a" font-size="9" font-family="'Geist Mono',monospace">queue</text><text x="634" y="418" fill="#7a8399" font-size="9">→</text>
-    <text x="654" y="418" fill="#0f172a" font-size="9" font-family="'Geist Mono',monospace">download</text><text x="732" y="418" fill="#7a8399" font-size="9">→</text>
-    <text x="752" y="418" fill="#0f172a" font-size="9" font-family="'Geist Mono',monospace">convert</text><text x="820" y="418" fill="#7a8399" font-size="9">→</text>
-    <text x="840" y="418" fill="#0f172a" font-size="9" font-family="'Geist Mono',monospace">store</text><text x="890" y="418" fill="#7a8399" font-size="9">→</text>
-    <text x="910" y="418" fill="#0ea5e9" font-size="9" font-weight="600" font-family="'Geist Mono',monospace">history</text>
+    <rect x="330" y="372" width="40" height="14" rx="3" fill="#ffffff" stroke="#cbd5e1" stroke-width="0.8"/>
+    <text x="350" y="382" fill="#0f172a" font-size="7.5" class="mono" font-weight="600" text-anchor="middle">⑤ SAVE</text>
 
-    <!-- Legend -->
-    <line x1="16" y1="460" x2="1064" y2="460" stroke="rgba(15,23,42,0.08)" stroke-width="0.8"/>
-    <rect x="16" y="472" width="14" height="10" rx="2" fill="rgba(14,165,233,0.08)" stroke="#0ea5e9" stroke-width="1"/><text x="36" y="480" fill="#475569" font-size="8.5" font-family="'Geist',sans-serif">Focal service</text>
-    <rect x="150" y="472" width="14" height="10" rx="2" fill="white" stroke="#0f172a" stroke-width="1"/><text x="170" y="480" fill="#475569" font-size="8.5" font-family="'Geist',sans-serif">Core</text>
-    <rect x="230" y="472" width="14" height="10" rx="2" fill="rgba(15,23,42,0.04)" stroke="rgba(15,23,42,0.18)" stroke-width="1"/><text x="250" y="480" fill="#475569" font-size="8.5" font-family="'Geist',sans-serif">Store / Tool</text>
-    <line x1="360" y1="477" x2="388" y2="477" stroke="#0ea5e9" stroke-width="1.4" marker-end="url(#arrow-accent)"/><text x="396" y="480" fill="#475569" font-size="8.5" font-family="'Geist',sans-serif">Primary flow</text>
-    <line x1="500" y1="477" x2="528" y2="477" stroke="#0284c7" stroke-width="1.2" marker-end="url(#arrow-link)"/><text x="536" y="480" fill="#475569" font-size="8.5" font-family="'Geist',sans-serif">HTTP / stream</text>
-    <line x1="650" y1="477" x2="678" y2="477" stroke="#475569" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrow)"/><text x="686" y="480" fill="#475569" font-size="8.5" font-family="'Geist',sans-serif">Async / poll</text>
-    <text x="1064" y="500" fill="rgba(15,23,42,0.35)" font-size="7" font-family="'Geist Mono',monospace" text-anchor="end" letter-spacing="0.08em">diagram-design · architecture · Media Loader v0.1.0</text>
+    <rect x="80" y="250" width="208" height="15" rx="3" fill="#ffffff" stroke="#0284c7" stroke-width="1"/>
+    <text x="184" y="261" fill="#0284c7" font-size="7.5" class="mono" font-weight="600" text-anchor="middle">⑥ DIRECT DOWNLOAD (ONE-TIME TOKEN)</text>
+
+    <!-- Node 1: Web Browser / UI (Top Left) -->
+    <rect x="44" y="56" width="280" height="160" rx="6" fill="#ffffff" stroke="#94a3b8" stroke-width="1.2"/>
+    <text x="56" y="74" fill="#64748b" font-size="7.5" class="mono" font-weight="600">01 / CLIENT</text>
+    <text x="56" y="98" fill="#0f172a" font-size="13.5" font-weight="700">Web Browser / UI</text>
+    <text x="56" y="114" fill="#64748b" font-size="8.5" class="mono">Next.js 16 (App Router) · Vercel / Local</text>
+    <line x1="56" y1="124" x2="312" y2="124" stroke="#f1f5f9" stroke-width="1"/>
+    <text x="56" y="142" fill="#334155" font-size="9">• Google OAuth Login (Supabase JWT)</text>
+    <text x="56" y="158" fill="#334155" font-size="9">• Smart URL Analyzer &amp; Quality Selector</text>
+    <text x="56" y="174" fill="#334155" font-size="9">• Real-time Progress &amp; State Tracking</text>
+    <text x="56" y="190" fill="#334155" font-size="9">• One-Click Direct Stream (Zero Timeout)</text>
+
+    <!-- Node 2: FastAPI Backend (Top Center) -->
+    <rect x="376" y="56" width="292" height="160" rx="6" fill="#ffffff" stroke="#0f172a" stroke-width="1.4"/>
+    <text x="388" y="74" fill="#0284c7" font-size="7.5" class="mono" font-weight="600">02 / GATEWAY</text>
+    <text x="388" y="98" fill="#0f172a" font-size="13.5" font-weight="700">FastAPI Backend :8000</text>
+    <text x="388" y="114" fill="#64748b" font-size="8.5" class="mono">Validation, Policy &amp; Security Gateway</text>
+    <line x1="388" y1="124" x2="656" y2="124" stroke="#f1f5f9" stroke-width="1"/>
+    <text x="388" y="142" fill="#334155" font-size="9">• SSRF Sandbox &amp; URL Policy Validation</text>
+    <text x="388" y="158" fill="#334155" font-size="9">• DRM Non-Bypass &amp; Legal Rights Check</text>
+    <text x="388" y="174" fill="#334155" font-size="9">• yt-dlp Metadata &amp; Format Extraction</text>
+    <text x="388" y="190" fill="#334155" font-size="9">• One-Time Secure Download Token Generator</text>
+
+    <!-- Node 3: Supabase PostgreSQL (Top Right) -->
+    <rect x="720" y="56" width="272" height="160" rx="6" fill="#ffffff" stroke="#94a3b8" stroke-width="1.2"/>
+    <text x="732" y="74" fill="#64748b" font-size="7.5" class="mono" font-weight="600">03 / DATABASE</text>
+    <text x="732" y="98" fill="#0f172a" font-size="13.5" font-weight="700">Supabase PostgreSQL</text>
+    <text x="732" y="114" fill="#64748b" font-size="8.5" class="mono">Auth · Profiles · History · RLS</text>
+    <line x1="732" y1="124" x2="980" y2="124" stroke="#f1f5f9" stroke-width="1"/>
+    <text x="732" y="142" fill="#334155" font-size="9">• Supabase Google Auth Verification</text>
+    <text x="732" y="158" fill="#334155" font-size="9">• Row Level Security (RLS) Isolation</text>
+    <text x="732" y="174" fill="#334155" font-size="9">• Audit Trail &amp; Policy Logging</text>
+    <text x="732" y="190" fill="#334155" font-size="9">• Persistent Job State &amp; Queue Store</text>
+
+    <!-- Node 4: Local Temp Storage (Bottom Left) -->
+    <rect x="44" y="304" width="280" height="160" rx="6" fill="#ffffff" stroke="#94a3b8" stroke-width="1.2"/>
+    <text x="56" y="322" fill="#0284c7" font-size="7.5" class="mono" font-weight="600">06 / STORAGE</text>
+    <text x="56" y="346" fill="#0f172a" font-size="13.5" font-weight="700">Local Temp Storage</text>
+    <text x="56" y="362" fill="#64748b" font-size="8.5" class="mono">Server Scratch Disk · tmp/media-loader</text>
+    <line x1="56" y1="372" x2="312" y2="372" stroke="#f1f5f9" stroke-width="1"/>
+    <text x="56" y="390" fill="#334155" font-size="9">• Ephemeral Scratch Disk (Free / No Egress)</text>
+    <text x="56" y="406" fill="#334155" font-size="9">• HTTP 206 Partial Content / Resumable</text>
+    <text x="56" y="422" fill="#334155" font-size="9">• Token-Authenticated Direct Streaming</text>
+    <text x="56" y="438" fill="#334155" font-size="9">• Auto-Purge TTL (60 Min &amp; On-Cancel)</text>
+
+    <!-- Node 5: Media Worker Cluster (Bottom Center) -->
+    <rect x="376" y="304" width="292" height="160" rx="6" fill="#ffffff" stroke="#0f172a" stroke-width="1.4"/>
+    <text x="388" y="322" fill="#0284c7" font-size="7.5" class="mono" font-weight="600">05 / WORKER</text>
+    <text x="388" y="346" fill="#0f172a" font-size="13.5" font-weight="700">Media Worker Daemon</text>
+    <text x="388" y="362" fill="#64748b" font-size="8.5" class="mono">Python Daemon (Local / Docker)</text>
+    <line x1="388" y1="372" x2="656" y2="372" stroke="#f1f5f9" stroke-width="1"/>
+    <text x="388" y="390" fill="#334155" font-size="9">• yt-dlp Restricted Mode Media Extractor</text>
+    <text x="388" y="406" fill="#334155" font-size="9">• FFmpeg High-Quality Mux (AAC 320k / MP3)</text>
+    <text x="388" y="422" fill="#334155" font-size="9">• 1.0s Cancellation Watchdog (Instant Stop)</text>
+    <text x="388" y="438" fill="#334155" font-size="9">• Scratch Cleanup on Cancel / Completion</text>
+
+    <!-- Node 6: Database Job Queue (Bottom Right) -->
+    <rect x="720" y="304" width="272" height="160" rx="6" fill="#ffffff" stroke="#94a3b8" stroke-width="1.2"/>
+    <text x="732" y="322" fill="#64748b" font-size="7.5" class="mono" font-weight="600">04 / QUEUE</text>
+    <text x="732" y="346" fill="#0f172a" font-size="13.5" font-weight="700">Database Job Queue</text>
+    <text x="732" y="362" fill="#64748b" font-size="8.5" class="mono">PostgreSQL `download_jobs` Table</text>
+    <line x1="732" y1="372" x2="980" y2="372" stroke="#f1f5f9" stroke-width="1"/>
+    <text x="732" y="390" fill="#334155" font-size="9">• Optimistic Locking (`locked_by`, `locked_at`)</text>
+    <text x="732" y="406" fill="#334155" font-size="9">• Worker Pool Routing (`pool:local`, `cloud`)</text>
+    <text x="732" y="422" fill="#334155" font-size="9">• Queue State Management (QUEUED, DOWNLOADING)</text>
+    <text x="732" y="438" fill="#334155" font-size="9">• Auto-Release on Stale Lock / Crash</text>
+
+    <!-- Footer Summary -->
+    <line x1="24" y1="504" x2="1016" y2="504" stroke="#e2e8f0" stroke-width="1"/>
+    <text x="24" y="522" fill="#64748b" font-size="8" class="mono">Flow: ① Web Request → ② Enqueue DB → ③ Poll &amp; Lock → ④ Status Sync → ⑤ Save Temp Disk → ⑥ Direct Token Download</text>
+    <text x="1016" y="522" fill="#94a3b8" font-size="8" class="mono" text-anchor="end">Media Loader Architecture</text>
   </svg>
-  </div>
-  <div class="foot">
-    <span><span class="dot" style="background:rgba(14,165,233,0.18);border:1px solid #0ea5e9"></span> FastAPI + Worker = focal</span>
-    <span><span class="dot" style="background:white;border:1px solid #0f172a"></span> Next.js / DB = core</span>
-    <span>Self-contained HTML+SVG · ไม่มี Mermaid · เปิดใน browser ได้เลย</span>
-  </div>
 </div>
 </body>
 </html>

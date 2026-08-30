@@ -60,25 +60,6 @@ pnpm dev
 
 ![ผังสถาปัตยกรรม Media Loader](docs/diagrams/media-loader-architecture.svg)
 
-> Editorial — SVG เดียวจบ ไม่ใช้ Mermaid. ไฟล์ HTML แบบ interactive: [`docs/diagrams/media-loader-architecture.html`](docs/diagrams/media-loader-architecture.html) — สร้างด้วย [diagram-design](https://github.com/cathrynlavery/diagram-design) `architecture` type ดู `docs/diagrams/README.md`
-
-<details>
-<summary>Mermaid fallback</summary>
-
-```mermaid
-graph TD
-    User([ผู้ใช้งาน]) <--> WebApp["Next.js Frontend (Vercel)"]
-    WebApp <--> Supabase["Supabase (Auth / PostgreSQL / Storage)"]
-    WebApp <--> API["FastAPI API (Local / Docker)"]
-    API <--> Supabase
-    API <--> Queue[("คิวงานดาวน์โหลด / DB")]
-    Queue <--> Worker["Python Media Worker (Local / Docker)"]
-    Worker <--> Tooling["yt-dlp / FFmpeg"]
-    Worker --> Supabase
-```
-
-</details>
-
 ---
 
 ## เทคโนโลยีที่ใช้ (Tech Stack)

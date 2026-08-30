@@ -358,6 +358,24 @@ export class ApiClient {
     });
   }
 
+  getDownloadToken(jobId: string): Promise<{
+    job_id: string;
+    download_token: string;
+    download_url: string;
+    expires_in: number;
+  }> {
+    return this.request(`/files/token/${encodeURIComponent(jobId)}`);
+  }
+
+  async getDirectDownloadUrl(jobId: string): Promise<string> {
+    try {
+      const tokenData = await this.getDownloadToken(jobId);
+      return `${this.baseUrl}/files/download/${encodeURIComponent(jobId)}?token=${encodeURIComponent(tokenData.download_token)}`;
+    } catch {
+      return jobFileDownloadUrl(jobId);
+    }
+  }
+
   deleteAccount(): Promise<{ deleted: boolean }> {
     return this.request("/account", { method: "DELETE" });
   }
@@ -418,7 +436,13 @@ export class ApiClient {
       return "picker";
     }
 
-    triggerBrowserDownload(jobId, preferredFilename);
+    const downloadUrl = await this.getDirectDownloadUrl(jobId);
+    const anchor = document.createElement("a");
+    anchor.href = downloadUrl;
+    anchor.download = preferredFilename;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
     return "download";
   }
 

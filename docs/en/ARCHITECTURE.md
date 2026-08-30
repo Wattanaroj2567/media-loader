@@ -11,6 +11,7 @@ apps/worker   → Python worker for heavy media processing, running locally in D
 supabase      → Auth, PostgreSQL, Storage, RLS
 ```
 
+Full architecture diagrams available at [docs/diagrams/media-loader-architecture.html](../diagrams/media-loader-architecture.html) (or [Dark Mode](../diagrams/media-loader-architecture-dark.html)).
 
 ---
 
@@ -91,12 +92,12 @@ FastAPI validates selection
   ↓
 FastAPI inserts row in `download_jobs`
   ↓
-FastAPI marks the target worker pool (`pool:local` or `pool:railway`)
+FastAPI marks the target worker pool (`pool:local` or `pool:cloud`)
   ↓
 Only a worker in that pool picks the queued job
 ```
 
-Queue affinity is required in local-temp mode because local and Railway
+Queue affinity is required in local-temp mode because local and cloud (Oracle Cloud / VPS)
 workers can share Supabase but cannot read each other's filesystems.
 
 ### Process Job

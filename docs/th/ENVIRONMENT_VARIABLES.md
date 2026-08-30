@@ -59,9 +59,9 @@ TEMP_DIR=tmp/media-loader
 ทั้ง API และ worker จะ resolve `TEMP_DIR` จาก root ของโปรเจกต์เดียวกัน
 ต้องกำหนดค่าเดียวกันเสมอ โดย Docker จะแชร์ผ่าน `/app/tmp`
 
-`WORKER_POOL` แยกคิวตาม runtime เพื่อไม่ให้ worker บน Railway แย่งงานจาก
+`WORKER_POOL` แยกคิวตาม runtime เพื่อไม่ให้ worker บน Cloud (Oracle Cloud / VPS) แย่งงานจาก
 เครื่อง local ที่เก็บไฟล์คนละ filesystem ใช้ `local` บนเครื่องพัฒนา และ
-`railway` บน Railway (ระบบตรวจจับ Railway อัตโนมัติเมื่อเว้นค่านี้ว่าง)
+`cloud` บน Cloud/OCI (ระบบตรวจจับและแยกคิวให้ปลอดภัยเสมอ)
 
 `NODE_PATH`, `DENO_PATH` และ `FFMPEG_PATH` เป็นตัวเลือกเสริม โดย worker จะเลือก
 Deno ก่อน จากนั้นจึงค้นหา Node จาก `PATH` และใช้ FFmpeg binary ที่จัดการอยู่ใน
