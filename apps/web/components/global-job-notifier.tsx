@@ -5,7 +5,6 @@ import {
   apiClient,
   canShareFiles,
   isMobileDevice,
-  UnauthorizedError,
 } from "@/lib/api-client";
 import { isActiveStatus, isTerminalStatus } from "@/lib/media-presenters";
 import { useToast } from "@/components/toast";
@@ -17,10 +16,12 @@ import {
   forgetPendingDownload,
   getPendingDownload,
 } from "@/lib/download-coordinator";
+import { useJobPolling } from "@/components/job-polling-provider";
 
 export function GlobalJobNotifier() {
   const { toast } = useToast();
   const { t } = useT();
+  const { jobs } = useJobPolling();
   const prevJobsRef = useRef<Record<string, string>>({}); // maps jobId -> status
   const [choice, setChoice] = useState<{
     jobId: string;
@@ -120,19 +121,10 @@ export function GlobalJobNotifier() {
 
   useEffect(() => {
     let dead = false;
-    let polling = false;
-    let intervalId: NodeJS.Timeout | null = null;
 
-    async function pollActiveJobs() {
-      if (dead || polling) return;
-      if (typeof window !== "undefined" && !window.navigator.onLine) {
-        return;
-      }
-      polling = true;
+    async function processJobs() {
+      if (dead) return;
       try {
-        const jobs = await apiClient.listJobs({ limit: 100 });
-        if (dead) return;
-
         let changed = false;
         const currentJobs: Record<string, string> = {};
 
@@ -261,36 +253,16 @@ export function GlobalJobNotifier() {
         }
       } catch (err: unknown) {
         if (dead) return;
-        const isUnauthorized =
-          err instanceof UnauthorizedError ||
-          (err instanceof Error &&
-            (err.name === "UnauthorizedError" ||
-              err.message.includes("Session หมดอายุ") ||
-              err.message.includes("Unauthorized") ||
-              err.message.includes("401")));
-
-        if (isUnauthorized) {
-          dead = true;
-          if (intervalId) clearInterval(intervalId);
-          return;
-        }
         console.warn("[GlobalJobNotifier Error]:", err);
-      } finally {
-        polling = false;
       }
     }
 
-    // Run initially
-    void pollActiveJobs();
-
-    // Poll every 4 seconds
-    intervalId = setInterval(pollActiveJobs, 4000);
+    void processJobs();
 
     return () => {
       dead = true;
-      if (intervalId) clearInterval(intervalId);
     };
-  }, [toast, t]);
+  }, [jobs, toast, t]);
 
   return (
     <SaveFileDialog

@@ -1,5 +1,4 @@
 import { getDownloadFilename, type MediaFormat } from "./media-presenters.ts";
-import { createClient } from "./supabase/client.ts";
 
 function getApiBaseUrl(): string {
   if (process.env.NEXT_PUBLIC_FASTAPI_BASE_URL) {
@@ -79,6 +78,7 @@ export interface FileDestination {
 }
 
 async function currentAccessToken(): Promise<string | null> {
+  const { createClient } = await import("./supabase/client.ts");
   const {
     data: { session },
   } = await createClient().auth.getSession();

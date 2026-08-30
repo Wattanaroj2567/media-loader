@@ -25,7 +25,7 @@ export default function DashboardPage() {
   }, []);
 
   return (
-    <div className="mx-auto max-w-[1540px] px-4 py-6 sm:px-6 lg:px-8 lg:py-9 xl:px-10">
+    <div className="mx-auto w-full max-w-6xl px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-9">
       <header className="mb-6 flex flex-col gap-4 sm:mb-8 sm:flex-row sm:items-end sm:justify-between">
         <div className="max-w-2xl">
           <p className="ui-kicker">{t('dashboard.kicker', {}, 'ดาวน์โหลดไฟล์ใหม่')}</p>
@@ -44,8 +44,8 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:gap-6 xl:gap-7">
-        <div className="ui-panel min-w-0 flex-1 rounded-3xl p-4 sm:p-5 lg:p-6">
+      <div className="flex flex-col gap-5">
+        <div className="ui-panel min-w-0 flex-1 rounded-3xl p-4 shadow-none sm:p-5 lg:p-6">
           <MediaAnalyzer />
         </div>
         <JobList mode="queue" compact={true} containerRef={queueRef} />
