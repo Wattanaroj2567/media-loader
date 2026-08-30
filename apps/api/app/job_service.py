@@ -117,7 +117,7 @@ def create_job(
         raise AppError(
             status_code=500,
             code="DB_INSERT_FAILED",
-            message="ไม่สามารถเพิ่มงานลงคิวได้",
+            message="Failed to insert download job into queue",
         ) from error
 
 

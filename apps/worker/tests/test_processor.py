@@ -11,6 +11,7 @@ from worker.processor import (
     calculate_download_progress,
     classify_download_error,
     create_progress_hook,
+    download_media,
     is_terminal_status,
 )
 
@@ -43,6 +44,56 @@ def test_download_errors_are_classified_without_exposing_extractor_details():
     assert classify_download_error(Exception("signed source URL failed")) == (
         "ดาวน์โหลดจากแหล่งต้นทางไม่สำเร็จ"
     )
+
+
+def test_download_retries_403_with_fresh_extraction(monkeypatch, tmp_path):
+    attempts = 0
+    captured_options = {}
+    downloaded_file = tmp_path / "recovered.mp4"
+
+    class FakeYoutubeDL:
+        def __init__(self, options):
+            captured_options.update(options)
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, _exc_type, _exc, _traceback):
+            return False
+
+        def extract_info(self, _url, *, download):
+            nonlocal attempts
+            assert download is True
+            attempts += 1
+            if attempts == 1:
+                raise Exception("HTTP Error 403: Forbidden")
+            downloaded_file.write_bytes(b"media")
+            return {"title": "recovered", "ext": "mp4"}
+
+        def prepare_filename(self, _info):
+            return str(downloaded_file)
+
+    async def no_delay(_seconds):
+        return None
+
+    monkeypatch.setattr(processor.yt_dlp, "YoutubeDL", FakeYoutubeDL)
+    monkeypatch.setattr(processor, "is_job_cancelled", lambda _job_id: False)
+    monkeypatch.setattr(processor.asyncio, "sleep", no_delay)
+
+    result = asyncio.run(
+        download_media(
+            "https://example.com/media",
+            tmp_path,
+            "137",
+            "job-retry",
+        )
+    )
+
+    assert attempts == 2
+    assert result == downloaded_file
+    assert captured_options["extractor_args"]["youtube"]["player_client"] == [
+        "web_embedded"
+    ]
 
 
 def test_calculate_download_progress_handles_exact_estimated_and_missing_totals():

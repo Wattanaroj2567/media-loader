@@ -2,8 +2,13 @@ import asyncio
 
 import pytest
 
+import app.yt_dlp_service as yt_dlp_service
 from app.errors import AppError
-from app.yt_dlp_service import extract_metadata, normalize_extractor_result
+from app.yt_dlp_service import (
+    _run_yt_dlp_sync,
+    extract_metadata,
+    normalize_extractor_result,
+)
 
 
 def _video_format(height: int, format_id: str, **overrides):
@@ -115,6 +120,32 @@ def test_extract_metadata_raises_clear_error_instead_of_fake_success(monkeypatch
         asyncio.run(extract_metadata("https://example.com/watch/1"))
 
     assert error.value.code == "ANALYSIS_FAILED"
+
+
+def test_youtube_analysis_uses_web_embedded_player_client(monkeypatch):
+    captured_options = {}
+
+    class FakeYoutubeDL:
+        def __init__(self, options):
+            captured_options.update(options)
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, _exc_type, _exc, _traceback):
+            return False
+
+        def extract_info(self, _url, *, download):
+            assert download is False
+            return {"title": "Test media", "formats": []}
+
+    monkeypatch.setattr(yt_dlp_service.yt_dlp, "YoutubeDL", FakeYoutubeDL)
+
+    _run_yt_dlp_sync("https://www.youtube.com/watch?v=test")
+
+    assert captured_options["extractor_args"]["youtube"]["player_client"] == [
+        "web_embedded"
+    ]
 
 
 def test_normalize_extractor_result_cleans_facebook_title_stats():

@@ -1,3 +1,5 @@
+
+
 """
 Media Processor.
 
@@ -14,6 +16,7 @@ from pathlib import Path
 from typing import Callable, Optional
 
 import yt_dlp
+from yt_dlp.networking.impersonate import ImpersonateTarget
 
 from worker.config import get_settings
 from worker.job_queue import (
@@ -29,6 +32,8 @@ settings = get_settings()
 
 
 TERMINAL_STATUSES = {"COMPLETED", "FAILED", "BLOCKED", "CANCELLED"}
+SOURCE_DOWNLOAD_ATTEMPTS = 2
+SOURCE_RETRY_DELAY_SECONDS = 1.0
 
 
 class JobCancelled(Exception):
@@ -70,6 +75,12 @@ def classify_download_error(error: Exception) -> str:
     if "ffmpeg" in message:
         return "ไม่พบ FFmpeg สำหรับรวมไฟล์วิดีโอและเสียง"
     return "ดาวน์โหลดจากแหล่งต้นทางไม่สำเร็จ"
+
+
+def is_retryable_source_error(error: Exception) -> bool:
+    """Return whether a fresh extraction can recover the source request."""
+    message = str(error).casefold()
+    return "403" in message or "forbidden" in message
 
 
 def calculate_download_progress(progress_data: dict) -> int:
@@ -168,6 +179,11 @@ async def download_media(
         "no_warnings": True,
         "extract_flat": False,
         "ignoreerrors": False,
+        # This public client exposes the adaptive formats analyzed by the API
+        # and avoids source-side 403 responses seen with android_vr.
+        "extractor_args": {
+            "youtube": {"player_client": ["web_embedded"]},
+        },
         "progress_hooks": [create_progress_hook(job_id)],
         # Force maximum-quality 320kbps AAC when transcoding incompatible audio streams (like OPUS/webm to MP4)
         "postprocessor_args": {
@@ -189,35 +205,65 @@ async def download_media(
             runtime_name: {"path": str(runtime_executable)},
         }
 
-    try:
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=True)
-            if info:
-                # Get the actual downloaded filename
-                filename = ydl.prepare_filename(info)
-                downloaded_path = Path(filename)
-                if downloaded_path.exists():
-                    logger.info(f"Downloaded to {downloaded_path}")
-                    return downloaded_path
-                else:
-                    # Try to find the file by pattern
-                    for file in output_path.iterdir():
-                        if file.is_file():
-                            logger.info(f"Found downloaded file {file}")
-                            return file
-            return None
-    except JobCancelled:
-        raise
-    except Exception as error:
-        if is_job_cancelled(job_id):
-            raise JobCancelled(f"Job {job_id} was cancelled") from error
-        safe_detail = " ".join(str(error).split())[:300]
-        logger.error(
-            "Download failed (%s): %s",
-            type(error).__name__,
-            safe_detail,
-        )
-        raise MediaDownloadError(classify_download_error(error)) from error
+    impersonate_targets = [
+        "edge-101:windows-10",
+        "chrome-131:android-14",
+        "firefox-135:macos-14",
+        "safari-17.2:ios-17.2",
+    ]
+
+    for attempt in range(1, SOURCE_DOWNLOAD_ATTEMPTS + 1):
+        attempt_opts = dict(ydl_opts)
+        target_idx = (attempt - 1) % len(impersonate_targets)
+        target_name = impersonate_targets[target_idx]
+        try:
+            attempt_opts["impersonate"] = ImpersonateTarget.from_str(target_name)
+            attempt_opts["http_headers"] = {"Referer": url}
+        except Exception:
+            pass
+
+        try:
+            with yt_dlp.YoutubeDL(attempt_opts) as ydl:
+                info = ydl.extract_info(url, download=True)
+                if info:
+                    # Get the actual downloaded filename
+                    filename = ydl.prepare_filename(info)
+                    downloaded_path = Path(filename)
+                    if downloaded_path.exists():
+                        logger.info(f"Downloaded to {downloaded_path}")
+                        return downloaded_path
+                    else:
+                        # Try to find the file by pattern
+                        for file in output_path.iterdir():
+                            if file.is_file():
+                                logger.info(f"Found downloaded file {file}")
+                                return file
+                return None
+        except JobCancelled:
+            raise
+        except Exception as error:
+            if is_job_cancelled(job_id):
+                raise JobCancelled(f"Job {job_id} was cancelled") from error
+            if (
+                attempt < SOURCE_DOWNLOAD_ATTEMPTS
+                and is_retryable_source_error(error)
+            ):
+                logger.warning(
+                    "Source download rejected on attempt %d/%d; retrying with fresh extraction",
+                    attempt,
+                    SOURCE_DOWNLOAD_ATTEMPTS,
+                )
+                await asyncio.sleep(SOURCE_RETRY_DELAY_SECONDS)
+                continue
+            safe_detail = " ".join(str(error).split())[:300]
+            logger.error(
+                "Download failed (%s): %s",
+                type(error).__name__,
+                safe_detail,
+            )
+            raise MediaDownloadError(classify_download_error(error)) from error
+
+    return None
 
 
 async def _run_cancellable_command(

@@ -54,6 +54,10 @@ def _run_yt_dlp_sync(url: str) -> dict[str, Any]:
         "no_warnings": True,
         "extract_flat": False,  # We need format details
         "noplaylist": True,
+        # Keep analysis formats aligned with the client used by the worker.
+        "extractor_args": {
+            "youtube": {"player_client": ["web_embedded"]},
+        },
         "socket_timeout": 15,   # Allow time for redirect chains
         "cookiefile": None,     # Explicitly no cookies
         "retries": 0,           # We handle retries at the app level with backoff
@@ -65,17 +69,23 @@ def _run_yt_dlp_sync(url: str) -> dict[str, Any]:
             runtime_name: {"path": str(runtime_executable)},
         }
 
-    # Try with impersonate target if available
-    try_impersonate = True
+    impersonate_targets = [
+        "edge-101:windows-10",
+        "chrome-131:android-14",
+        "firefox-135:macos-14",
+        "safari-17.2:ios-17.2",
+    ]
     last_error: Exception | None = None
 
     for attempt in range(1, _MAX_EXTRACT_ATTEMPTS + 1):
         ydl_opts = dict(base_opts)
-        if try_impersonate:
-            try:
-                ydl_opts["impersonate"] = ImpersonateTarget.from_str("chrome")
-            except Exception:
-                try_impersonate = False
+        target_idx = (attempt - 1) % len(impersonate_targets)
+        target_name = impersonate_targets[target_idx]
+        try:
+            ydl_opts["impersonate"] = ImpersonateTarget.from_str(target_name)
+            ydl_opts["http_headers"] = {"Referer": url}
+        except Exception:
+            pass
 
         try:
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -85,16 +95,9 @@ def _run_yt_dlp_sync(url: str) -> dict[str, Any]:
                 return info
         except Exception as error:
             last_error = error
-            error_msg = str(error)
-            # If error is due to impersonate target missing, disable impersonate immediately without backoff delay
-            if try_impersonate and "Impersonate target" in error_msg:
-                logger.info("Impersonate target unavailable, falling back to standard extraction.")
-                try_impersonate = False
-                continue
-
             logger.warning(
-                "yt-dlp extraction attempt %d/%d failed: %s",
-                attempt, _MAX_EXTRACT_ATTEMPTS, type(error).__name__,
+                "yt-dlp extraction attempt %d/%d failed with target %s: %s",
+                attempt, _MAX_EXTRACT_ATTEMPTS, target_name, type(error).__name__,
             )
             if attempt < _MAX_EXTRACT_ATTEMPTS:
                 time.sleep(_RETRY_DELAY_SECONDS)
@@ -281,6 +284,6 @@ async def extract_metadata(url: str) -> tuple[MediaMetadata, list[FormatInfo]]:
         raise AppError(
             status_code=422,
             code="ANALYSIS_FAILED",
-            message="ไม่สามารถอ่านข้อมูลสื่อนี้ได้ โปรดตรวจสอบว่าลิงก์เป็นสาธารณะและลองอีกครั้ง",
+            message="Unable to extract media metadata. Please verify that the link is public and try again.",
         ) from error
     return normalize_extractor_result(raw_info)
