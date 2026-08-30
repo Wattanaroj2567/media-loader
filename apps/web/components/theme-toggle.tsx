@@ -101,24 +101,30 @@ export function ThemeToggle({
     const ActiveIcon = activeOption.icon;
 
     return (
-      <div className={cn("relative inline-block text-left w-full", className)} ref={dropdownRef}>
+      <div className={cn("relative inline-block text-left", className)} ref={dropdownRef}>
         <button
           type="button"
           onClick={() => setIsOpen((prev) => !prev)}
           aria-expanded={isOpen}
           aria-haspopup="true"
+          aria-label={`${t("theme.selectLabel", {}, "เลือกธีม")}: ${activeOption.label}`}
           title={`${t("theme.selectLabel", {}, "เลือกธีม")}: ${activeOption.label}`}
-          className="flex h-9 w-full cursor-pointer items-center justify-center gap-1 rounded-xl border border-border/80 bg-bg-surface/50 px-2 text-xs font-semibold text-text transition-all duration-200 hover:border-primary/40 hover:bg-primary/10 hover:text-primary outline-none"
+          className={cn(
+            "flex cursor-pointer items-center justify-center rounded-xl border border-border/70 bg-bg-surface/40 text-xs font-semibold text-text-muted transition-all duration-200 hover:border-primary/40 hover:bg-primary/10 hover:text-primary outline-none",
+            showLabel ? "h-8.5 w-full gap-1.5 px-2.5" : "size-8.5"
+          )}
         >
-          <ActiveIcon className="size-4 shrink-0 text-primary" />
-          {showLabel && <span className="text-xs truncate">{activeOption.label}</span>}
-          <ChevronDown className={cn("size-3 text-text-dim transition-transform duration-200", isOpen && "rotate-180")} />
+          <ActiveIcon className="size-3.5 shrink-0 text-text-muted transition-colors group-hover:text-primary" />
+          {showLabel && <span className="text-xs truncate text-text">{activeOption.label}</span>}
+          {showLabel && (
+            <ChevronDown className={cn("size-3 text-text-dim transition-transform duration-200", isOpen && "rotate-180")} />
+          )}
         </button>
 
         {isOpen && (
           <div
             className={cn(
-              "absolute z-50 w-40 overflow-hidden rounded-2xl border border-border/80 bg-popover/95 p-1.5 shadow-2xl backdrop-blur-xl animate-in fade-in-50 zoom-in-95 duration-150",
+              "absolute z-50 w-40 overflow-hidden rounded-2xl border border-border/80 bg-popover/95 p-1.5 backdrop-blur-xl animate-in fade-in-50 zoom-in-95 duration-150",
               dropdownAlign === "top" ? "bottom-full mb-2 left-0" : "top-full mt-1.5 right-0"
             )}
           >
@@ -182,4 +188,3 @@ export function ThemeToggle({
     </div>
   );
 }
-

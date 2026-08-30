@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, Geist_Mono, Kanit } from "next/font/google";
+import { Kanit } from "next/font/google";
 import { I18nProvider } from "@/lib/i18n/context";
 import { ToastProvider } from "@/components/toast";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -10,18 +10,9 @@ import "./globals.css";
 
 const kanit = Kanit({
   variable: "--font-kanit",
-  weight: ["300", "400", "500", "600", "700"],
-  subsets: ["latin", "thai"],
-});
-
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  subsets: ["thai"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -45,7 +36,7 @@ export default async function RootLayout({
   return (
     <html lang={initialLocale} suppressHydrationWarning>
       <body
-        className={`${kanit.variable} ${inter.variable} ${geistMono.variable} min-h-dvh w-full bg-bg-base font-sans text-foreground antialiased`}
+        className={kanit.variable}
         suppressHydrationWarning
       >
         <ThemeProvider

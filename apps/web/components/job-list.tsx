@@ -14,19 +14,24 @@ import {
   Pause,
   Play,
   RefreshCw,
+  Search,
+  SearchX,
   Share2,
   Trash2,
+  X,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { LoadingIndicator } from "@/components/loading-indicator";
+import { BorderBeam } from "@/components/ui/border-beam";
 import { useToast } from "@/components/toast";
 import { apiClient, type Job } from "@/lib/api-client";
 import { isActiveStatus } from "@/lib/media-presenters.ts";
 import { useT } from "@/lib/i18n/context";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { requestMediaAnalysis } from "@/lib/analyzer-session";
+import { useJobPolling } from "@/components/job-polling-provider";
 
 type JobListMode = "queue" | "history";
 
@@ -48,30 +53,36 @@ const statusDot: Record<string, string> = {
 };
 
 const statusBadge: Record<string, string> = {
-  PENDING:     "border-slate-500/20 bg-slate-500/10 text-slate-500 dark:text-slate-400",
+  PENDING:     "border-slate-500/20 bg-slate-500/10 text-slate-600 dark:text-slate-300",
   ANALYZING:   "border-cyan-500/20 bg-cyan-500/10 text-cyan-600 dark:text-cyan-300",
   READY:       "border-sky-500/20 bg-sky-500/10 text-sky-600 dark:text-sky-300",
   QUEUED:      "border-sky-500/20 bg-sky-500/10 text-sky-600 dark:text-sky-300",
   DOWNLOADING: "border-primary/25 bg-primary/10 text-primary",
   CONVERTING:  "border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-300",
   UPLOADING:   "border-cyan-500/20 bg-cyan-500/10 text-cyan-600 dark:text-cyan-300",
-  COMPLETED:   "border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300",
+  COMPLETED:   "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
   FAILED:      "border-rose-500/20 bg-rose-500/10 text-rose-600 dark:text-rose-300",
   BLOCKED:     "border-rose-500/20 bg-rose-500/10 text-rose-600 dark:text-rose-300",
-  CANCELLED:   "border-slate-600/20 bg-slate-600/10 text-slate-500",
+  CANCELLED:   "border-slate-600/20 bg-slate-600/10 text-slate-600 dark:text-slate-300",
 };
 
 /* ─── Utilities ──────────────────────────────────────────────────────── */
-function formatTime(iso?: string) {
+function formatTime(iso: string | undefined, locale: "en" | "th") {
   if (!iso) return "";
   try {
     const d = new Date(iso);
     const mins = Math.floor((Date.now() - d.getTime()) / 60000);
-    if (mins < 1) return "เมื่อสักครู่";
-    if (mins < 60) return `${mins}m ที่แล้ว`;
+    const relativeTime = new Intl.RelativeTimeFormat(locale === "th" ? "th-TH" : "en-US", {
+      numeric: "auto",
+    });
+    if (mins < 1) return relativeTime.format(0, "minute");
+    if (mins < 60) return relativeTime.format(-mins, "minute");
     const hrs = Math.floor(mins / 60);
-    if (hrs < 24) return `${hrs}h ที่แล้ว`;
-    return new Intl.DateTimeFormat("th", { day: "numeric", month: "short" }).format(d);
+    if (hrs < 24) return relativeTime.format(-hrs, "hour");
+    return new Intl.DateTimeFormat(locale === "th" ? "th-TH" : "en-US", {
+      day: "numeric",
+      month: "short",
+    }).format(d);
   } catch { return ""; }
 }
 
@@ -88,22 +99,28 @@ function outputLabel(job: Job) {
 }
 
 /* ─── Thumbnail ──────────────────────────────────────────────────────── */
-function Thumb({ job }: { job: Job }) {
+function Thumb({ job, priority = false }: { job: Job; priority?: boolean }) {
   const isAudio = job.output_format === "mp3" || job.media_type === "audio";
   const Icon = isAudio ? Music : Film;
+  const [imgError, setImgError] = useState(false);
+
+  if (!job.thumbnail_url || imgError) {
+    return (
+      <div className="flex h-full w-full items-center justify-center rounded-xl border border-white/7 bg-white/3">
+        <Icon className="size-5 text-slate-600" />
+      </div>
+    );
+  }
   return (
-    <div
-      role={job.thumbnail_url ? "img" : undefined}
-      aria-label={job.thumbnail_url ? job.title || "" : undefined}
-      className="h-full w-full shrink-0 overflow-hidden rounded-xl border border-white/7 bg-white/3 bg-cover bg-center"
-      style={job.thumbnail_url ? { backgroundImage: `url("${job.thumbnail_url}")` } : undefined}
-    >
-      {!job.thumbnail_url && (
-        <div className="flex h-full w-full items-center justify-center">
-          <Icon className="size-6 text-slate-700" />
-        </div>
-      )}
-    </div>
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={job.thumbnail_url}
+      alt={job.title || ""}
+      loading={priority ? "eager" : "lazy"}
+      fetchPriority={priority ? "high" : "auto"}
+      onError={() => setImgError(true)}
+      className="h-full w-full shrink-0 overflow-hidden rounded-xl border border-white/7 bg-white/3 object-cover object-center"
+    />
   );
 }
 
@@ -177,14 +194,38 @@ function getJobETA(job: Job): string {
 }
 
 /* ─── Job row card ───────────────────────────────────────────────────── */
-function JobCard({ job, mode, busy, busyAction, selectionMode, selected, onToggleSelection, onCancel, onDelete, onDownloadAgain, onShareFile, onPause, onResume }: {
-  job: Job; mode: JobListMode; busy: boolean;
+function JobCard({
+  job,
+  mode,
+  busy,
+  busyAction,
+  selectionMode,
+  selected,
+  onToggleSelection,
+  onCancel,
+  onDelete,
+  onDownloadAgain,
+  onShareFile,
+  onPause,
+  onResume,
+  priority = false,
+}: {
+  job: Job;
+  mode: JobListMode;
+  busy: boolean;
   busyAction: "cancel" | "delete" | "pause" | "resume" | "share" | null;
-  selectionMode: boolean; selected: boolean; onToggleSelection: () => void;
-  onCancel: () => void; onDelete: () => void; onDownloadAgain: () => void;
-  onShareFile: () => void; onPause: () => void; onResume: () => void;
+  selectionMode: boolean;
+  selected: boolean;
+  onToggleSelection: () => void;
+  onCancel: () => void;
+  onDelete: () => void;
+  onDownloadAgain: () => void;
+  onShareFile: () => void;
+  onPause: () => void;
+  onResume: () => void;
+  priority?: boolean;
 }) {
-  const { t } = useT();
+  const { t, locale } = useT();
   const canCancel     = mode === "queue" && (job.status === "DOWNLOADING" || job.status === "CONVERTING" || job.status === "PAUSED");
   const canPause      = mode === "queue" && (job.status === "DOWNLOADING" || job.status === "CONVERTING");
   const canResume     = mode === "queue" && job.status === "PAUSED";
@@ -196,7 +237,7 @@ function JobCard({ job, mode, busy, busyAction, selectionMode, selected, onToggl
     !!job.file_available &&
     !selectionMode;
   const title         = job.title || job.output_filename || job.original_url;
-  const time          = formatTime(job.completed_at || job.updated_at || job.created_at);
+  const time          = formatTime(job.completed_at || job.updated_at || job.created_at, locale);
   const label         = outputLabel(job);
   const isDownloading = job.status === "DOWNLOADING" || job.status === "CONVERTING";
   const showProgress  = job.status === "DOWNLOADING" || job.status === "CONVERTING" || job.status === "UPLOADING" || job.status === "PAUSED";
@@ -220,29 +261,37 @@ function JobCard({ job, mode, busy, busyAction, selectionMode, selected, onToggl
   }, [job.created_at]);
 
   return (
-    <article className={`flex flex-col gap-3 rounded-2xl border bg-bg-elevated/65 p-3.5 shadow-[inset_0_1px_0_var(--panel-highlight)] transition-[border-color,background-color] duration-200 sm:flex-row sm:items-center ${
-      selected
-        ? "border-primary/60 bg-primary/5"
-        : "border-border hover:border-primary/30 hover:bg-bg-elevated/85"
-    }`}>
+    <article
+      onClick={selectionMode ? onToggleSelection : undefined}
+      className={`relative overflow-hidden flex flex-col gap-3 rounded-2xl border p-3.5 shadow-[inset_0_1px_0_var(--panel-highlight)] transition-all duration-200 sm:flex-row sm:items-center ${
+        selectionMode ? "cursor-pointer select-none" : ""
+      } ${
+        selected
+          ? "border-border bg-bg-elevated/65 sm:border-primary sm:bg-primary/10 sm:ring-2 sm:ring-primary/30 sm:shadow-md"
+          : "border-border bg-bg-elevated/65 hover:border-primary/40 hover:bg-bg-elevated/85"
+      }`}
+    >
+      {job.status === "DOWNLOADING" && (
+        <BorderBeam size={180} duration={6} colorFrom="#00c8ff" colorTo="#0070f3" />
+      )}
+      {job.status === "CONVERTING" && (
+        <BorderBeam size={180} duration={6} colorFrom="#f59e0b" colorTo="#d97706" />
+      )}
       <div className="flex flex-col sm:flex-row min-w-0 flex-1 sm:items-center gap-3">
         {selectionMode && (
-          <label
-            htmlFor={`history-select-${job.id}`}
-            className="flex min-h-11 shrink-0 cursor-pointer items-center px-1"
-          >
+          <div className="absolute left-5 top-5 z-10 flex size-9 shrink-0 items-center justify-center rounded-xl border border-border/80 bg-bg-base/85 shadow-md backdrop-blur-md sm:static sm:min-h-11 sm:w-auto sm:rounded-none sm:border-0 sm:bg-transparent sm:px-1 sm:shadow-none sm:backdrop-blur-none">
             <Checkbox
               id={`history-select-${job.id}`}
               checked={selected}
               disabled={busy}
-              onCheckedChange={onToggleSelection}
               aria-label={t("history.selectItem", { title }, `เลือกรายการ ${title}`)}
+              className="size-5 pointer-events-none"
             />
-          </label>
+          </div>
         )}
         {/* Thumb — 16:9 aspect ratio on mobile, fixed 96x54 (16:9) on desktop */}
         <div className="aspect-video w-full shrink-0 overflow-hidden rounded-xl sm:aspect-auto sm:h-13.5 sm:w-24">
-          <Thumb job={job} />
+          <Thumb job={job} priority={priority} />
         </div>
 
         {/* Content */}
@@ -256,16 +305,16 @@ function JobCard({ job, mode, busy, busyAction, selectionMode, selected, onToggl
           <div className="mt-1.5 flex flex-wrap items-center gap-2">
             <StatusChip status={job.status} label={t(`status.${job.status}`, {}, job.status)} />
             {job.platform && (
-            <span className="text-[11px] text-text-dim">{job.platform}</span>
+            <span className="text-[11px] text-text-muted">{job.platform}</span>
           )}
           {job.source_domain && !isDomainRedundant && (
-            <span className="flex items-center gap-1 text-[11px] text-text-dim">
+            <span className="flex items-center gap-1 text-[11px] text-text-muted">
               <Globe2 className="size-3" />{job.source_domain}
             </span>
           )}
-          {label && <span className="text-[11px] text-text-dim">{label}</span>}
+          {label && <span className="text-[11px] text-text-muted">{label}</span>}
           {time && (
-            <span className="flex items-center gap-1 text-[11px] text-text-dim">
+            <span className="flex items-center gap-1 text-[11px] text-text-muted">
               <Clock3 className="size-3" />
               {clockTime ? `${clockTime} · ${time}` : time}
             </span>
@@ -319,17 +368,22 @@ function JobCard({ job, mode, busy, busyAction, selectionMode, selected, onToggl
             onClick={onShareFile}
             disabled={busy}
             aria-label={t("file.shareButton", {}, "แชร์")}
-            className="h-11 flex-1 gap-1.5 border-primary/30 px-4 text-xs font-medium text-primary sm:h-8 sm:flex-none sm:px-3"
+            className="h-10 flex-1 gap-1.5 rounded-xl border-border bg-bg-surface/60 px-3.5 text-xs font-semibold text-text transition-all duration-150 hover:border-primary/40 hover:bg-primary/10 hover:text-primary active:scale-95 sm:h-8.5 sm:flex-none cursor-pointer"
           >
-            <Share2 className="size-3.5" />
+            <Share2 className="size-3.5 text-primary" />
             <span>{t("file.shareButton", {}, "แชร์")}</span>
           </Button>
         )}
         {canDownloadAgain && (
-          <Button size="sm" onClick={onDownloadAgain} disabled={busy}
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={onDownloadAgain}
+            disabled={busy}
             aria-label={t("history.downloadAgain", {}, "ดาวน์โหลดอีกครั้ง")}
-            className="h-11 flex-1 gap-1.5 px-4 text-xs font-medium sm:h-8 sm:flex-none sm:px-3">
-            <RefreshCw className="size-3.5" />
+            className="h-10 flex-1 gap-1.5 rounded-xl border-border bg-bg-surface/60 px-3.5 text-xs font-semibold text-text transition-all duration-150 hover:border-primary/40 hover:bg-primary/10 hover:text-primary active:scale-95 sm:h-8.5 sm:flex-none cursor-pointer"
+          >
+            <RefreshCw className="size-3.5 text-primary" />
             <span>{t("history.downloadAgain", {}, "ดาวน์โหลดอีกครั้ง")}</span>
           </Button>
         )}
@@ -386,20 +440,30 @@ function QueueHeader({ activeCount }: { activeCount: number }) {
 /* ─── History header ─────────────────────────────────────────────────── */
 function HistoryHeader({
   count,
+  totalCount,
   selectionMode,
   selectedCount,
   allSelected,
   deleting,
+  searchQuery,
+  setSearchQuery,
+  platformFilter,
+  setPlatformFilter,
   onStartSelection,
   onCancelSelection,
   onToggleAll,
   onDeleteSelected,
 }: {
   count: number;
+  totalCount: number;
   selectionMode: boolean;
   selectedCount: number;
   allSelected: boolean;
   deleting: boolean;
+  searchQuery: string;
+  setSearchQuery: (query: string) => void;
+  platformFilter: string;
+  setPlatformFilter: (platform: string) => void;
   onStartSelection: () => void;
   onCancelSelection: () => void;
   onToggleAll: () => void;
@@ -412,46 +476,103 @@ function HistoryHeader({
         <div>
           <p className="ui-kicker mb-2">{t("history.kicker", {}, "รายการดาวน์โหลดของคุณ")}</p>
           <div className="flex flex-wrap items-baseline gap-2.5">
-          <h1 className="ui-page-title">
-            {t("history.title", {}, "ประวัติ")}
-          </h1>
-          {count > 0 && (
-            <span className="text-sm text-text-dim">
-              {t("history.total", { n: count }, `${count} รายการ`)}
-            </span>
-          )}
+            <h1 className="ui-page-title">
+              {t("history.title", {}, "ประวัติ")}
+            </h1>
+            {totalCount > 0 && (
+              <span className="text-sm text-text-muted">
+                {count < totalCount
+                  ? `(${count}/${totalCount})`
+                  : t("history.total", { n: totalCount }, `${totalCount} รายการ`)}
+              </span>
+            )}
           </div>
           <p className="mt-2 max-w-xl text-sm leading-6 text-text-muted">{t("history.subtitle")}</p>
         </div>
-        {count > 0 && !selectionMode && (
+        {totalCount > 0 && !selectionMode && (
           <Button
             type="button"
             variant="outline"
             size="sm"
             onClick={onStartSelection}
-            className="h-11 gap-2 border-border text-text-muted hover:border-rose-500/25 hover:bg-rose-500/10 hover:text-rose-500 sm:h-9"
+            className="h-10 gap-2 rounded-xl border-border bg-bg-surface/60 text-xs font-semibold text-text-muted transition-colors hover:border-rose-500/25 hover:bg-rose-500/10 hover:text-rose-500 sm:h-9 cursor-pointer"
           >
             <Trash2 className="size-3.5" />
             {t("history.clearAll", {}, "ล้างประวัติ")}
           </Button>
         )}
       </div>
-      {selectionMode && (
-        <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-primary/20 bg-primary/10 p-3">
-          <label className="flex min-h-11 cursor-pointer items-center gap-2 rounded-lg px-2 text-xs font-semibold text-text sm:min-h-9">
-            <Checkbox
-              checked={allSelected}
-              disabled={deleting}
-              onCheckedChange={onToggleAll}
-              aria-label={allSelected ? t("history.deselectAll") : t("history.selectAll")}
-            />
-            <span className="font-semibold text-text">{allSelected ? t("history.deselectAll") : t("history.selectAll")}</span>
-          </label>
-          <span className="mr-auto text-xs font-semibold text-text-muted" aria-live="polite">
-            {t("history.selectedCount", { n: selectedCount }, `เลือกแล้ว ${selectedCount} รายการ`)}
-          </span>
 
-          {/* Action buttons grouped together in the same right corner */}
+      {/* Search & Platform Filter Bar */}
+      {totalCount > 0 && !selectionMode && (
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-y border-border/60 py-3">
+          {/* Platform Filter Chips */}
+          <div className="flex flex-wrap items-center gap-1.5">
+            {[
+              { id: "ALL", label: t("history.all", {}, "ทั้งหมด") },
+              { id: "youtube", label: "YouTube" },
+              { id: "tiktok", label: "TikTok" },
+              { id: "facebook", label: "Facebook" },
+              { id: "instagram", label: "Instagram" },
+            ].map((f) => (
+              <button
+                key={f.id}
+                type="button"
+                onClick={() => setPlatformFilter(f.id)}
+                className={`min-h-8 rounded-xl px-3 text-xs font-semibold transition-all duration-150 cursor-pointer ${
+                  platformFilter === f.id
+                    ? "border border-primary/40 bg-primary/10 text-primary shadow-xs"
+                    : "border border-border/80 bg-bg-surface/50 text-text-muted hover:border-border hover:bg-bg-surface hover:text-text"
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Search input */}
+          <div className="relative flex-1 sm:max-w-xs">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-text-dim" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={t("history.searchPlaceholder", {}, "ค้นหาชื่อหรือไฟล์...")}
+              className="h-9 w-full rounded-xl border border-border bg-bg-surface/60 pl-8 pr-8 text-xs font-medium text-text placeholder:text-text-dim outline-none transition-colors focus:border-primary/50 focus:bg-bg-elevated focus:ring-2 focus:ring-primary/10"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-dim hover:text-text cursor-pointer"
+              >
+                <X className="size-3.5" />
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {selectionMode && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-bg-elevated/65 px-4 py-2.5 backdrop-blur-md shadow-xs animate-in fade-in-50 duration-200 sm:border-primary/30 sm:bg-primary/10">
+          <div className="flex items-center gap-2.5 sm:gap-3">
+            <label className="flex items-center gap-2 cursor-pointer select-none py-1">
+              <Checkbox
+                checked={allSelected}
+                disabled={deleting}
+                onCheckedChange={onToggleAll}
+                aria-label={allSelected ? t("history.deselectAll") : t("history.selectAll")}
+                className="size-5 rounded-md border-2 border-border/90 bg-bg-surface dark:bg-bg-elevated hover:border-primary data-checked:bg-primary shadow-xs"
+              />
+              <span className="text-xs font-semibold text-text">
+                {allSelected ? t("history.deselectAll", {}, "ยกเลิกเลือกทั้งหมด") : t("history.selectAll", {}, "เลือกทั้งหมด")}
+              </span>
+            </label>
+            <span className="text-xs font-medium text-text-muted" aria-live="polite">
+              {t("history.selectedCount", { n: selectedCount }, `(เลือก ${selectedCount}/${count} รายการ)`)}
+            </span>
+          </div>
+
           <div className="flex items-center gap-2">
             <Button
               type="button"
@@ -459,30 +580,28 @@ function HistoryHeader({
               size="sm"
               onClick={onCancelSelection}
               disabled={deleting}
-              className="h-11 font-semibold text-text-muted hover:bg-transparent hover:text-text-muted sm:h-9 cursor-pointer"
+              className="h-8.5 px-3 text-xs font-semibold text-text-muted hover:bg-bg-surface hover:text-text cursor-pointer rounded-xl"
             >
               {t("history.cancelSelect", {}, "ยกเลิก")}
             </Button>
 
-            {selectedCount > 0 && (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={onDeleteSelected}
-                disabled={deleting}
-                className="h-11 gap-2 border-rose-500/40 bg-rose-500/10 text-rose-700 dark:text-rose-300 font-semibold hover:bg-rose-500/20 sm:h-9 animate-in fade-in zoom-in-95 cursor-pointer"
-              >
-                {deleting ? (
-                  <LoadingIndicator label={t("common.loading", {}, "กำลังโหลด...")} iconClassName="size-3.5" />
-                ) : (
-                  <>
-                    <Trash2 className="size-3.5" />
-                    {t("history.deleteSelected", {}, "ลบที่เลือก")}
-                  </>
-                )}
-              </Button>
-            )}
+            <Button
+              type="button"
+              variant="destructive"
+              size="sm"
+              onClick={onDeleteSelected}
+              disabled={deleting || selectedCount === 0}
+              className="h-8.5 gap-1.5 px-3.5 text-xs font-semibold shadow-xs rounded-xl cursor-pointer"
+            >
+              {deleting ? (
+                <LoadingIndicator label={t("common.loading", {}, "กำลังโหลด...")} iconClassName="size-3.5" />
+              ) : (
+                <>
+                  <Trash2 className="size-3.5" />
+                  <span>{t("history.deleteSelected", {}, "ลบที่เลือก")}</span>
+                </>
+              )}
+            </Button>
           </div>
         </div>
       )}
@@ -491,21 +610,74 @@ function HistoryHeader({
 }
 
 /* ─── Empty state ────────────────────────────────────────────────────── */
-function EmptyState({ mode }: { mode: JobListMode }) {
+function EmptyState({
+  mode,
+  isFiltered = false,
+  searchQuery = "",
+  platformFilter = "ALL",
+}: {
+  mode: JobListMode;
+  isFiltered?: boolean;
+  searchQuery?: string;
+  platformFilter?: string;
+  onClearFilters?: () => void;
+}) {
   const { t } = useT();
   const isQueue = mode === "queue";
+  const hasQuery = Boolean(searchQuery && searchQuery.trim().length > 0);
+  const platformNames: Record<string, string> = {
+    youtube: "YouTube",
+    tiktok: "TikTok",
+    facebook: "Facebook",
+    instagram: "Instagram",
+  };
+  const platformLabel = platformNames[platformFilter.toLowerCase()] || platformFilter;
+
+  if (isFiltered) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-3 rounded-3xl border border-dashed border-border bg-bg-surface/30 px-5 py-14 text-center animate-in fade-in-50 duration-200">
+        <div className={`grid size-12 place-items-center rounded-2xl border shadow-xs ${
+          hasQuery
+            ? "border-amber-500/20 bg-amber-500/10 text-amber-500"
+            : "border-primary/20 bg-primary/10 text-primary"
+        }`}>
+          {hasQuery ? <SearchX className="size-5" /> : <Film className="size-5" />}
+        </div>
+        <div className="max-w-md">
+          <p className="text-sm font-semibold text-text">
+            {hasQuery
+              ? t("history.noSearchResults", {}, "ไม่พบผลการค้นหา")
+              : t("history.noPlatformItemsTitle", { platform: platformLabel }, `ไม่มีประวัติจาก ${platformLabel}`)}
+          </p>
+          <p className="mt-1 text-xs text-text-muted">
+            {hasQuery ? (
+              <span>
+                {t("history.noResultsForQuery", {}, "ไม่พบรายการที่ตรงกับ")}{" "}
+                <span className="font-semibold text-text">&ldquo;{searchQuery}&rdquo;</span>
+              </span>
+            ) : (
+              <span>
+                {t("history.noPlatformItemsDesc", { platform: platformLabel }, `ยังไม่มีรายการดาวน์โหลดจาก ${platformLabel}`)}
+              </span>
+            )}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex flex-col items-center justify-center gap-4 rounded-3xl border border-dashed border-border bg-bg-surface/25 px-5 py-20 text-center">
-      <div className="grid size-16 place-items-center rounded-2xl border border-primary/20 bg-primary/10">
+    <div className="flex flex-col items-center justify-center gap-3.5 rounded-3xl border border-dashed border-border bg-bg-surface/25 px-5 py-16 text-center">
+      <div className="grid size-12 place-items-center rounded-2xl border border-primary/20 bg-primary/10">
         {isQueue
-          ? <Download className="size-6 text-text-dim" />
-          : <History className="size-6 text-text-dim" />}
+          ? <Download className="size-5 text-text-dim" />
+          : <History className="size-5 text-text-dim" />}
       </div>
       <div>
-        <p className="text-sm font-medium text-text-muted">
+        <p className="text-sm font-semibold text-text">
           {isQueue ? t("downloads.title") : t("history.title")}
         </p>
-        <p className="mt-1 text-xs text-text-dim max-w-xs">
+        <p className="mt-1 text-xs text-text-muted max-w-xs">
           {isQueue
             ? t("downloads.empty")
             : t("history.empty")}
@@ -517,7 +689,7 @@ function EmptyState({ mode }: { mode: JobListMode }) {
 
 /* ─── Offline notice ─────────────────────────────────────────────────── */
 function OfflineBanner({ message, onRetry }: { message: string; onRetry: () => Promise<void> | void }) {
-  const { t, locale } = useT();
+  const { t } = useT();
   const [retrying, setRetrying] = useState(false);
 
   // Log detailed error to console for developers, keeping the UI user-friendly
@@ -546,9 +718,7 @@ function OfflineBanner({ message, onRetry }: { message: string; onRetry: () => P
         <AlertCircle className="size-4 shrink-0 text-rose-600 dark:text-rose-400" />
         <div>
           <p className="text-xs font-semibold text-rose-800 dark:text-rose-300">
-            {locale === "th"
-              ? "เชื่อมต่อระบบไม่ได้ กรุณาลองใหม่อีกครั้ง"
-              : "Could not connect. Please try again."}
+            {t("common.connectionError", {}, "Could not connect. Please try again.")}
           </p>
         </div>
       </div>
@@ -580,13 +750,18 @@ export function JobList({ mode, compact = false, containerRef }: {
   const { t } = useT();
   const { toast } = useToast();
   const router = useRouter();
-  const [jobs, setJobs] = useState<Job[]>([]);
-  const [loading, setLoading] = useState(true);
+  const {
+    jobs,
+    loading,
+    error: loadError,
+    refreshJobs: fetchJobs,
+  } = useJobPolling();
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedJobIds, setSelectedJobIds] = useState<Set<string>>(new Set());
   const [deletingSelection, setDeletingSelection] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [platformFilter, setPlatformFilter] = useState("ALL");
   const [busyState, setBusyState] = useState<{ id: string; action: "cancel" | "delete" | "pause" | "resume" | "share" } | null>(null);
-  const [loadError, setLoadError] = useState("");
   const [confirmState, setConfirmState] = useState<{
     title: string;
     description: string;
@@ -610,61 +785,40 @@ export function JobList({ mode, compact = false, containerRef }: {
     });
   }, []);
 
-  const updateJobsList = useCallback((newJobs: Job[]) => {
-    setJobs(newJobs);
-  }, []);
-
-  const fetchJobs = useCallback(async (silent = false) => {
-    if (typeof window !== "undefined" && !window.navigator.onLine) {
-      return;
-    }
-    if (!silent) setLoadError("");
-    try {
-      const data = await apiClient.listJobs({ limit: 100 });
-      updateJobsList(data);
-      setLoadError("");
-    } catch (e) {
-      setLoadError(e instanceof Error ? e.message : "โหลดข้อมูลไม่สำเร็จ");
-    } finally {
-      setLoading(false);
-    }
-  }, [updateJobsList]);
-
-  useEffect(() => {
-    let dead = false;
-    async function run() {
-      if (typeof window !== "undefined" && !window.navigator.onLine) {
-        return;
-      }
-      try {
-        const data = await apiClient.listJobs({ limit: 100 });
-        if (!dead) { updateJobsList(data); setLoadError(""); }
-      } catch (e) {
-        if (!dead) setLoadError(e instanceof Error ? e.message : "โหลดข้อมูลไม่สำเร็จ");
-      } finally {
-        if (!dead) setLoading(false);
-      }
-    }
-    void run();
-    const iv = window.setInterval(run, mode === "queue" ? 4000 : 10000);
-    const ev = () => void run();
-    window.addEventListener("media-loader:jobs-changed", ev);
-    window.addEventListener("online", ev);
-    return () => {
-      dead = true;
-      clearInterval(iv);
-      window.removeEventListener("media-loader:jobs-changed", ev);
-      window.removeEventListener("online", ev);
-    };
-  }, [mode, updateJobsList]);
+  const totalCompletedCount = useMemo(
+    () => jobs.filter((j) => j.status === "COMPLETED").length,
+    [jobs],
+  );
 
   const visibleJobs = useMemo(() => {
-    return jobs.filter((job) =>
-      mode === "queue"
-        ? isActiveStatus(job.status)
-        : job.status === "COMPLETED",
-    );
-  }, [jobs, mode]);
+    return jobs
+      .filter((job) =>
+        mode === "queue"
+          ? isActiveStatus(job.status)
+          : job.status === "COMPLETED",
+      )
+      .filter((job) => {
+        if (mode !== "history") return true;
+        if (platformFilter !== "ALL") {
+          const plat = (job.platform || "").toLowerCase();
+          const domain = (job.source_domain || "").toLowerCase();
+          const matchFilter =
+            plat.includes(platformFilter.toLowerCase()) ||
+            domain.includes(platformFilter.toLowerCase());
+          if (!matchFilter) return false;
+        }
+        if (searchQuery.trim()) {
+          const q = searchQuery.toLowerCase().trim();
+          const title = (job.title || "").toLowerCase();
+          const filename = (job.output_filename || "").toLowerCase();
+          const uploader = (job.uploader || "").toLowerCase();
+          return (
+            title.includes(q) || filename.includes(q) || uploader.includes(q)
+          );
+        }
+        return true;
+      });
+  }, [jobs, mode, platformFilter, searchQuery]);
 
   const activeCount = useMemo(() => jobs.filter(j => isActiveStatus(j.status)).length, [jobs]);
   const allHistorySelected =
@@ -905,7 +1059,7 @@ export function JobList({ mode, compact = false, containerRef }: {
   }
 
   const content = (
-    <section className={compact ? "w-full" : "mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8 lg:py-9"}>
+    <section className={compact ? "w-full" : "mx-auto w-full max-w-6xl px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-9"}>
       {/* Header */}
       {compact ? (
         mode === "queue" && (
@@ -925,10 +1079,15 @@ export function JobList({ mode, compact = false, containerRef }: {
           ? <QueueHeader activeCount={activeCount} />
           : <HistoryHeader
               count={visibleJobs.length}
+              totalCount={totalCompletedCount}
               selectionMode={selectionMode}
               selectedCount={selectedJobIds.size}
               allSelected={allHistorySelected}
               deleting={deletingSelection}
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              platformFilter={platformFilter}
+              setPlatformFilter={setPlatformFilter}
               onStartSelection={startHistorySelection}
               onCancelSelection={cancelHistorySelection}
               onToggleAll={toggleAllHistory}
@@ -951,8 +1110,9 @@ export function JobList({ mode, compact = false, containerRef }: {
         </div>
       ) : visibleJobs.length > 0 ? (
         <div className="space-y-2.5">
-          {visibleJobs.map(job => (
+          {visibleJobs.map((job, index) => (
             <JobCard key={job.id} job={job} mode={mode}
+              priority={index === 0}
               busy={deletingSelection || busyState?.id === job.id}
               busyAction={busyState?.id === job.id ? busyState.action : null}
               selectionMode={mode === "history" && selectionMode}
@@ -967,7 +1127,12 @@ export function JobList({ mode, compact = false, containerRef }: {
           ))}
         </div>
       ) : !loadError ? (
-        <EmptyState mode={mode} />
+        <EmptyState
+          mode={mode}
+          isFiltered={mode === "history" && jobs.length > 0 && (searchQuery.trim() !== "" || platformFilter !== "ALL")}
+          searchQuery={searchQuery.trim()}
+          platformFilter={platformFilter}
+        />
       ) : null}
 
       {confirmState && (
@@ -992,7 +1157,7 @@ export function JobList({ mode, compact = false, containerRef }: {
     return (
       <div
         ref={containerRef}
-        className="ui-panel w-full shrink-0 scroll-mt-20 rounded-3xl p-4 lg:w-[27rem] lg:p-5 xl:w-[30rem] 2xl:w-[32rem]"
+        className="ui-panel w-full shrink-0 scroll-mt-20 rounded-3xl p-4 lg:p-5"
       >
         {content}
       </div>

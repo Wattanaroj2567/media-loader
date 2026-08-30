@@ -23,6 +23,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { LoadingIndicator } from "@/components/loading-indicator";
 import { Skeleton } from "@/components/ui/skeleton";
+import { BorderBeam } from "@/components/ui/border-beam";
 import { useToast } from "@/components/toast";
 import { apiClient, type MediaAnalysis } from "@/lib/api-client";
 import { registerPendingDownload } from "@/lib/download-coordinator";
@@ -191,8 +192,6 @@ function safeDownloadFilename(title: string, extension: string) {
   );
 }
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
-
 function AnalyzerSkeleton() {
   const { t } = useT();
   return (
@@ -209,9 +208,9 @@ function AnalyzerSkeleton() {
           <Skeleton className="h-4 w-2/3 rounded-lg bg-bg-base/60" />
         </div>
       </div>
-      <div className="grid gap-2 sm:grid-cols-3">
-        {[1, 2, 3].map((i) => (
-          <Skeleton key={i} className="h-20 rounded-xl bg-bg-surface/80 border border-border/40" />
+      <div className="grid gap-2.5 grid-cols-2 sm:grid-cols-3 md:grid-cols-4">
+        {[1, 2, 3, 4].map((i) => (
+          <Skeleton key={i} className="h-16 rounded-2xl bg-bg-surface/80 border border-border/40" />
         ))}
       </div>
     </div>
@@ -223,11 +222,13 @@ function FormatCard({
   durationSeconds,
   selected,
   onSelect,
+  isBest = false,
 }: {
   format: MediaFormat;
   durationSeconds?: number | null;
   selected: boolean;
   onSelect: () => void;
+  isBest?: boolean;
 }) {
   const { t } = useT();
   const meta = formatCardMeta(format, durationSeconds, t) || (format.type === "video" ? t("download.videoFormat", {}, "สตรีมมิ่ง HD") : t("download.audioFormat", {}, "ไฟล์เสียง MP3"));
@@ -236,36 +237,43 @@ function FormatCard({
     <button
       type="button"
       onClick={onSelect}
-      className={`group flex items-center justify-between gap-2 rounded-xl border px-3 py-2 text-left transition-colors duration-150 cursor-pointer ${
+      className={`group relative flex items-center justify-between gap-2.5 rounded-2xl border p-3 text-left transition-all duration-150 cursor-pointer ${
         selected
-          ? "border-primary bg-primary/10 text-primary font-semibold"
-          : "border-border bg-bg-base/40 text-text hover:border-border-hover hover:bg-bg-surface"
+          ? "border-primary bg-primary/12 text-primary ring-1 ring-primary/40"
+          : "border-border/80 bg-bg-base/50 text-text hover:border-primary/30 hover:bg-bg-surface"
       }`}
     >
       <div className="min-w-0 flex-1">
-        <p className="truncate text-xs font-semibold leading-tight text-text">
-          {formatCardTitle(format)}
-        </p>
-        <p className="mt-0.5 line-clamp-3 text-[11px] leading-tight text-text-muted">{meta}</p>
+        <div className="flex items-center gap-1.5">
+          <p className="truncate text-xs font-semibold leading-tight text-text group-hover:text-primary transition-colors">
+            {formatCardTitle(format)}
+          </p>
+          {isBest && (
+            <span className="rounded-full border border-primary/30 bg-primary/15 px-1.5 py-0.2 text-[9px] font-bold text-text">
+              BEST
+            </span>
+          )}
+        </div>
+        <p className="mt-1 line-clamp-2 text-[11px] leading-tight text-text-muted">{meta}</p>
       </div>
-      {selected && <CheckCircle2 className="size-3.5 shrink-0 text-primary" />}
+      <div className={`grid size-5 shrink-0 place-items-center rounded-full border transition-all ${
+        selected ? "border-primary bg-primary text-primary-foreground" : "border-border/60 bg-transparent text-transparent group-hover:border-primary/40"
+      }`}>
+        <CheckCircle2 className="size-3.5" />
+      </div>
     </button>
   );
 }
-
-// ─── Main component ───────────────────────────────────────────────────────────
 
 function tryConvertThaiLayout(text: string): string {
   if (!text || !/[\u0e00-\u0e7f]/.test(text)) {
     return text;
   }
   const map: Record<string, string> = {
-    // Normal keys (unshifted)
     'ๅ': '1', 'ภ': '2', 'ถ': '3', 'ุ': '4', 'ึ': '5', 'ค': '6', 'ต': '7', 'จ': '8', 'ข': '9', 'ช': '0',
     'ๆ': 'q', 'ไ': 'w', 'ำ': 'e', 'พ': 'r', 'ะ': 't', 'ั': 'y', 'ี': 'u', 'ร': 'i', 'น': 'o', 'ย': 'p', 'บ': '[', 'ล': ']', 'ฃ': '\\',
     'ฟ': 'a', 'ห': 's', 'ก': 'd', 'ด': 'f', 'เ': 'g', '้': 'h', '่': 'j', 'า': 'k', 'ส': 'l', 'ว': ';', 'ง': '\'',
     'ผ': 'z', 'ป': 'x', 'แ': 'c', 'อ': 'v', 'ิ': 'b', 'ื': 'n', 'ท': 'm', 'ม': ',', 'ใ': '.', 'ฝ': '/',
-    // Shifted keys
     '+': '!', '๑': '@', '๒': '#', '๓': '$', '๔': '%', 'ู': '^', '฿': '&', '๕': '*', '๖': '(', '๗': ')', '๘': '_', '๙': '+',
     '๐': 'Q', '"': 'W', 'ฎ': 'E', 'ฑ': 'R', 'ธ': 'T', 'ํ': 'Y', '๊': 'U', 'ณ': 'I', 'ฯ': 'O', 'ญ': 'P', 'ฐ': '{',
     'ฤ': 'A', 'ฆ': 'S', 'ฏ': 'D', 'โ': 'F', 'ฌ': 'G', '็': 'H', '๋': 'J', 'ษ': 'K', 'ศ': 'L', 'ซ': ':'
@@ -507,10 +515,11 @@ export function MediaAnalyzer() {
       }
       console.warn("[Media Analysis Error]:", err);
       setState("error");
-      const message =
-        err instanceof Error && err.message
-          ? err.message
-          : t("download.failedDesc");
+      const message = t(
+        "download.failedDesc",
+        {},
+        "ไม่สามารถวิเคราะห์ข้อมูลสื่อจากลิงก์นี้ได้ โปรดตรวจสอบความถูกต้องของ URL หรือลองใหม่อีกครั้ง",
+      );
       setErrorMessage(message);
       toast("error", t("download.failed"), message);
     } finally {
@@ -560,7 +569,10 @@ export function MediaAnalyzer() {
         <p className="ui-kicker mb-3">
           {t("download.placeholderLabel", {}, "วางลิงก์วิดีโอหรือเสียง")}
         </p>
-        <div className="group flex min-h-16 gap-2 rounded-2xl border border-border bg-bg-surface/60 p-2 shadow-xs transition-all duration-200 focus-within:border-primary/60 focus-within:bg-bg-elevated focus-within:ring-3 focus-within:ring-primary/15">
+        <div className="group relative overflow-hidden flex min-h-16 gap-2 rounded-2xl border border-border bg-bg-surface/60 p-2 transition-all duration-200 focus-within:border-primary/60 focus-within:bg-bg-elevated focus-within:ring-3 focus-within:ring-primary/15">
+          {state === "analyzing" && (
+            <BorderBeam size={200} duration={4} colorFrom="#00c8ff" colorTo="#0070f3" />
+          )}
           <span className="grid size-11 shrink-0 place-items-center self-center rounded-xl bg-primary/12 text-primary">
             <Search className="size-5" />
           </span>
@@ -670,9 +682,20 @@ export function MediaAnalyzer() {
                   setShowLightbox(true);
                 }}
                 title={t("download.viewMedia", {}, "คลิกเพื่อรับชมมีเดียแบบเต็มจอ")}
-                className="group block aspect-video w-full overflow-hidden rounded-2xl border border-border/80 bg-cover bg-center text-left shadow-md transition-all duration-200 hover:border-primary/50 hover:shadow-lg active:scale-[0.99] cursor-pointer"
-                style={{ backgroundImage: `url("${media.thumbnail_url}")` }}
-              />
+                aria-label={t("download.viewMedia", {}, "คลิกเพื่อรับชมมีเดียแบบเต็มจอ")}
+                className="group block aspect-video w-full overflow-hidden rounded-2xl border border-border/80 bg-bg-surface text-left transition-all duration-200 hover:border-primary/50 active:scale-[0.99] cursor-pointer"
+              >
+                {/* The analyzed thumbnail is the dashboard's LCP image. */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={media.thumbnail_url}
+                  alt=""
+                  loading="eager"
+                  fetchPriority="high"
+                  decoding="async"
+                  className="h-full w-full object-cover object-center transition-transform duration-200 group-hover:scale-[1.01]"
+                />
+              </button>
             ) : (
               <div className="grid aspect-video place-items-center rounded-2xl border border-border bg-bg-surface/50">
                 <Film className="size-8 text-text-dim" />
@@ -729,7 +752,7 @@ export function MediaAnalyzer() {
           <div className="border-t border-border/70 pt-5">
             {/* Video / Audio tab Header */}
             <div className="mb-3.5 flex items-center justify-between gap-3">
-              <p className="text-xs font-semibold uppercase tracking-wider text-text-dim">
+              <p className="text-xs font-semibold uppercase tracking-wider text-text-muted">
                 {t("download.quality")}
               </p>
               <div className="flex gap-1 rounded-xl border border-border/80 bg-bg-base/60 p-1">
@@ -744,7 +767,7 @@ export function MediaAnalyzer() {
                     disabled={groupedFormats[tab].length === 0}
                     className={`min-h-9 rounded-lg px-3.5 py-1 text-xs font-semibold transition-all duration-200 cursor-pointer disabled:cursor-not-allowed disabled:opacity-30 ${
                       activeTab === tab
-                        ? "bg-primary text-primary-foreground shadow-xs"
+                        ? "bg-primary text-primary-foreground"
                         : "text-text-muted hover:text-text"
                     }`}
                   >
@@ -763,13 +786,14 @@ export function MediaAnalyzer() {
               </p>
             ) : (
               <div className="grid gap-2.5 grid-cols-2 sm:grid-cols-3 md:grid-cols-4">
-                {visibleFormats.map((format) => (
+                {visibleFormats.map((format, index) => (
                   <FormatCard
                     key={`${format.type}-${format.format_id}`}
                     format={format}
                     durationSeconds={media.duration_seconds}
                     selected={selectedFormatId === format.format_id}
                     onSelect={() => setSelectedFormatId(format.format_id)}
+                    isBest={index === 0}
                   />
                 ))}
               </div>

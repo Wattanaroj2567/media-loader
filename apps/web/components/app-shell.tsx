@@ -1,27 +1,24 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import {
-  ArrowLeft,
   Clock3,
   Home,
-  Languages,
   LogOut,
+  Settings,
   WifiOff,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { ThemeToggle } from "@/components/theme-toggle";
+import { UserAvatar } from "@/components/user-avatar";
+import type { AppUser } from "@/components/app-user-context";
 import { useT } from "@/lib/i18n/context";
 
 interface AppShellProps {
   children: React.ReactNode;
-  user: {
-    name: string;
-    email: string;
-    avatar_url?: string;
-  };
+  user: AppUser;
 }
 
 const navigation = [
@@ -29,47 +26,13 @@ const navigation = [
   { href: "/history", label: "nav.history", icon: Clock3 },
 ];
 
-function UserAvatar({
-  name,
-  avatarUrl,
-  className = "size-9",
-}: {
-  name: string;
-  avatarUrl?: string;
-  className?: string;
-}) {
-  const initials = name
-    .split(" ")
-    .map((part) => part[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
-
-  return (
-    <div
-      role={avatarUrl ? "img" : undefined}
-      aria-label={name}
-      className={`grid shrink-0 place-items-center overflow-hidden rounded-xl border border-border bg-bg-elevated bg-cover bg-center text-xs font-semibold text-primary ${className}`}
-      style={avatarUrl ? { backgroundImage: `url("${avatarUrl}")` } : undefined}
-    >
-      {!avatarUrl && initials}
-    </div>
-  );
-}
-
 export function AppShell({ children, user }: AppShellProps) {
   const pathname = usePathname();
-  const router = useRouter();
   const { t, locale, setLocale } = useT();
   const [isOffline, setIsOffline] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
   const isAccountPage = pathname.startsWith("/settings");
-
-  useEffect(() => {
-    // Eagerly prefetch app routes so sidebar page switches are instant
-    router.prefetch("/dashboard");
-    router.prefetch("/history");
-    router.prefetch("/settings");
-  }, [router]);
 
   useEffect(() => {
     const syncConnection = () => setIsOffline(!window.navigator.onLine);
@@ -80,6 +43,17 @@ export function AppShell({ children, user }: AppShellProps) {
       window.removeEventListener("online", syncConnection);
       window.removeEventListener("offline", syncConnection);
     };
+  }, []);
+
+  // Close user dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+        setUserMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const toggleLocale = () => setLocale(locale === "th" ? "en" : "th");
@@ -93,144 +67,142 @@ export function AppShell({ children, user }: AppShellProps) {
         Skip to content
       </a>
 
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-68 flex-col border-r border-sidebar-border bg-sidebar/92 backdrop-blur-2xl lg:flex">
-        <Link href="/dashboard" prefetch={true} className="flex h-21 items-center border-b border-sidebar-border px-5">
-          <span className="min-w-0">
-            <span className="block font-heading text-xl font-bold tracking-tight text-text">{t("app.name")}</span>
-            <span className="mt-0.5 block text-xs text-text-muted">{t("app.localWorkspace")}</span>
-          </span>
-        </Link>
+      {/* ─── Header Navigation ─────────────────────────────────────── */}
+      {!isAccountPage && (
+        <>
+          {/* ─── Floating Topbar (lg+) ──────────────────────────────────── */}
+          <header className="fixed top-4 left-1/2 z-50 hidden -translate-x-1/2 items-center gap-2.5 rounded-full border border-border bg-bg-surface/95 p-2 backdrop-blur-md dark:border-border dark:bg-bg-elevated lg:flex">
+            {/* Navigation Tabs */}
+            <nav aria-label={t("nav.primary")} className="flex items-center gap-1.5">
+              {navigation.map(({ href, label, icon: Icon }) => {
+                const active = href === "/dashboard" ? pathname === href : pathname.startsWith(href);
+                return (
+                  <Link
+                    key={href}
+                    href={href}
+                    prefetch={false}
+                    aria-current={active ? "page" : undefined}
+                    className={`flex h-10 items-center gap-2.5 px-5 text-sm font-semibold transition-all duration-200 select-none ${
+                      active
+                        ? "text-primary"
+                        : "text-text-muted"
+                    }`}
+                  >
+                    <Icon aria-hidden="true" className={`size-3.5 shrink-0 ${active ? "text-primary" : "text-text-muted"}`} />
+                    <span>{t(label)}</span>
+                  </Link>
+                );
+              })}
+            </nav>
 
-        <div className="px-4 pb-2 pt-5">
-          <p className="px-3 font-mono text-xs font-bold uppercase tracking-wider text-text-muted">
-            {t("nav.workspace")}
-          </p>
-        </div>
-        <nav aria-label={t("nav.primary")} className="flex-1 space-y-1.5 py-1">
-          {navigation.map(({ href, label, icon: Icon }) => {
-            const active = href === "/dashboard" ? pathname === href : pathname.startsWith(href);
-            return (
-              <Link
-                key={href}
-                href={href}
-                prefetch={true}
-                aria-current={active ? "page" : undefined}
-                className={`group flex min-h-12 items-center gap-3.5 border-l-3 px-5 py-3 text-sm transition-all ${
-                  active
-                    ? "border-primary bg-primary/14 text-primary font-semibold"
-                    : "border-transparent text-text-muted hover:bg-bg-surface/70 hover:text-text font-medium"
-                }`}
-              >
-                <Icon aria-hidden="true" className="size-5 shrink-0" />
-                <span>{t(label)}</span>
-              </Link>
-            );
-          })}
-        </nav>
+            {/* Vertical Divider */}
+            <div className="h-4 w-px bg-border/70 dark:bg-white/10 mx-0.5" />
 
-        {/* Full-width Sidebar Footer */}
-        <div className="mt-auto border-t border-sidebar-border bg-bg-surface/30">
-          {/* User Profile item styled as nav menu item */}
-          <Link
-            href="/settings"
-            prefetch={true}
-            title={t("account.viewProfile", {}, "ดูโปรไฟล์")}
-            className={`group flex min-h-12 items-center gap-3.5 border-l-3 px-5 py-3 transition-all outline-none ${
-              pathname.startsWith("/settings")
-                ? "border-primary bg-primary/14 text-primary font-semibold"
-                : "border-transparent text-text-muted hover:bg-bg-surface/70 hover:text-text font-medium"
-            }`}
-          >
-            <UserAvatar name={user.name} avatarUrl={user.avatar_url} className="size-7.5 shrink-0" />
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-sm font-semibold text-text group-hover:text-primary transition-colors">{user.name}</span>
-              <span className="block text-xs text-text-muted truncate font-normal">{t("account.viewProfile", {}, "ดูโปรไฟล์")}</span>
-            </span>
-          </Link>
-
-          {/* Footer Action Row: Theme + Language + Sign Out */}
-          <div className="p-3 pt-2">
-            <div className="grid grid-cols-3 gap-1.5">
-              <ThemeToggle variant="dropdown" dropdownAlign="top" showLabel={false} className="w-full" />
-
+            {/* Right Tools: Language + Theme + User Menu */}
+            <div className="flex items-center gap-1.5">
               <button
                 type="button"
                 onClick={toggleLocale}
                 title={locale === "th" ? "Switch to English" : "เปลี่ยนเป็นภาษาไทย"}
-                className="flex h-9 w-full items-center justify-center gap-1.5 rounded-xl border border-border/80 bg-bg-surface/50 px-1 text-xs font-semibold text-text transition-all hover:border-primary/40 hover:bg-primary/10 hover:text-primary cursor-pointer"
+                className="flex size-9 items-center justify-center rounded-full border border-transparent text-xs font-mono font-bold text-text-muted transition-all duration-200 hover:border-border/60 hover:bg-bg-surface hover:text-primary cursor-pointer outline-none"
               >
-                <Languages aria-hidden="true" className="size-3.5 text-primary shrink-0" />
-                <span className="font-mono text-xs font-bold tracking-wider">{locale === "th" ? "EN" : "TH"}</span>
+                <span className="text-[11px] tracking-wider">{locale === "th" ? "EN" : "TH"}</span>
               </button>
 
-              <form action="/auth/signout" method="post" className="w-full">
-                <button
-                  type="submit"
-                  aria-label={t("nav.signOut")}
-                  title={t("nav.signOut", {}, "ออกจากระบบ")}
-                  className="flex h-9 w-full items-center justify-center rounded-xl border border-border/80 bg-bg-surface/50 text-text-muted transition-all hover:border-rose-500/30 hover:bg-rose-500/10 hover:text-rose-600 dark:hover:text-rose-400 cursor-pointer"
-                >
-                  <LogOut aria-hidden="true" className="size-4 shrink-0" />
-                </button>
-              </form>
-            </div>
-          </div>
-        </div>
-      </aside>
+              <ThemeToggle variant="dropdown" showLabel={false} className="w-auto" />
 
-      <div className="lg:ml-68">
-        <header className="sticky top-0 z-30 flex h-16 items-center border-b border-border bg-bg-base/82 px-3 backdrop-blur-2xl min-[360px]:px-4 sm:px-6 lg:hidden">
-          {isAccountPage ? (
-            <Link
-              href="/dashboard"
-              aria-label={t("common.back", {}, "กลับ")}
-              className="flex min-h-11 items-center gap-2 rounded-xl px-2 text-sm font-semibold text-text transition-colors hover:bg-bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
-            >
-              <ArrowLeft aria-hidden="true" className="size-4.5" />
-              <span className="max-[359px]:sr-only">{t("common.back", {}, "กลับ")}</span>
-            </Link>
-          ) : (
-            <Link href="/dashboard" className="flex min-w-0 items-center gap-2.5">
+              {/* Desktop User Profile Dropdown */}
+              <div className="relative" ref={userMenuRef}>
+                <button
+                  type="button"
+                  onClick={() => setUserMenuOpen((v) => !v)}
+                  aria-expanded={userMenuOpen}
+                  aria-label={t("nav.account")}
+                  className="flex size-9 items-center justify-center rounded-full border border-transparent transition-all hover:ring-2 hover:ring-primary/30 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+                >
+                  <UserAvatar name={user.name} avatarUrl={user.avatar_url} className="size-8" />
+                </button>
+
+                {userMenuOpen && (
+                  <div className="absolute right-0 top-full z-50 mt-3 w-64 overflow-hidden rounded-2xl border border-border bg-popover p-1.5 backdrop-blur-xl animate-in fade-in-50 zoom-in-95 duration-150">
+                    {/* User Profile Card linking to /settings with Settings gear icon */}
+                    <Link
+                      href="/settings"
+                      prefetch={false}
+                      onClick={() => setUserMenuOpen(false)}
+                      className="group flex items-center gap-3 rounded-xl p-2.5 transition-colors duration-150 outline-none hover:bg-bg-surface dark:hover:bg-white/6"
+                    >
+                      <UserAvatar name={user.name} avatarUrl={user.avatar_url} className="size-9 shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-xs font-semibold text-text transition-colors">{user.name}</p>
+                        <p className="truncate text-[11px] text-text-muted">{user.email}</p>
+                      </div>
+                      <Settings className="size-4 shrink-0 text-text-dim transition-colors group-hover:text-text" />
+                    </Link>
+
+                    {/* Sign Out Action */}
+                    <div className="mt-1 border-t border-border/60 pt-1">
+                      <form action="/auth/signout" method="post">
+                        <button
+                          type="submit"
+                          className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium text-rose-600 transition-colors hover:bg-rose-500/10 dark:text-rose-400 dark:hover:bg-rose-500/20 cursor-pointer"
+                        >
+                          <LogOut className="size-4 shrink-0" />
+                          <span>{t("account.signOut", {}, "ออกจากระบบ")}</span>
+                        </button>
+                      </form>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </header>
+
+          {/* ─── Mobile Header (< lg) ────────────────────────────────── */}
+          <header className="sticky top-0 z-30 flex h-13.5 items-center border-b border-border bg-bg-base/85 px-3.5 backdrop-blur-2xl sm:h-14 sm:px-6 lg:hidden">
+            <Link href="/dashboard" prefetch={false} className="flex min-w-0 items-center gap-2.5">
               <span className="truncate font-heading text-sm font-semibold tracking-tight min-[360px]:text-base">{t("app.name")}</span>
             </Link>
-          )}
 
-          <div className="ml-auto flex shrink-0 items-center gap-1.5 min-[360px]:gap-2">
-            <button
-              type="button"
-              onClick={toggleLocale}
-              title={locale === "th" ? "Switch to English" : "เปลี่ยนเป็นภาษาไทย"}
-              className="flex h-9 items-center gap-1.5 rounded-xl border border-border bg-bg-surface/55 px-2 text-xs font-semibold text-text transition-colors hover:border-primary/30 hover:text-primary min-[360px]:px-2.5 lg:hidden cursor-pointer"
-            >
-              <Languages aria-hidden="true" className="size-4 text-primary shrink-0" />
-              <span className="font-mono font-bold tracking-wider max-[359px]:sr-only">{locale === "th" ? "EN" : "TH"}</span>
-            </button>
-            <div className="lg:hidden"><ThemeToggle variant="dropdown" /></div>
-            <Link
-              href="/settings"
-              aria-label={t("nav.account")}
-              className="rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-primary/60 lg:hidden"
-            >
-              <UserAvatar name={user.name} avatarUrl={user.avatar_url} className="size-9" />
-            </Link>
-          </div>
-        </header>
+            <div className="ml-auto flex shrink-0 items-center gap-1.5 min-[360px]:gap-2">
+              <button
+                type="button"
+                onClick={toggleLocale}
+                title={locale === "th" ? "Switch to English" : "เปลี่ยนเป็นภาษาไทย"}
+                className="flex size-8 items-center justify-center rounded-xl border border-border/70 bg-bg-surface/40 text-xs font-mono font-bold text-text-muted transition-all duration-200 hover:border-primary/40 hover:bg-primary/10 hover:text-primary cursor-pointer outline-none sm:size-8.5"
+              >
+                <span className="text-[11px] tracking-wider">{locale === "th" ? "EN" : "TH"}</span>
+              </button>
+              <div className="lg:hidden"><ThemeToggle variant="dropdown" showLabel={false} className="w-auto" /></div>
+              <Link
+                href="/settings"
+                prefetch={false}
+                aria-label={t("nav.account")}
+                className="rounded-full outline-none focus-visible:ring-2 focus-visible:ring-primary/60 lg:hidden"
+              >
+                <UserAvatar name={user.name} avatarUrl={user.avatar_url} className="size-8 ring-1 ring-border/60 sm:size-8.5" />
+              </Link>
+            </div>
+          </header>
+        </>
+      )}
 
-        {isOffline && (
-          <div role="status" className="flex items-center justify-center gap-2 border-b border-amber-500/20 bg-amber-500/10 px-4 py-2.5 text-xs font-medium text-amber-600 dark:text-amber-300">
-            <WifiOff aria-hidden="true" className="size-4" />
-            {t("common.offlineWarning", {}, "ขาดการเชื่อมต่อเครือข่ายชั่วคราว")}
-          </div>
-        )}
+      {isOffline && (
+        <div role="status" className="flex items-center justify-center gap-2 border-b border-amber-500/20 bg-amber-500/10 px-4 py-2 text-xs font-medium text-amber-600 dark:text-amber-300">
+          <WifiOff aria-hidden="true" className="size-4" />
+          {t("common.offlineWarning", {}, "ขาดการเชื่อมต่อเครือข่ายชั่วคราว")}
+        </div>
+      )}
 
-        <main
-          id="main-content"
-          className={`min-h-[calc(100dvh-4rem)] lg:min-h-dvh lg:pb-0 ${isAccountPage ? "pb-6" : "pb-24"}`}
-        >
-          {children}
-        </main>
-      </div>
+      {/* ─── Main Content (Full Desktop Width / No Sidebar Offset) ──── */}
+      <main
+        id="main-content"
+        className={`min-h-[calc(100dvh-3.5rem)] ${isAccountPage ? "pt-0 pb-8 lg:pb-14" : "pt-0 lg:pt-20 pb-24 lg:pb-12"}`}
+      >
+        {children}
+      </main>
 
+      {/* ─── Mobile Bottom Nav (< lg) ────────────────────────────────── */}
       {!isAccountPage && (
         <nav
           aria-label={t("nav.primary")}
@@ -242,6 +214,7 @@ export function AppShell({ children, user }: AppShellProps) {
               <Link
                 key={href}
                 href={href}
+                prefetch={false}
                 aria-current={active ? "page" : undefined}
                 className={`flex min-h-12 flex-col items-center justify-center gap-1 rounded-xl text-xs font-medium transition-colors ${
                   active ? "bg-primary/12 text-primary font-semibold" : "text-text-muted hover:bg-bg-surface hover:text-text"
