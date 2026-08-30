@@ -1,143 +1,156 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg width="100%" height="auto" viewBox="0 0 1040 536" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="media-loader-arch-title media-loader-arch-desc">
+<svg width="100%" height="auto" viewBox="0 0 1440 840" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="media-loader-arch-title media-loader-arch-desc">
     <title id="media-loader-arch-title">Media Loader System Architecture</title>
     <desc id="media-loader-arch-desc">Actual 2-tier architecture diagram: Top lane handles Client, FastAPI Gateway and Supabase Auth/DB; Bottom lane handles Optimistic DB Queue, Isolated Media Worker and Local Disk File Delivery.</desc>
     
     <defs>
-      <style>@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&amp;family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500;600&amp;display=swap');</style>
+      <style>@import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500;600;700&amp;display=swap');</style>
       <style>
         text { font-family: 'Geist', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
         .mono { font-family: 'Geist Mono', SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
       </style>
-      <marker id="arr-main" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#0f172a"/></marker>
-      <marker id="arr-muted" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#64748b"/></marker>
-      <marker id="arr-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#0284c7"/></marker>
+      <filter id="card-shadow" x="-3%" y="-3%" width="106%" height="108%" filterUnits="userSpaceOnUse">
+        <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#0f172a" flood-opacity="0.04"/>
+      </filter>
+      <marker id="arr-main" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><polygon points="0 0, 10 4, 0 8" fill="#0f172a"/></marker>
+      <marker id="arr-muted" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><polygon points="0 0, 10 4, 0 8" fill="#64748b"/></marker>
+      <marker id="arr-accent" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><polygon points="0 0, 10 4, 0 8" fill="#0284c7"/></marker>
     </defs>
 
     <!-- Background Canvas -->
-    <rect width="1040" height="536" fill="#f8fafc" rx="12"/>
+    <rect width="1440" height="840" fill="#f8fafc" rx="16"/>
 
     <!-- Lane 1 Container: Control Plane (Top) -->
-    <rect x="24" y="24" width="992" height="224" rx="8" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.2"/>
-    <text x="44" y="44" fill="#94a3b8" font-size="8" class="mono" font-weight="600" letter-spacing="0.14em">LANE 1: CONTROL PLANE &amp; AUTH</text>
+    <rect x="32" y="32" width="1376" height="350" rx="12" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5"/>
+    <text x="60" y="64" fill="#64748b" font-size="11.5" class="mono" font-weight="700" letter-spacing="0.14em">LANE 1: CONTROL PLANE &amp; AUTH</text>
 
     <!-- Lane 2 Container: Execution Plane (Bottom) -->
-    <rect x="24" y="264" width="992" height="224" rx="8" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.2"/>
-    <text x="44" y="284" fill="#94a3b8" font-size="8" class="mono" font-weight="600" letter-spacing="0.14em">LANE 2: EXECUTION &amp; LOCAL STORAGE</text>
+    <rect x="32" y="412" width="1376" height="350" rx="12" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5"/>
+    <text x="60" y="444" fill="#64748b" font-size="11.5" class="mono" font-weight="700" letter-spacing="0.14em">LANE 2: EXECUTION &amp; LOCAL STORAGE</text>
 
-    <!-- Connectors (Drawn behind nodes) -->
+    <!-- ================= CONNECTORS (Drawn behind nodes) ================= -->
 
     <!-- 1. Client -> FastAPI (Request) -->
-    <line x1="324" y1="128" x2="376" y2="128" stroke="#0f172a" stroke-width="1.6" marker-end="url(#arr-main)"/>
+    <line x1="450" y1="210" x2="520" y2="210" stroke="#0f172a" stroke-width="2.4" marker-end="url(#arr-main)"/>
     
     <!-- 2. FastAPI -> Supabase (Persist) -->
-    <line x1="668" y1="128" x2="720" y2="128" stroke="#64748b" stroke-width="1.4" stroke-dasharray="4,3" marker-end="url(#arr-muted)"/>
+    <line x1="930" y1="210" x2="990" y2="210" stroke="#64748b" stroke-width="2.2" stroke-dasharray="6,4" marker-end="url(#arr-muted)"/>
 
     <!-- 3. Supabase DB Queue -> Worker (Poll & Optimistic Lock) -->
-    <path d="M 856,216 V 304" fill="none" stroke="#0f172a" stroke-width="1.6" marker-end="url(#arr-main)"/>
+    <path d="M 1180,340 V 480" fill="none" stroke="#0f172a" stroke-width="2.4" marker-end="url(#arr-main)"/>
 
     <!-- 4. Worker -> Supabase (Update Progress) -->
-    <line x1="668" y1="388" x2="720" y2="388" stroke="#64748b" stroke-width="1.4" stroke-dasharray="4,3" marker-end="url(#arr-muted)"/>
+    <line x1="930" y1="590" x2="990" y2="590" stroke="#64748b" stroke-width="2.2" stroke-dasharray="6,4" marker-end="url(#arr-muted)"/>
 
     <!-- 5. Client -> Supabase / FastAPI (Poll Status) -->
-    <line x1="376" y1="172" x2="324" y2="172" stroke="#64748b" stroke-width="1.4" stroke-dasharray="4,3" marker-end="url(#arr-muted)"/>
+    <line x1="520" y1="275" x2="450" y2="275" stroke="#64748b" stroke-width="2.2" stroke-dasharray="6,4" marker-end="url(#arr-muted)"/>
 
-    <!-- 6. Media Worker -> Local Temp Storage (Save output left) -->
-    <line x1="376" y1="388" x2="324" y2="388" stroke="#0f172a" stroke-width="1.6" marker-end="url(#arr-main)"/>
+    <!-- 6. Media Worker -> Local Temp Storage (Save output) -->
+    <line x1="520" y1="590" x2="450" y2="590" stroke="#0f172a" stroke-width="2.4" marker-end="url(#arr-main)"/>
 
     <!-- 7. Local Storage -> Client (Direct One-Time Token Download to Browser) -->
-    <line x1="184" y1="304" x2="184" y2="216" stroke="#0284c7" stroke-width="2" marker-end="url(#arr-accent)"/>
+    <line x1="255" y1="480" x2="255" y2="340" stroke="#0284c7" stroke-width="2.8" marker-end="url(#arr-accent)"/>
 
-    <!-- Connector Badges with Clean White Masks -->
-    <rect x="330" y="112" width="40" height="14" rx="3" fill="#ffffff" stroke="#cbd5e1" stroke-width="0.8"/>
-    <text x="350" y="122" fill="#0f172a" font-size="7.5" class="mono" font-weight="600" text-anchor="middle">① REQ</text>
+    <!-- Connector Badges with Clean White Backgrounds -->
+    <rect x="458" y="188" width="55" height="22" rx="5" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.2"/>
+    <text x="485" y="203" fill="#0f172a" font-size="11" class="mono" font-weight="700" text-anchor="middle">① REQ</text>
 
-    <rect x="674" y="112" width="40" height="14" rx="3" fill="#ffffff" stroke="#cbd5e1" stroke-width="0.8"/>
-    <text x="694" y="122" fill="#64748b" font-size="7.5" class="mono" font-weight="600" text-anchor="middle">② ENQUEUE</text>
+    <rect x="932" y="188" width="55" height="22" rx="5" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.2"/>
+    <text x="959" y="203" fill="#64748b" font-size="10.5" class="mono" font-weight="700" text-anchor="middle">② QUEUE</text>
 
-    <rect x="816" y="250" width="80" height="15" rx="3" fill="#ffffff" stroke="#cbd5e1" stroke-width="0.8"/>
-    <text x="856" y="261" fill="#0f172a" font-size="7.5" class="mono" font-weight="600" text-anchor="middle">③ POLL &amp; LOCK</text>
+    <rect x="1115" y="398" width="130" height="24" rx="5" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.2"/>
+    <text x="1180" y="414" fill="#0f172a" font-size="11" class="mono" font-weight="700" text-anchor="middle">③ POLL &amp; LOCK</text>
 
-    <rect x="674" y="372" width="40" height="14" rx="3" fill="#ffffff" stroke="#cbd5e1" stroke-width="0.8"/>
-    <text x="694" y="382" fill="#64748b" font-size="7.5" class="mono" font-weight="600" text-anchor="middle">UPDATE</text>
+    <rect x="932" y="568" width="55" height="22" rx="5" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.2"/>
+    <text x="959" y="583" fill="#64748b" font-size="10.5" class="mono" font-weight="700" text-anchor="middle">UPDATE</text>
 
-    <rect x="330" y="156" width="40" height="14" rx="3" fill="#ffffff" stroke="#cbd5e1" stroke-width="0.8"/>
-    <text x="350" y="166" fill="#64748b" font-size="7.5" class="mono" font-weight="600" text-anchor="middle">④ STATUS</text>
+    <rect x="458" y="253" width="55" height="22" rx="5" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.2"/>
+    <text x="485" y="268" fill="#64748b" font-size="10.5" class="mono" font-weight="700" text-anchor="middle">④ STATUS</text>
 
-    <rect x="330" y="372" width="40" height="14" rx="3" fill="#ffffff" stroke="#cbd5e1" stroke-width="0.8"/>
-    <text x="350" y="382" fill="#0f172a" font-size="7.5" class="mono" font-weight="600" text-anchor="middle">⑤ SAVE</text>
+    <rect x="458" y="568" width="55" height="22" rx="5" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.2"/>
+    <text x="485" y="583" fill="#0f172a" font-size="11" class="mono" font-weight="700" text-anchor="middle">⑤ SAVE</text>
 
-    <rect x="80" y="250" width="208" height="15" rx="3" fill="#ffffff" stroke="#0284c7" stroke-width="1"/>
-    <text x="184" y="261" fill="#0284c7" font-size="7.5" class="mono" font-weight="600" text-anchor="middle">⑥ DIRECT DOWNLOAD (ONE-TIME TOKEN)</text>
+    <rect x="110" y="398" width="290" height="24" rx="5" fill="#ffffff" stroke="#0284c7" stroke-width="1.5"/>
+    <text x="255" y="414" fill="#0284c7" font-size="11" class="mono" font-weight="700" text-anchor="middle">⑥ DIRECT DOWNLOAD (ONE-TIME TOKEN)</text>
+
+    <!-- ================= TOP LANE NODES ================= -->
 
     <!-- Node 1: Web Browser / UI (Top Left) -->
-    <rect x="44" y="56" width="280" height="160" rx="6" fill="#ffffff" stroke="#94a3b8" stroke-width="1.2"/>
-    <text x="56" y="74" fill="#64748b" font-size="7.5" class="mono" font-weight="600">01 / CLIENT</text>
-    <text x="56" y="98" fill="#0f172a" font-size="13.5" font-weight="700">Web Browser / UI</text>
-    <text x="56" y="114" fill="#64748b" font-size="8.5" class="mono">Next.js 16 (App Router) · Vercel / Local</text>
-    <line x1="56" y1="124" x2="312" y2="124" stroke="#f1f5f9" stroke-width="1"/>
-    <text x="56" y="142" fill="#334155" font-size="9">• Google OAuth Login (Supabase JWT)</text>
-    <text x="56" y="158" fill="#334155" font-size="9">• Smart URL Analyzer &amp; Quality Selector</text>
-    <text x="56" y="174" fill="#334155" font-size="9">• Real-time Progress &amp; State Tracking</text>
-    <text x="56" y="190" fill="#334155" font-size="9">• One-Click Direct Stream (Zero Timeout)</text>
+    <rect x="60" y="85" width="390" height="255" rx="8" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5" filter="url(#card-shadow)"/>
+    <text x="80" y="112" fill="#64748b" font-size="11" class="mono" font-weight="700">01 / CLIENT</text>
+    <text x="80" y="140" fill="#0f172a" font-size="19" font-weight="700">Web Browser / UI</text>
+    <text x="80" y="162" fill="#64748b" font-size="12" class="mono">Next.js 16 (App Router) · Vercel / Local</text>
+    <line x1="80" y1="176" x2="430" y2="176" stroke="#f1f5f9" stroke-width="1.5"/>
+    <text x="80" y="202" fill="#334155" font-size="13">• Google OAuth Login (Supabase JWT Session)</text>
+    <text x="80" y="226" fill="#334155" font-size="13">• Smart URL Analyzer &amp; Quality Resolution Picker</text>
+    <text x="80" y="250" fill="#334155" font-size="13">• Real-time Progress Tracking &amp; Optimistic Polling</text>
+    <text x="80" y="274" fill="#334155" font-size="13">• One-Click Direct Stream (Zero Gateway Timeout)</text>
+    <text x="80" y="298" fill="#334155" font-size="13">• Dark Command-Center Theme &amp; Bilingual i18n</text>
 
     <!-- Node 2: FastAPI Backend (Top Center) -->
-    <rect x="376" y="56" width="292" height="160" rx="6" fill="#ffffff" stroke="#0f172a" stroke-width="1.4"/>
-    <text x="388" y="74" fill="#0284c7" font-size="7.5" class="mono" font-weight="600">02 / GATEWAY</text>
-    <text x="388" y="98" fill="#0f172a" font-size="13.5" font-weight="700">FastAPI Backend :8000</text>
-    <text x="388" y="114" fill="#64748b" font-size="8.5" class="mono">Validation, Policy &amp; Security Gateway</text>
-    <line x1="388" y1="124" x2="656" y2="124" stroke="#f1f5f9" stroke-width="1"/>
-    <text x="388" y="142" fill="#334155" font-size="9">• SSRF Sandbox &amp; URL Policy Validation</text>
-    <text x="388" y="158" fill="#334155" font-size="9">• DRM Non-Bypass &amp; Legal Rights Check</text>
-    <text x="388" y="174" fill="#334155" font-size="9">• yt-dlp Metadata &amp; Format Extraction</text>
-    <text x="388" y="190" fill="#334155" font-size="9">• One-Time Secure Download Token Generator</text>
+    <rect x="520" y="85" width="410" height="255" rx="8" fill="#ffffff" stroke="#0f172a" stroke-width="1.8" filter="url(#card-shadow)"/>
+    <text x="540" y="112" fill="#0284c7" font-size="11" class="mono" font-weight="700">02 / GATEWAY</text>
+    <text x="540" y="140" fill="#0f172a" font-size="19" font-weight="700">FastAPI Backend :8000</text>
+    <text x="540" y="162" fill="#64748b" font-size="12" class="mono">Validation, Policy &amp; Security Gateway</text>
+    <line x1="540" y1="176" x2="910" y2="176" stroke="#f1f5f9" stroke-width="1.5"/>
+    <text x="540" y="202" fill="#334155" font-size="13">• SSRF IP Sandbox &amp; URL Policy Validation</text>
+    <text x="540" y="226" fill="#334155" font-size="13">• DRM Non-Bypass &amp; Legal Rights Compliance Check</text>
+    <text x="540" y="250" fill="#334155" font-size="13">• yt-dlp Metadata Extraction with Browser Emulation</text>
+    <text x="540" y="274" fill="#334155" font-size="13">• One-Time Secure Download Token Generator</text>
+    <text x="540" y="298" fill="#334155" font-size="13">• Direct Streaming Server with HTTP 206 Support</text>
 
     <!-- Node 3: Supabase PostgreSQL (Top Right) -->
-    <rect x="720" y="56" width="272" height="160" rx="6" fill="#ffffff" stroke="#94a3b8" stroke-width="1.2"/>
-    <text x="732" y="74" fill="#64748b" font-size="7.5" class="mono" font-weight="600">03 / DATABASE</text>
-    <text x="732" y="98" fill="#0f172a" font-size="13.5" font-weight="700">Supabase PostgreSQL</text>
-    <text x="732" y="114" fill="#64748b" font-size="8.5" class="mono">Auth · Profiles · History · RLS</text>
-    <line x1="732" y1="124" x2="980" y2="124" stroke="#f1f5f9" stroke-width="1"/>
-    <text x="732" y="142" fill="#334155" font-size="9">• Supabase Google Auth Verification</text>
-    <text x="732" y="158" fill="#334155" font-size="9">• Row Level Security (RLS) Isolation</text>
-    <text x="732" y="174" fill="#334155" font-size="9">• Audit Trail &amp; Policy Logging</text>
-    <text x="732" y="190" fill="#334155" font-size="9">• Persistent Job State &amp; Queue Store</text>
+    <rect x="990" y="85" width="386" height="255" rx="8" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5" filter="url(#card-shadow)"/>
+    <text x="1010" y="112" fill="#64748b" font-size="11" class="mono" font-weight="700">03 / DATABASE</text>
+    <text x="1010" y="140" fill="#0f172a" font-size="19" font-weight="700">Supabase PostgreSQL</text>
+    <text x="1010" y="162" fill="#64748b" font-size="12" class="mono">Auth · Profiles · History · Row Level Security</text>
+    <line x1="1010" y1="176" x2="1356" y2="176" stroke="#f1f5f9" stroke-width="1.5"/>
+    <text x="1010" y="202" fill="#334155" font-size="13">• Supabase Google Auth Verification &amp; JWT</text>
+    <text x="1010" y="226" fill="#334155" font-size="13">• Row Level Security (RLS) Multi-Tenant Isolation</text>
+    <text x="1010" y="250" fill="#334155" font-size="13">• Audit Trail &amp; URL Policy Access Logging</text>
+    <text x="1010" y="274" fill="#334155" font-size="13">• Persistent Job State &amp; User History Storage</text>
+    <text x="1010" y="298" fill="#334155" font-size="13">• Optional Realtime Broadcast &amp; Webhooks</text>
+
+    <!-- ================= BOTTOM LANE NODES ================= -->
 
     <!-- Node 4: Local Temp Storage (Bottom Left) -->
-    <rect x="44" y="304" width="280" height="160" rx="6" fill="#ffffff" stroke="#94a3b8" stroke-width="1.2"/>
-    <text x="56" y="322" fill="#0284c7" font-size="7.5" class="mono" font-weight="600">06 / STORAGE</text>
-    <text x="56" y="346" fill="#0f172a" font-size="13.5" font-weight="700">Local Temp Storage</text>
-    <text x="56" y="362" fill="#64748b" font-size="8.5" class="mono">Server Scratch Disk · tmp/media-loader</text>
-    <line x1="56" y1="372" x2="312" y2="372" stroke="#f1f5f9" stroke-width="1"/>
-    <text x="56" y="390" fill="#334155" font-size="9">• Ephemeral Scratch Disk (Free / No Egress)</text>
-    <text x="56" y="406" fill="#334155" font-size="9">• HTTP 206 Partial Content / Resumable</text>
-    <text x="56" y="422" fill="#334155" font-size="9">• Token-Authenticated Direct Streaming</text>
-    <text x="56" y="438" fill="#334155" font-size="9">• Auto-Purge TTL (60 Min &amp; On-Cancel)</text>
+    <rect x="60" y="465" width="390" height="255" rx="8" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5" filter="url(#card-shadow)"/>
+    <text x="80" y="492" fill="#0284c7" font-size="11" class="mono" font-weight="700">06 / STORAGE</text>
+    <text x="80" y="520" fill="#0f172a" font-size="19" font-weight="700">Local Temp Storage</text>
+    <text x="80" y="542" fill="#64748b" font-size="12" class="mono">Server Scratch Disk · tmp/media-loader</text>
+    <line x1="80" y1="556" x2="430" y2="556" stroke="#f1f5f9" stroke-width="1.5"/>
+    <text x="80" y="582" fill="#334155" font-size="13">• Ephemeral Scratch Disk (100% Free / Zero Egress)</text>
+    <text x="80" y="606" fill="#334155" font-size="13">• HTTP 206 Partial Content &amp; Resumable Stream</text>
+    <text x="80" y="630" fill="#334155" font-size="13">• Token-Authenticated Direct Browser Delivery</text>
+    <text x="80" y="654" fill="#334155" font-size="13">• Auto-Purge TTL (60 Min &amp; On-Cancel Cleanup)</text>
+    <text x="80" y="678" fill="#334155" font-size="13">• Safe Filename Sanitization &amp; Unicode Support</text>
 
-    <!-- Node 5: Media Worker Cluster (Bottom Center) -->
-    <rect x="376" y="304" width="292" height="160" rx="6" fill="#ffffff" stroke="#0f172a" stroke-width="1.4"/>
-    <text x="388" y="322" fill="#0284c7" font-size="7.5" class="mono" font-weight="600">05 / WORKER</text>
-    <text x="388" y="346" fill="#0f172a" font-size="13.5" font-weight="700">Media Worker Daemon</text>
-    <text x="388" y="362" fill="#64748b" font-size="8.5" class="mono">Python Daemon (Local / Docker)</text>
-    <line x1="388" y1="372" x2="656" y2="372" stroke="#f1f5f9" stroke-width="1"/>
-    <text x="388" y="390" fill="#334155" font-size="9">• yt-dlp Restricted Mode Media Extractor</text>
-    <text x="388" y="406" fill="#334155" font-size="9">• FFmpeg High-Quality Mux (AAC 320k / MP3)</text>
-    <text x="388" y="422" fill="#334155" font-size="9">• 1.0s Cancellation Watchdog (Instant Stop)</text>
-    <text x="388" y="438" fill="#334155" font-size="9">• Scratch Cleanup on Cancel / Completion</text>
+    <!-- Node 5: Media Worker Daemon (Bottom Center) -->
+    <rect x="520" y="465" width="410" height="255" rx="8" fill="#ffffff" stroke="#0f172a" stroke-width="1.8" filter="url(#card-shadow)"/>
+    <text x="540" y="492" fill="#0284c7" font-size="11" class="mono" font-weight="700">05 / WORKER</text>
+    <text x="540" y="520" fill="#0f172a" font-size="19" font-weight="700">Media Worker Daemon</text>
+    <text x="540" y="542" fill="#64748b" font-size="12" class="mono">Python Daemon (Oracle Cloud ARM / Docker)</text>
+    <line x1="540" y1="556" x2="910" y2="556" stroke="#f1f5f9" stroke-width="1.5"/>
+    <text x="540" y="582" fill="#334155" font-size="13">• yt-dlp Restricted Mode Media Extractor</text>
+    <text x="540" y="606" fill="#334155" font-size="13">• FFmpeg High-Quality Mux (AAC 320k / MP3 / MP4)</text>
+    <text x="540" y="630" fill="#334155" font-size="13">• 1.0s Cancellation Watchdog (Instant Job Abortion)</text>
+    <text x="540" y="654" fill="#334155" font-size="13">• Real-time Progress &amp; Speed Metrics Reporting</text>
+    <text x="540" y="678" fill="#334155" font-size="13">• Multi-Target Browser Impersonation (Edge, Chrome)</text>
 
     <!-- Node 6: Database Job Queue (Bottom Right) -->
-    <rect x="720" y="304" width="272" height="160" rx="6" fill="#ffffff" stroke="#94a3b8" stroke-width="1.2"/>
-    <text x="732" y="322" fill="#64748b" font-size="7.5" class="mono" font-weight="600">04 / QUEUE</text>
-    <text x="732" y="346" fill="#0f172a" font-size="13.5" font-weight="700">Database Job Queue</text>
-    <text x="732" y="362" fill="#64748b" font-size="8.5" class="mono">PostgreSQL `download_jobs` Table</text>
-    <line x1="732" y1="372" x2="980" y2="372" stroke="#f1f5f9" stroke-width="1"/>
-    <text x="732" y="390" fill="#334155" font-size="9">• Optimistic Locking (`locked_by`, `locked_at`)</text>
-    <text x="732" y="406" fill="#334155" font-size="9">• Worker Pool Routing (`pool:local`, `cloud`)</text>
-    <text x="732" y="422" fill="#334155" font-size="9">• Queue State Management (QUEUED, DOWNLOADING)</text>
-    <text x="732" y="438" fill="#334155" font-size="9">• Auto-Release on Stale Lock / Crash</text>
+    <rect x="990" y="465" width="386" height="255" rx="8" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5" filter="url(#card-shadow)"/>
+    <text x="1010" y="492" fill="#64748b" font-size="11" class="mono" font-weight="700">04 / QUEUE</text>
+    <text x="1010" y="520" fill="#0f172a" font-size="19" font-weight="700">Database Job Queue</text>
+    <text x="1010" y="542" fill="#64748b" font-size="12" class="mono">PostgreSQL `download_jobs` Table</text>
+    <line x1="1010" y1="556" x2="1356" y2="556" stroke="#f1f5f9" stroke-width="1.5"/>
+    <text x="1010" y="582" fill="#334155" font-size="13">• Optimistic Concurrency Locking (`locked_by`)</text>
+    <text x="1010" y="606" fill="#334155" font-size="13">• Worker Pool Routing (`pool:local`, `pool:cloud`)</text>
+    <text x="1010" y="630" fill="#334155" font-size="13">• Lifecycle Management (QUEUED, DOWNLOADING)</text>
+    <text x="1010" y="654" fill="#334155" font-size="13">• Auto-Release on Stale Lock / Worker Crash</text>
+    <text x="1010" y="678" fill="#334155" font-size="13">• Zero External Queue Broker Overhead</text>
 
-    <!-- Footer Summary -->
-    <line x1="24" y1="504" x2="1016" y2="504" stroke="#e2e8f0" stroke-width="1"/>
-    <text x="24" y="522" fill="#64748b" font-size="8" class="mono">Flow: ① Web Request → ② Enqueue DB → ③ Poll &amp; Lock → ④ Status Sync → ⑤ Save Temp Disk → ⑥ Direct Token Download</text>
-    <text x="1016" y="522" fill="#94a3b8" font-size="8" class="mono" text-anchor="end">Media Loader Architecture</text>
-  </svg>
+    <!-- ================= FOOTER ================= -->
+    <line x1="32" y1="785" x2="1408" y2="785" stroke="#e2e8f0" stroke-width="1.5"/>
+    <text x="32" y="812" fill="#64748b" font-size="12" class="mono">Flow: ① Web Request → ② Enqueue DB → ③ Poll &amp; Lock → ④ Status Sync → ⑤ Save Temp Disk → ⑥ Direct Token Download</text>
+    <text x="1408" y="812" fill="#94a3b8" font-size="12" class="mono" text-anchor="end">Media Loader System Architecture</text>
+</svg>
