@@ -58,6 +58,13 @@ pnpm dev
 
 ## Architecture
 
+![Media Loader Architecture](docs/diagrams/media-loader-architecture.svg)
+
+> Editorial — self-contained SVG, no Mermaid shadows. Interactive HTML: [`docs/diagrams/media-loader-architecture.html`](docs/diagrams/media-loader-architecture.html) — generated with [diagram-design](https://github.com/cathrynlavery/diagram-design) `architecture` type. Full spec: `docs/diagrams/README.md`.
+
+<details>
+<summary>Mermaid fallback</summary>
+
 ```mermaid
 graph TD
     User([User]) <--> WebApp["Next.js Frontend (Vercel)"]
@@ -69,6 +76,8 @@ graph TD
     Worker <--> Tooling["yt-dlp / FFmpeg"]
     Worker --> Supabase
 ```
+
+</details>
 
 ---
 
@@ -92,6 +101,7 @@ Detailed guides are available in the [`docs/en/`](docs/en/DEVELOPER_GUIDE.md) di
 * **[User Setup Guide](docs/en/USER_SETUP_GUIDE.md)** — Step-by-step Supabase & Google OAuth credentials setup.
 * **[System Architecture](docs/en/ARCHITECTURE.md)** — In-depth blueprint, security boundary, and data flows.
 * **[Vercel Deployment Guide](docs/en/VERCEL_SETUP.md)** — Host the frontend monorepo on Vercel.
+* **[Oracle Cloud Deployment Guide](docs/en/OCI_DEPLOYMENT_GUIDE.md)** — Run Backend & Worker 100% free on OCI Always Free with Keep-Alive.
 * **[Secrets Protocol](docs/en/SECRETS_PROTOCOL.md)** — Zero-leakage protocol guidelines for developers and AI agents.
 
 ---

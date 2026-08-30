@@ -58,6 +58,13 @@ pnpm dev
 
 ## ผังสถาปัตยกรรมระบบ (Architecture)
 
+![ผังสถาปัตยกรรม Media Loader](docs/diagrams/media-loader-architecture.svg)
+
+> Editorial — SVG เดียวจบ ไม่ใช้ Mermaid. ไฟล์ HTML แบบ interactive: [`docs/diagrams/media-loader-architecture.html`](docs/diagrams/media-loader-architecture.html) — สร้างด้วย [diagram-design](https://github.com/cathrynlavery/diagram-design) `architecture` type ดู `docs/diagrams/README.md`
+
+<details>
+<summary>Mermaid fallback</summary>
+
 ```mermaid
 graph TD
     User([ผู้ใช้งาน]) <--> WebApp["Next.js Frontend (Vercel)"]
@@ -69,6 +76,8 @@ graph TD
     Worker <--> Tooling["yt-dlp / FFmpeg"]
     Worker --> Supabase
 ```
+
+</details>
 
 ---
 
@@ -92,6 +101,7 @@ graph TD
 * **[คู่มือการติดตั้งสภาพแวดล้อม](docs/th/USER_SETUP_GUIDE.md)** — ขั้นตอนการขอ Supabase & Google OAuth Keys ทีละขั้นตอน
 * **[ข้อกำหนดสถาปัตยกรรมระบบ](docs/th/ARCHITECTURE.md)** — ผังระบบโดยละเอียด ขอบเขตความปลอดภัย และการไหลของข้อมูล
 * **[คู่มือการ deploy บน Vercel](docs/th/VERCEL_SETUP.md)** — การตั้งค่า Next.js Monorepo ขึ้น Vercel
+* **[คู่มือการ deploy บน Oracle Cloud (Always Free)](docs/th/OCI_DEPLOYMENT_GUIDE.md)** — รัน Backend & Worker ฟรีตลอดชีพบน OCI พร้อมระบบ Keep-Alive
 * **[โปรโตคอลความปลอดภัย](docs/th/SECRETS_PROTOCOL.md)** — แนวปฏิบัติการดูแลความลับและป้องกันรหัสหลุด
 
 ---
