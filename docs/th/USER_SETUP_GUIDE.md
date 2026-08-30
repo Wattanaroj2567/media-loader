@@ -145,6 +145,16 @@ SELECT table_name FROM information_schema.tables WHERE table_schema = 'public';
    * **Terminal 2 (FastAPI Backend)**: `pnpm dev:api`
    * **Terminal 3 (Media Worker)**: `pnpm dev:worker`
 
+หากต้องการ build และเปิดเฉพาะ Next.js production server สำหรับทดสอบ Lighthouse
+ให้ตรวจสอบว่าพอร์ต `3000` ว่างอยู่ จากนั้นรัน:
+
+```bash
+pnpm production
+```
+
+คำสั่งนี้จะไม่เปิด Docker, FastAPI หรือ media worker กด `Ctrl+C`
+เพื่อหยุด web server
+
 ---
 
 ## ขั้นตอนที่ 9 — การตรวจสอบสภาพแวดล้อมระบบ

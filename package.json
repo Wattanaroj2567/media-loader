@@ -8,6 +8,7 @@
   },
   "scripts": {
     "dev": "concurrently -n web,api,worker -c cyan,blue,magenta \"pnpm dev:web\" \"pnpm dev:api\" \"pnpm dev:worker\"",
+    "production": "pnpm build:web && pnpm start:web",
     "dev:web": "pnpm --filter web dev",
     "dev:api": "uv run --directory apps/api uvicorn app.main:app --reload --port 8000",
     "dev:worker": "uv run --directory apps/worker python -m worker.main",
@@ -17,6 +18,8 @@
     "build:web": "pnpm --filter web build",
     "start:web": "pnpm --filter web start",
     "lint:web": "pnpm --filter web lint",
+    "test:web": "pnpm --filter web test",
+    "test:e2e": "pnpm --filter web test:e2e:mock",
     "check-env": "tsx scripts/check-env.ts"
   },
   "devDependencies": {

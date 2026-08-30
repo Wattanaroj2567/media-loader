@@ -7,11 +7,14 @@ const __dirname = path.dirname(__filename);
 
 export default defineConfig({
   testDir: path.join(__dirname, "e2e"),
-  fullyParallel: true,
+  fullyParallel: false,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
-  reporter: "list",
+  retries: 0,
+  workers: 1,
+  reporter: [
+    ["list"],
+    ["html", { outputFolder: "playwright-report", open: "never" }],
+  ],
   use: {
     baseURL: "http://localhost:3100",
     trace: "on-first-retry",
@@ -33,7 +36,7 @@ export default defineConfig({
     {
       command: "node e2e/support/start-mock-dev.mjs",
       url: "http://localhost:3100",
-      reuseExistingServer: false,
+      reuseExistingServer: true,
       timeout: 180000,
     },
   ],

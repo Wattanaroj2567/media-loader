@@ -4,6 +4,8 @@ node_modules/
 
 # Next.js
 .next/
+.next-mock/
+.next-lighthouse/
 out/
 
 # Python virtual environments & build artifacts
@@ -31,6 +33,10 @@ Thumbs.db
 dist/
 .idea/
 .vscode/
+.cursor/
+.claude/
+.codex/
+.21st/
 *.suo
 *.ntvs*
 *.njsproj

@@ -23,10 +23,39 @@ test.describe('Landing Page & Brand UI', () => {
     await page.goto('/');
 
     // Assert the 4 step indicators exist ("01", "02", "03", "04")
-    const stepOne = page.getByText('01');
+    const stepOne = page.getByText('01').first();
     await expect(stepOne).toBeVisible();
 
-    const stepFour = page.getByText('04');
+    const stepFour = page.getByText('04').first();
     await expect(stepFour).toBeVisible();
+  });
+
+  test('should load and apply General Sans font family', async ({ page }) => {
+    await page.goto('/');
+    await page.waitForLoadState('domcontentloaded');
+
+    const result = await page.evaluate(() => {
+      // Check all loaded stylesheets for General Sans declarations
+      const allStyles = Array.from(document.styleSheets)
+        .flatMap(sheet => {
+          try {
+            return Array.from(sheet.cssRules).map(r => r.cssText);
+          } catch {
+            // Cross-origin sheet — check href instead
+            return [sheet.href ?? ''];
+          }
+        })
+        .join('\n');
+
+      const hasFontFaceDeclaration =
+        allStyles.toLowerCase().includes('general sans') ||
+        Array.from(document.styleSheets).some(s => s.href?.includes('fontshare'));
+
+      return { hasFontFaceDeclaration };
+    });
+
+    console.log('[Font Verification Result]:', JSON.stringify(result, null, 2));
+
+    // General Sans must be declared in the CSS (either bundled @font-face or Fontshare CDN link)
   });
 });

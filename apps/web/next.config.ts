@@ -51,6 +51,19 @@ const nextConfig: NextConfig = {
   // Allow e2e tests to run an isolated dev instance with its own build dir
   // (defaults to ".next" so normal builds are unaffected).
   distDir: process.env.NEXT_DIST_DIR || ".next",
+  async headers() {
+    return [
+      {
+        source: "/:path*.(ico|png|jpg|jpeg|svg|webp|woff2)",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;

@@ -145,6 +145,16 @@ For detailed Vercel hosting instructions, see [`VERCEL_SETUP.md`](VERCEL_SETUP.m
    * **Terminal 2 (FastAPI Backend)**: `pnpm dev:api`
    * **Terminal 3 (Media Worker)**: `pnpm dev:worker`
 
+To build and start only the Next.js production server for Lighthouse testing,
+make sure port `3000` is available, then run:
+
+```bash
+pnpm production
+```
+
+This command does not start Docker, FastAPI, or the media worker. Press
+`Ctrl+C` to stop the web server.
+
 ---
 
 ## Step 9 — Environment Validation
