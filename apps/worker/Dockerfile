@@ -7,6 +7,8 @@ COPY --from=uv-runtime /uv /uvx /bin/
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
+ENV UV_PROJECT_ENVIRONMENT="/opt/venv"
+ENV PATH="/opt/venv/bin:$PATH"
 
 WORKDIR /app/apps/worker
 
@@ -26,4 +28,4 @@ COPY apps/worker ./
 # Create temp directory
 RUN mkdir -p /app/tmp/media-loader
 
-CMD ["/app/apps/worker/.venv/bin/python", "-m", "worker.main"]
+CMD ["python", "-m", "worker.main"]

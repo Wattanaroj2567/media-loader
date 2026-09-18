@@ -11,17 +11,18 @@ export default function DashboardPage() {
   const queueRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const handleJobsChanged = () => {
-      // If mobile view, scroll the active queue panel into view smoothly when a new job starts
-      if (window.innerWidth < 1024 && queueRef.current) {
-        // Add a slight delay to allow rendering/state updates to align
-        setTimeout(() => {
-          queueRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }, 150);
-      }
+    const handleJobCreated = () => {
+      // Smoothly scroll down to the active queue section immediately when a new job is queued
+      // Works reliably across both Desktop and Mobile (iOS / Android)
+      setTimeout(() => {
+        if (queueRef.current) {
+          queueRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 120);
     };
-    window.addEventListener('media-loader:jobs-changed', handleJobsChanged);
-    return () => window.removeEventListener('media-loader:jobs-changed', handleJobsChanged);
+
+    window.addEventListener('media-loader:job-created', handleJobCreated);
+    return () => window.removeEventListener('media-loader:job-created', handleJobCreated);
   }, []);
 
   return (
@@ -48,7 +49,9 @@ export default function DashboardPage() {
         <div className="ui-panel min-w-0 flex-1 rounded-3xl p-4 shadow-none sm:p-5 lg:p-6">
           <MediaAnalyzer />
         </div>
-        <JobList mode="queue" compact={true} containerRef={queueRef} />
+        <div ref={queueRef} id="download-queue-anchor" className="w-full scroll-mt-24">
+          <JobList mode="queue" compact={true} containerRef={queueRef} />
+        </div>
       </div>
     </div>
   );

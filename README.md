@@ -87,7 +87,7 @@ Detailed guides are available in the [`docs/en/`](docs/en/DEVELOPER_GUIDE.md) di
 * **[User Setup Guide](docs/en/USER_SETUP_GUIDE.md)** — Step-by-step Supabase & Google OAuth credentials setup.
 * **[System Architecture](docs/en/ARCHITECTURE.md)** — In-depth blueprint, security boundary, and data flows.
 * **[Vercel Deployment Guide](docs/en/VERCEL_SETUP.md)** — Host the frontend monorepo on Vercel.
-* **[Oracle Cloud Deployment Guide](docs/en/OCI_DEPLOYMENT_GUIDE.md)** — Run Backend & Worker 100% free on OCI Always Free with Keep-Alive.
+* **[Cloudflare Tunnel Setup Guide](docs/en/CLOUDFLARE_TUNNEL_GUIDE.md)** — Connect local backend securely to Vercel via HTTPS without port forwarding.
 * **[Secrets Protocol](docs/en/SECRETS_PROTOCOL.md)** — Zero-leakage protocol guidelines for developers and AI agents.
 
 ---

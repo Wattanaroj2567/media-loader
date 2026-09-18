@@ -12,8 +12,8 @@ Do not use Vercel Functions for heavy media download/conversion work.
 
 ```text
 apps/web → Vercel (Frontend UI)
-apps/api → Oracle Cloud Always Free (OCI) or Local
-apps/worker → Oracle Cloud Always Free (OCI) or Local
+apps/api → Local Docker (FastAPI) + Cloudflare Tunnel (HTTPS)
+apps/worker → Local Docker (Python Worker)
 ```
 
 ---
@@ -102,12 +102,10 @@ For production, you have options for the FastAPI backend and worker:
 - Set `NEXT_PUBLIC_FASTAPI_BASE_URL` to your backend URL
 - Use nginx or similar to proxy requests
 
-### Option 2: Cloud Deployment (Recommended: Oracle Cloud Always Free)
-Deploy to:
-- **Oracle Cloud Always Free (OCI)** (See [OCI Deployment Guide](OCI_DEPLOYMENT_GUIDE.md))
-- Fly.io / Google Cloud Run / VPS
-
-Update `NEXT_PUBLIC_FASTAPI_BASE_URL` to your deployed backend URL.
+### Option 2: Cloudflare Tunnel (Recommended)
+Expose your local Docker backend securely over HTTPS without port forwarding:
+- See [Cloudflare Tunnel Guide](CLOUDFLARE_TUNNEL_GUIDE.md)
+- Set `NEXT_PUBLIC_FASTAPI_BASE_URL` on Vercel to your assigned tunnel domain.
 
 ---
 

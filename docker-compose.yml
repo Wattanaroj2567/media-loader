@@ -10,6 +10,7 @@ services:
       - "8000:8000"
     volumes:
       - ./apps/api:/app/apps/api
+      - /app/apps/api/.venv
       - ./tmp:/app/tmp
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
@@ -22,9 +23,22 @@ services:
       - .env.local
     volumes:
       - ./apps/worker:/app/apps/worker
+      - /app/apps/worker/.venv
       - ./tmp:/app/tmp
-    command: watchfiles "python -m worker.main" worker
+    command: python -m worker.main
     depends_on:
       - api
     profiles:
       - worker
+
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    container_name: media-loader-tunnel
+    restart: unless-stopped
+    env_file:
+      - .env.local
+    command: tunnel --no-autoupdate run --url http://api:8000
+    depends_on:
+      - api
+    profiles:
+      - tunnel

@@ -57,9 +57,8 @@ TEMP_DIR=tmp/media-loader
 `TEMP_DIR` is resolved from the repository root by both the API and worker.
 Keep it identical for both services; Docker shares it through `/app/tmp`.
 
-`WORKER_POOL` isolates queues by runtime so a cloud worker (Oracle Cloud / VPS) cannot claim a
-local job whose output is stored on another filesystem. Use `local` during
-local development and `cloud` on Oracle Cloud / Cloud VPS.
+`WORKER_POOL` isolates queues by runtime so separate workers cannot claim a
+job whose output is stored on another filesystem. Defaults to `local`.
 
 `NODE_PATH`, `DENO_PATH`, and `FFMPEG_PATH` are optional overrides. The worker
 prefers Deno, otherwise discovers Node from `PATH`, and falls back to its
@@ -72,7 +71,14 @@ locked worker dependencies needed by yt-dlp's YouTube JavaScript solver.
 
 ```env
 LOG_LEVEL=info
+
+# Cloudflare Tunnel (When connecting local Docker backend to Vercel frontend via HTTPS)
+CLOUDFLARE_TUNNEL_TOKEN=
+TUNNEL_TOKEN=
 ```
+
+`CLOUDFLARE_TUNNEL_TOKEN` / `TUNNEL_TOKEN` stores your Cloudflare Zero Trust Named Tunnel token. If left blank, Docker automatically launches a temporary Quick Tunnel on `trycloudflare.com`.
+
 
 ---
 

@@ -59,9 +59,8 @@ TEMP_DIR=tmp/media-loader
 ทั้ง API และ worker จะ resolve `TEMP_DIR` จาก root ของโปรเจกต์เดียวกัน
 ต้องกำหนดค่าเดียวกันเสมอ โดย Docker จะแชร์ผ่าน `/app/tmp`
 
-`WORKER_POOL` แยกคิวตาม runtime เพื่อไม่ให้ worker บน Cloud (Oracle Cloud / VPS) แย่งงานจาก
-เครื่อง local ที่เก็บไฟล์คนละ filesystem ใช้ `local` บนเครื่องพัฒนา และ
-`cloud` บน Cloud/OCI (ระบบตรวจจับและแยกคิวให้ปลอดภัยเสมอ)
+`WORKER_POOL` แยกคิวตาม runtime เพื่อไม่ให้ worker แต่ละเครื่องแย่งงานกัน
+เมื่อเก็บไฟล์คนละ filesystem โดยค่าเริ่มต้นกำหนดเป็น `local`
 
 `NODE_PATH`, `DENO_PATH` และ `FFMPEG_PATH` เป็นตัวเลือกเสริม โดย worker จะเลือก
 Deno ก่อน จากนั้นจึงค้นหา Node จาก `PATH` และใช้ FFmpeg binary ที่จัดการอยู่ใน
@@ -74,4 +73,10 @@ Python environment โดยอัตโนมัติ ส่วน deployment 
 
 ```env
 LOG_LEVEL=info
+
+# Cloudflare Tunnel (เมื่อเชื่อมต่อ Local Docker Backend กับ Vercel Frontend ผ่าน HTTPS)
+CLOUDFLARE_TUNNEL_TOKEN=
+TUNNEL_TOKEN=
 ```
+
+`CLOUDFLARE_TUNNEL_TOKEN` / `TUNNEL_TOKEN` เป็นตัวแปรเก็บ Token ของ Named Tunnel จาก Cloudflare Zero Trust (หากเว้นว่างไว้ Docker จะรันเป็น Quick Tunnel ชั่วคราวบน `trycloudflare.com` โดยอัตโนมัติ)

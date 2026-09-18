@@ -1,0 +1,10 @@
+apps/api/
+apps/worker/
+tmp/
+storage/
+.git/
+.agents/
+docs/
+deploy/
+scripts/
+tests/

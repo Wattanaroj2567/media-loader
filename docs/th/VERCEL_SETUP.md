@@ -14,9 +14,11 @@ Vercel ใช้สำหรับโฮสต์ Next.js Frontend (`apps/web`)
 
 ```text
 apps/web    → Vercel (Frontend UI)
-apps/api    → Oracle Cloud Always Free (OCI) หรือ Local
-apps/worker → Oracle Cloud Always Free (OCI) หรือ Local
+apps/api    → Local Docker (FastAPI) + Cloudflare Tunnel (HTTPS)
+apps/worker → Local Docker (Python Worker)
 ```
+
+ดูวิธีเชื่อมต่อ Backend เข้ากับ Vercel ผ่าน HTTPS ได้ที่ [คู่มือ Cloudflare Tunnel](CLOUDFLARE_TUNNEL_GUIDE.md)
 
 ---
 

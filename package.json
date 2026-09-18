@@ -15,12 +15,14 @@
     "setup:api": "uv pip install --directory apps/api -e .",
     "setup:worker": "uv pip install --directory apps/worker -e .",
     "setup:py": "pnpm setup:api && pnpm setup:worker",
+    "build": "pnpm --filter web build",
     "build:web": "pnpm --filter web build",
     "start:web": "pnpm --filter web start",
     "lint:web": "pnpm --filter web lint",
     "test:web": "pnpm --filter web test",
     "test:e2e": "pnpm --filter web test:e2e:mock",
-    "check-env": "tsx scripts/check-env.ts"
+    "check-env": "tsx scripts/check-env.ts",
+    "tunnel": "powershell -ExecutionPolicy Bypass -File ./scripts/tunnel.ps1"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

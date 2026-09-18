@@ -97,8 +97,8 @@ FastAPI marks the target worker pool (`pool:local` or `pool:cloud`)
 Only a worker in that pool picks the queued job
 ```
 
-Queue affinity is required in local-temp mode because local and cloud (Oracle Cloud / VPS)
-workers can share Supabase but cannot read each other's filesystems.
+Queue affinity is required in local-temp mode because different workers
+can share Supabase but cannot read each other's filesystems.
 
 ### Process Job
 

@@ -77,7 +77,7 @@ Worker ใน pool เดียวกันดักรอคิวงาน ◄
     └──> บันทึกไฟล์ผลลัพธ์ลง Local Temp / Storage (Status: COMPLETED)
 ```
 
-การแยก worker pool จำเป็นในโหมด Local Temp เพราะ local และ cloud (Oracle Cloud / VPS) สามารถใช้
+การแยก worker pool จำเป็นในโหมด Local Temp เพราะ worker แต่ละเครื่องสามารถใช้
 Supabase ชุดเดียวกันได้ แต่ไม่สามารถอ่านไฟล์ข้าม filesystem ของกันและกัน
 
 ### 4. การส่งไฟล์เข้าเบราว์เซอร์

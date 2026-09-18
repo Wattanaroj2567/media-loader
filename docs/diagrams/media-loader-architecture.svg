@@ -129,7 +129,7 @@
     <rect x="520" y="465" width="410" height="255" rx="8" fill="#ffffff" stroke="#0f172a" stroke-width="1.8" filter="url(#card-shadow)"/>
     <text x="540" y="492" fill="#0284c7" font-size="11" class="mono" font-weight="700">05 / WORKER</text>
     <text x="540" y="520" fill="#0f172a" font-size="19" font-weight="700">Media Worker Daemon</text>
-    <text x="540" y="542" fill="#64748b" font-size="12" class="mono">Python Daemon (Oracle Cloud ARM / Docker)</text>
+    <text x="540" y="542" fill="#64748b" font-size="12" class="mono">Python Daemon (Local Docker / Cloudflare Tunnel)</text>
     <line x1="540" y1="556" x2="910" y2="556" stroke="#f1f5f9" stroke-width="1.5"/>
     <text x="540" y="582" fill="#334155" font-size="13">• yt-dlp Restricted Mode Media Extractor</text>
     <text x="540" y="606" fill="#334155" font-size="13">• FFmpeg High-Quality Mux (AAC 320k / MP3 / MP4)</text>

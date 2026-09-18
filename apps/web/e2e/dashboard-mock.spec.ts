@@ -1,6 +1,69 @@
 import { test, expect } from '@playwright/test';
 
+const SESSION_COOKIE = 'sb-localhost-auth-token';
+
+async function seedAuth(context: {
+  addCookies: (cookies: { name: string; value: string; url: string }[]) => Promise<void>;
+}, appOrigin: string) {
+  const encode = (value: object) => Buffer.from(JSON.stringify(value)).toString('base64url');
+  const now = Math.floor(Date.now() / 1000);
+  const user = {
+    id: 'user-dashboard-test',
+    aud: 'authenticated',
+    role: 'authenticated',
+    email: 'dashboard@example.com',
+    app_metadata: { provider: 'google' },
+    user_metadata: { full_name: 'Dashboard Test User' },
+  };
+  const accessToken = `${encode({ alg: 'HS256', typ: 'JWT' })}.${encode({
+    sub: user.id,
+    aud: user.aud,
+    role: user.role,
+    exp: now + 7200,
+    iat: now,
+    email: user.email,
+  })}.fakesignature`;
+  const session = {
+    access_token: accessToken,
+    token_type: 'bearer',
+    expires_in: 3600,
+    expires_at: now + 3600,
+    refresh_token: 'fake-refresh-token',
+    user,
+  };
+  const value = `base64-${Buffer.from(JSON.stringify(session)).toString('base64url')}`;
+  await context.addCookies([{ name: SESSION_COOKIE, value, url: appOrigin }]);
+}
+
 test.describe('Mocked Dashboard Workflow', () => {
+  test('scrolls the download queue into view when a job is created', async ({ context, page }) => {
+    await seedAuth(context, new URL(test.info().project.use.baseURL!).origin);
+    await page.goto('/dashboard');
+
+    const scrollOptions = await page.evaluate(async () => {
+      const queueAnchor = document.querySelector<HTMLElement>('#download-queue-anchor');
+      if (!queueAnchor) throw new Error('Download queue anchor was not rendered');
+
+      let receivedOptions: ScrollIntoViewOptions | null = null;
+      queueAnchor.scrollIntoView = (options?: boolean | ScrollIntoViewOptions) => {
+        if (typeof options === 'object') receivedOptions = options;
+      };
+
+      for (let attempt = 0; attempt < 10 && receivedOptions === null; attempt += 1) {
+        window.dispatchEvent(
+          new CustomEvent('media-loader:job-created', {
+            detail: { jobId: 'job-scroll-test' },
+          }),
+        );
+        await new Promise((resolve) => window.setTimeout(resolve, 50));
+      }
+
+      return receivedOptions;
+    });
+
+    expect(scrollOptions).toEqual({ behavior: 'smooth', block: 'start' });
+  });
+
   test('should handle mocked media analysis and intercept API route correctly', async ({ page }) => {
     let analyzeCalled = false;
 

@@ -87,7 +87,7 @@ pnpm dev
 * **[คู่มือการติดตั้งสภาพแวดล้อม](docs/th/USER_SETUP_GUIDE.md)** — ขั้นตอนการขอ Supabase & Google OAuth Keys ทีละขั้นตอน
 * **[ข้อกำหนดสถาปัตยกรรมระบบ](docs/th/ARCHITECTURE.md)** — ผังระบบโดยละเอียด ขอบเขตความปลอดภัย และการไหลของข้อมูล
 * **[คู่มือการ deploy บน Vercel](docs/th/VERCEL_SETUP.md)** — การตั้งค่า Next.js Monorepo ขึ้น Vercel
-* **[คู่มือการ deploy บน Oracle Cloud (Always Free)](docs/th/OCI_DEPLOYMENT_GUIDE.md)** — รัน Backend & Worker ฟรีตลอดชีพบน OCI พร้อมระบบ Keep-Alive
+* **[คู่มือการตั้งค่า Cloudflare Tunnel](docs/th/CLOUDFLARE_TUNNEL_GUIDE.md)** — เชื่อมต่อ Backend ในเครื่องเข้ากับ Vercel ผ่าน HTTPS ปลอดภัย ไม่ต้องเปิดพอร์ต
 * **[โปรโตคอลความปลอดภัย](docs/th/SECRETS_PROTOCOL.md)** — แนวปฏิบัติการดูแลความลับและป้องกันรหัสหลุด
 
 ---

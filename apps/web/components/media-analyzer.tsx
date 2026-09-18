@@ -550,6 +550,7 @@ export function MediaAnalyzer() {
       });
       if (job) {
         registerPendingDownload(job.job_id, filename, null);
+        window.dispatchEvent(new CustomEvent("media-loader:job-created", { detail: { jobId: job.job_id } }));
         window.dispatchEvent(new CustomEvent("media-loader:jobs-changed"));
       } else {
         toast("error", t("download.failed"), t("download.failedDesc"));

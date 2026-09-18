@@ -7,6 +7,8 @@ COPY --from=uv-runtime /uv /uvx /bin/
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
+ENV UV_PROJECT_ENVIRONMENT="/opt/venv"
+ENV PATH="/opt/venv/bin:$PATH"
 
 WORKDIR /app/apps/api
 
@@ -22,4 +24,4 @@ COPY apps/api ./
 
 EXPOSE 8000
 
-CMD ["/app/apps/api/.venv/bin/uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

@@ -1157,6 +1157,7 @@ export function JobList({ mode, compact = false, containerRef }: {
     return (
       <div
         ref={containerRef}
+        id="download-queue"
         className="ui-panel w-full shrink-0 scroll-mt-20 rounded-3xl p-4 lg:p-5"
       >
         {content}
