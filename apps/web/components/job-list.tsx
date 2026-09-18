@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   AlertCircle,
@@ -742,10 +742,17 @@ function OfflineBanner({ message, onRetry }: { message: string; onRetry: () => P
 }
 
 /* ─── Main ───────────────────────────────────────────────────────────── */
-export function JobList({ mode, compact = false }: {
+interface JobListProps {
   mode: JobListMode;
   compact?: boolean;
-}) {
+  onQueueClosed?: () => void;
+}
+
+export function JobList({
+  mode,
+  compact = false,
+  onQueueClosed,
+}: JobListProps) {
   const { t } = useT();
   const { toast } = useToast();
   const router = useRouter();
@@ -832,6 +839,32 @@ export function JobList({ mode, compact = false }: {
     });
   }, [visibleJobs]);
 
+  const wasCancellingRef = useRef(false);
+
+  useEffect(() => {
+    if (!wasCancellingRef.current) return;
+
+    if (mode === "queue" && compact) {
+      if (visibleJobs.length === 0) {
+        wasCancellingRef.current = false;
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("media-loader:queue-closed"));
+        }
+        if (onQueueClosed) {
+          onQueueClosed();
+        } else if (typeof window !== "undefined") {
+          window.requestAnimationFrame(() => {
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          });
+        }
+      } else {
+        wasCancellingRef.current = false;
+      }
+    } else {
+      wasCancellingRef.current = false;
+    }
+  }, [compact, mode, onQueueClosed, visibleJobs]);
+
   const cancelJob = useCallback((job: Job) => {
     showConfirm(
       t("queue.confirmCancelTitle", {}, "ยกเลิกงานดาวน์โหลด"),
@@ -839,17 +872,26 @@ export function JobList({ mode, compact = false }: {
       async () => {
         setBusyState({ id: job.id, action: "cancel" });
         try {
+          if (mode === "queue") {
+            wasCancellingRef.current = true;
+          }
           await apiClient.cancelJob(job.id);
           toast("success", t("queue.cancelled"));
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(
+              new CustomEvent("media-loader:job-cancelled", { detail: { jobId: job.id } })
+            );
+          }
           await fetchJobs(true);
         } catch (e) {
+          wasCancellingRef.current = false;
           console.warn("[Cancel Job Error]:", e);
           toast("error", t("queue.actionError"), t("error.genericDesc"));
         } finally { setBusyState(null); }
       },
       { variant: "danger", confirmText: t("common.confirm", {}, "ตกลง") }
     );
-  }, [fetchJobs, showConfirm, t, toast]);
+  }, [fetchJobs, mode, showConfirm, t, toast]);
 
   const pauseJob = useCallback((job: Job) => {
     showConfirm(
@@ -923,17 +965,26 @@ export function JobList({ mode, compact = false }: {
       async () => {
         setBusyState({ id: job.id, action: "delete" });
         try {
+          if (mode === "queue") {
+            wasCancellingRef.current = true;
+          }
           await apiClient.deleteJob(job.id);
           toast("success", t("queue.deleted"));
+          if (typeof window !== "undefined" && mode === "queue") {
+            window.dispatchEvent(
+              new CustomEvent("media-loader:job-cancelled", { detail: { jobId: job.id } })
+            );
+          }
           await fetchJobs(true);
         } catch (e) {
+          wasCancellingRef.current = false;
           console.warn("[Delete Job Error]:", e);
           toast("error", t("queue.actionError"), e instanceof Error ? e.message : t("error.genericDesc"));
         } finally { setBusyState(null); }
       },
       { variant: "danger", confirmText: t("common.delete", {}, "ลบ") }
     );
-  }, [fetchJobs, showConfirm, t, toast]);
+  }, [fetchJobs, mode, showConfirm, t, toast]);
 
   const downloadAgain = useCallback((job: Job) => {
     requestMediaAnalysis(job.original_url);

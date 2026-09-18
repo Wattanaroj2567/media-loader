@@ -116,6 +116,98 @@ test.describe('Mocked Dashboard Workflow', () => {
     });
   });
 
+  test('should scroll back to top when queue closes after cancellation', async ({ context, page }) => {
+    await seedAuth(context, new URL(test.info().project.use.baseURL!).origin);
+    let jobs = [
+      {
+        id: 'job-cancel-test',
+        original_url: 'https://upload.wikimedia.org/wikipedia/commons/test.mp4',
+        source_domain: 'wikimedia.org',
+        platform: 'wikimedia',
+        title: 'Sample Active Video',
+        status: 'DOWNLOADING',
+        format_id: 'mp4-720p',
+        format_type: 'video',
+        quality_label: '720p',
+        progress_percent: 45,
+        downloaded_bytes: 4500000,
+        total_bytes: 10000000,
+        eta_seconds: 5,
+        speed_bytes_per_second: 1000000,
+        thumbnail_url: null,
+        uploader: 'Wikimedia Commons',
+        duration_seconds: 10,
+        output_filename: null,
+        file_available: false,
+        file_size_mb: null,
+        error_message: null,
+        created_at: '2026-09-18T12:00:00Z',
+        updated_at: '2026-09-18T12:00:00Z',
+        completed_at: null,
+        download_speed: null,
+      },
+    ];
+
+    await page.route('**/downloads?*', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          ok: true,
+          data: { jobs, total: jobs.length },
+          error: null,
+        }),
+      });
+    });
+
+    await page.route('**/downloads/job-cancel-test/cancel', async (route) => {
+      jobs = [];
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          ok: true,
+          data: {
+            id: 'job-cancel-test',
+            status: 'CANCELLED',
+          },
+          error: null,
+        }),
+      });
+    });
+
+    await page.goto('/dashboard');
+    await expect(page.locator('#download-queue')).toBeVisible();
+
+    const scrollUpResult = await page.evaluate(async () => {
+      return new Promise<{ scrolledToTop: boolean; options: ScrollToOptions | null }>((resolve) => {
+        const timeoutId = window.setTimeout(() => {
+          resolve({ scrolledToTop: false, options: null });
+        }, 3000);
+
+        window.scrollTo = (options?: ScrollToOptions | number, y?: number) => {
+          window.clearTimeout(timeoutId);
+          if (typeof options === 'object') {
+            resolve({ scrolledToTop: options.top === 0, options });
+          } else {
+            resolve({ scrolledToTop: options === 0 || y === 0, options: null });
+          }
+        };
+
+        const cancelBtn = document.querySelector<HTMLButtonElement>('button[title*="ยกเลิก"]');
+        if (cancelBtn) {
+          cancelBtn.click();
+          setTimeout(() => {
+            const confirmBtn = Array.from(document.querySelectorAll<HTMLButtonElement>('button')).find(b => b.textContent?.includes('ตกลง'));
+            confirmBtn?.click();
+          }, 100);
+        }
+      });
+    });
+
+    expect(scrollUpResult.scrolledToTop).toBe(true);
+  });
+
   test('should handle mocked media analysis and intercept API route correctly', async ({ page }) => {
     let analyzeCalled = false;
 
