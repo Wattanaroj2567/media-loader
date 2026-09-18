@@ -11,18 +11,44 @@ export default function DashboardPage() {
   const queueRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    let cancelPendingWait: (() => void) | null = null;
+    let animationFrameId: number | null = null;
+
+    const scrollToQueue = () => {
+      animationFrameId = window.requestAnimationFrame(() => {
+        queueRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        animationFrameId = null;
+      });
+    };
+
     const handleJobCreated = () => {
-      // Smoothly scroll down to the active queue section immediately when a new job is queued
-      // Works reliably across both Desktop and Mobile (iOS / Android)
-      setTimeout(() => {
-        if (queueRef.current) {
-          queueRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-      }, 120);
+      cancelPendingWait?.();
+      cancelPendingWait = null;
+
+      const queueAnchor = queueRef.current;
+      if (!queueAnchor) return;
+
+      const scrollWhenReady = () => {
+        if (!queueAnchor.querySelector('#download-queue')) return false;
+        cancelPendingWait?.();
+        cancelPendingWait = null;
+        scrollToQueue();
+        return true;
+      };
+
+      if (scrollWhenReady()) return;
+
+      const observer = new MutationObserver(() => void scrollWhenReady());
+      observer.observe(queueAnchor, { childList: true, subtree: true });
+      cancelPendingWait = () => observer.disconnect();
     };
 
     window.addEventListener('media-loader:job-created', handleJobCreated);
-    return () => window.removeEventListener('media-loader:job-created', handleJobCreated);
+    return () => {
+      window.removeEventListener('media-loader:job-created', handleJobCreated);
+      cancelPendingWait?.();
+      if (animationFrameId !== null) window.cancelAnimationFrame(animationFrameId);
+    };
   }, []);
 
   return (
@@ -50,7 +76,7 @@ export default function DashboardPage() {
           <MediaAnalyzer />
         </div>
         <div ref={queueRef} id="download-queue-anchor" className="w-full scroll-mt-24">
-          <JobList mode="queue" compact={true} containerRef={queueRef} />
+          <JobList mode="queue" compact={true} />
         </div>
       </div>
     </div>

@@ -38,30 +38,82 @@ async function seedAuth(context: {
 test.describe('Mocked Dashboard Workflow', () => {
   test('scrolls the download queue into view when a job is created', async ({ context, page }) => {
     await seedAuth(context, new URL(test.info().project.use.baseURL!).origin);
-    await page.goto('/dashboard');
+    let listRequestCount = 0;
+    await page.route('**/downloads?**', async (route) => {
+      listRequestCount += 1;
+      const jobs = listRequestCount === 1
+        ? []
+        : [{
+            id: 'job-scroll-test',
+            original_url: 'https://upload.wikimedia.org/wikipedia/commons/test.mp4',
+            status: 'QUEUED',
+            progress: 0,
+            selected_format: 'mp4-720p',
+            selected_quality: '720p',
+            output_format: 'mp4',
+            media_type: 'video',
+            title: 'Scroll Test Video',
+            uploader: 'Wikimedia Commons',
+            platform: 'wikimedia',
+            source_domain: 'wikimedia.org',
+            thumbnail_url: null,
+            duration_seconds: 10,
+            output_filename: null,
+            file_available: false,
+            file_size_mb: null,
+            error_message: null,
+            created_at: '2026-09-18T12:00:00Z',
+            updated_at: '2026-09-18T12:00:00Z',
+            completed_at: null,
+            download_speed: null,
+          }];
 
-    const scrollOptions = await page.evaluate(async () => {
+      if (listRequestCount > 1) {
+        await new Promise((resolve) => setTimeout(resolve, 400));
+      }
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          ok: true,
+          data: { jobs, total: jobs.length },
+          error: null,
+        }),
+      });
+    });
+    await page.goto('/dashboard');
+    await expect.poll(() => listRequestCount).toBe(1);
+    await expect(page.locator('#download-queue')).toHaveCount(0);
+
+    const scrollResult = await page.evaluate(async () => {
       const queueAnchor = document.querySelector<HTMLElement>('#download-queue-anchor');
       if (!queueAnchor) throw new Error('Download queue anchor was not rendered');
 
-      let receivedOptions: ScrollIntoViewOptions | null = null;
-      queueAnchor.scrollIntoView = (options?: boolean | ScrollIntoViewOptions) => {
-        if (typeof options === 'object') receivedOptions = options;
-      };
+      return new Promise<{ options: ScrollIntoViewOptions | null; queueRendered: boolean }>((resolve) => {
+        const timeoutId = window.setTimeout(() => {
+          resolve({ options: null, queueRendered: false });
+        }, 1500);
+        queueAnchor.scrollIntoView = (options?: boolean | ScrollIntoViewOptions) => {
+          window.clearTimeout(timeoutId);
+          resolve({
+            options: typeof options === 'object' ? options : null,
+            queueRendered: document.querySelector('#download-queue') !== null,
+          });
+        };
 
-      for (let attempt = 0; attempt < 10 && receivedOptions === null; attempt += 1) {
         window.dispatchEvent(
           new CustomEvent('media-loader:job-created', {
             detail: { jobId: 'job-scroll-test' },
           }),
         );
-        await new Promise((resolve) => window.setTimeout(resolve, 50));
-      }
-
-      return receivedOptions;
+        window.dispatchEvent(new CustomEvent('media-loader:jobs-changed'));
+      });
     });
 
-    expect(scrollOptions).toEqual({ behavior: 'smooth', block: 'start' });
+    expect(scrollResult).toEqual({
+      options: { behavior: 'smooth', block: 'start' },
+      queueRendered: true,
+    });
   });
 
   test('should handle mocked media analysis and intercept API route correctly', async ({ page }) => {

@@ -742,10 +742,9 @@ function OfflineBanner({ message, onRetry }: { message: string; onRetry: () => P
 }
 
 /* ─── Main ───────────────────────────────────────────────────────────── */
-export function JobList({ mode, compact = false, containerRef }: {
+export function JobList({ mode, compact = false }: {
   mode: JobListMode;
   compact?: boolean;
-  containerRef?: React.RefObject<HTMLDivElement | null>;
 }) {
   const { t } = useT();
   const { toast } = useToast();
@@ -1156,7 +1155,6 @@ export function JobList({ mode, compact = false, containerRef }: {
   if (compact) {
     return (
       <div
-        ref={containerRef}
         id="download-queue"
         className="ui-panel w-full shrink-0 scroll-mt-20 rounded-3xl p-4 lg:p-5"
       >
