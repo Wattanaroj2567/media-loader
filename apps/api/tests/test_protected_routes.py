@@ -16,4 +16,3 @@ def test_user_owned_routes_require_authentication():
     ]
 
     assert [response.status_code for response in responses] == [401] * len(responses)
-

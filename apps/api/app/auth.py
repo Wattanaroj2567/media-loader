@@ -46,12 +46,38 @@ async def get_current_user(
     return CurrentUser(id=str(user.id), email=user.email)
 
 
+async def get_current_user_optional(
+    authorization: str | None = Header(default=None),
+) -> CurrentUser | None:
+    """Extract authenticated user if valid bearer token is present, otherwise return None."""
+    if not authorization:
+        return None
+    scheme, separator, token = authorization.strip().partition(" ")
+    if not separator or scheme.lower() != "bearer" or not token.strip():
+        return None
+    supabase = get_supabase_client()
+    if not supabase:
+        return None
+    try:
+        response = supabase.auth.get_user(token.strip())
+        user = response.user
+        if not user:
+            return None
+        return CurrentUser(id=str(user.id), email=user.email)
+    except Exception:
+        return None
+
+
 def _get_signing_key() -> str:
     settings = get_settings()
-    return settings.supabase_service_role_key or "media-loader-secret-download-key-default"
+    return (
+        settings.supabase_service_role_key or "media-loader-secret-download-key-default"
+    )
 
 
-def generate_download_token(job_id: str, user_id: str, expires_in_seconds: int = 300) -> str:
+def generate_download_token(
+    job_id: str, user_id: str, expires_in_seconds: int = 300
+) -> str:
     """Generate a tamper-proof HMAC-SHA256 signed one-time download token."""
     now = int(time.time())
     payload = {
@@ -59,7 +85,9 @@ def generate_download_token(job_id: str, user_id: str, expires_in_seconds: int =
         "user_id": user_id,
         "exp": now + expires_in_seconds,
     }
-    payload_json = json.dumps(payload, separators=(",", ":"), sort_keys=True).encode("utf-8")
+    payload_json = json.dumps(payload, separators=(",", ":"), sort_keys=True).encode(
+        "utf-8"
+    )
     payload_b64 = base64.urlsafe_b64encode(payload_json).decode("utf-8").rstrip("=")
 
     key = _get_signing_key().encode("utf-8")
@@ -89,13 +117,17 @@ def verify_download_token(token: str, expected_job_id: str) -> str:
 
     padded_payload_b64 = payload_b64 + "=" * (-len(payload_b64) % 4)
     try:
-        payload_data = json.loads(base64.urlsafe_b64decode(padded_payload_b64).decode("utf-8"))
+        payload_data = json.loads(
+            base64.urlsafe_b64decode(padded_payload_b64).decode("utf-8")
+        )
     except Exception as error:
         raise AppError(401, "INVALID_DOWNLOAD_TOKEN", "ลิงก์ดาวน์โหลดไม่ถูกต้อง") from error
 
     exp = payload_data.get("exp", 0)
     if time.time() > exp:
-        raise AppError(401, "DOWNLOAD_TOKEN_EXPIRED", "ลิงก์ดาวน์โหลดหมดอายุแล้ว กรุณากดดาวน์โหลดใหม่อีกครั้ง")
+        raise AppError(
+            401, "DOWNLOAD_TOKEN_EXPIRED", "ลิงก์ดาวน์โหลดหมดอายุแล้ว กรุณากดดาวน์โหลดใหม่อีกครั้ง"
+        )
 
     job_id = payload_data.get("job_id")
     user_id = payload_data.get("user_id")
