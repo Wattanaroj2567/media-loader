@@ -20,10 +20,28 @@ dependencies = [
 packages = ["app"]
 
 [project.optional-dependencies]
-dev = ["pytest", "pytest-asyncio", "httpx"]
+dev = [
+    "pytest",
+    "pytest-asyncio",
+    "httpx",
+    "ruff>=0.9.0",
+    "vulture>=2.14",
+]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
 filterwarnings = [
   "ignore:Using `httpx` with `starlette.testclient` is deprecated:Warning"
 ]
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B"]
+ignore = ["E501", "B008"]
+
+[tool.vulture]
+min_confidence = 80
+paths = ["app"]

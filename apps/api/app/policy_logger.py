@@ -7,8 +7,8 @@ Logs URL policy check decisions to the Supabase database for audit purposes.
 import logging
 from typing import Any
 
-from app.supabase_client import get_supabase_client
 from app.schemas import PolicyResult
+from app.supabase_client import get_supabase_client
 
 logger = logging.getLogger("media_loader_api.policy_logger")
 
@@ -21,10 +21,11 @@ def log_decision(url: str, result: PolicyResult, user_id: str) -> None:
         return
 
     from urllib.parse import urlparse
+
     try:
         parsed = urlparse(url)
         platform = parsed.hostname or "unknown"
-    except:
+    except Exception:
         platform = "unknown"
 
     log_entry: dict[str, Any] = {

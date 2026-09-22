@@ -1,26 +1,39 @@
 FROM denoland/deno:bin-2.9.5 AS deno-runtime
 FROM ghcr.io/astral-sh/uv:0.12.3 AS uv-runtime
-FROM python:3.12-slim
+FROM python:3.12-slim AS builder
 
-COPY --from=deno-runtime /deno /usr/local/bin/deno
 COPY --from=uv-runtime /uv /uvx /bin/
 
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
 ENV UV_PROJECT_ENVIRONMENT="/opt/venv"
-ENV PATH="/opt/venv/bin:$PATH"
+ENV UV_COMPILE_BYTECODE=1
+ENV UV_LINK_MODE=copy
 
 WORKDIR /app/apps/api
-
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends curl \
-    && rm -rf /var/lib/apt/lists/*
 
 COPY apps/api/pyproject.toml ./pyproject.toml
 COPY apps/api/uv.lock ./uv.lock
 RUN uv sync --locked --no-dev --no-install-project
 
-COPY apps/api ./
+FROM python:3.12-slim AS runtime
+
+COPY --from=deno-runtime /deno /usr/local/bin/deno
+COPY --from=builder /opt/venv /opt/venv
+
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV PATH="/opt/venv/bin:$PATH"
+
+RUN groupadd --gid 10001 media-loader \
+    && useradd --uid 10001 --gid media-loader --create-home media-loader
+
+WORKDIR /app/apps/api
+
+COPY --chown=media-loader:media-loader apps/api ./
+
+RUN mkdir -p /app/tmp/media-loader \
+    && chown -R media-loader:media-loader /app/tmp
+
+USER media-loader
 
 EXPOSE 8000
 

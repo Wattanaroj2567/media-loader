@@ -6,8 +6,8 @@ metadata + available formats.
 
 from fastapi import APIRouter, Depends
 
-from app.auth import CurrentUser, get_current_user
-from app.errors import AppError
+from app.auth import CurrentUser, get_current_user_optional
+from app.policy_logger import log_decision
 from app.response import success_response
 from app.schemas import (
     AnalyzeRequest,
@@ -15,7 +15,6 @@ from app.schemas import (
     MediaMetadata,
 )
 from app.url_policy import check_url
-from app.policy_logger import log_decision
 from app.yt_dlp_service import extract_metadata
 
 router = APIRouter(prefix="/media", tags=["media"])
@@ -24,7 +23,7 @@ router = APIRouter(prefix="/media", tags=["media"])
 @router.post("/analyze")
 async def analyze_media(
     request: AnalyzeRequest,
-    current_user: CurrentUser = Depends(get_current_user),
+    current_user: CurrentUser | None = Depends(get_current_user_optional),
 ):
     """Analyze a media URL.
 
@@ -34,9 +33,9 @@ async def analyze_media(
 
     # Run policy check
     policy = check_url(url_str)
-    
+
     # Log decision to Supabase
-    log_decision(url_str, policy, current_user.id)
+    log_decision(url_str, policy, current_user.id if current_user else None)
 
     # If blocked, return immediately with no formats
     if policy.decision == "blocked":
