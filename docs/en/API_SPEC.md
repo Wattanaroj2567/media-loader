@@ -1,5 +1,7 @@
 # API Specification
 
+> **Language:** **English** · [ภาษาไทย](../th/API_SPEC.md)
+
 Base API: FastAPI service, normally exposed at `http://localhost:8000` during local development.
 
 All user-scoped endpoints require:
@@ -80,7 +82,11 @@ Analyze a media URL before queueing. The API validates the URL, runs the policy 
       "thumbnail_url": "https://...",
       "duration_seconds": 125,
       "uploader": "Creator Name",
-      "source_domain": "youtube.com"
+      "source_domain": "youtube.com",
+      "view_count": 1234567,
+      "like_count": 45678,
+      "reaction_count": null,
+      "is_animated_gif": false
     },
     "formats": [
       {
@@ -104,6 +110,20 @@ Analyze a media URL before queueing. The API validates the URL, runs the policy 
 }
 ```
 
+`view_count`, `like_count`, and `reaction_count` are public values reported by the
+source metadata. When a platform does not expose a value, the API returns `null`; it
+never estimates or synthesizes engagement counts. Reactions remain separate from likes
+because platforms such as Facebook report a combined reaction total rather than a
+likes-only count. For public Instagram posts, the analyzer also reads the real
+`video_view_count` exposed by Instagram's logged-out embed page when the primary
+extractor omits it; no account cookies are used.
+
+`is_animated_gif` is true only when source metadata identifies GIF media. Native
+`.gif` sources are detected across platforms; X animated GIF posts are also detected
+from their public `/tweet_video/` media path even though X serves them as MP4. Direct
+Giphy `.gif` links retain their GIF identity when the public CDN redirects extraction
+to a silent MP4 preview; choosing GIF still produces a real `.gif` file.
+
 Video quality is not fabricated. The API only returns formats found by the extractor. Common heights may include `144`, `240`, `360`, `720`, `1080`, `1440`, `2160`, or any real non-standard height exposed by the source.
 
 Rights confirmation happens after analysis, when the user has inspected the
@@ -121,10 +141,15 @@ Create a download/conversion job. The API reruns URL validation, policy, and ana
 {
   "url": "https://example.com/video",
   "selected_format_id": "137",
-  "output_format": "mp4",
+  "output_format": "gif",
   "rights_confirmed": true
 }
 ```
+
+`output_format` accepts `mp4`, `mp3`, or `gif`. GIF output is accepted only when
+analysis identified the source as animated GIF media. The worker converts platform-backed
+video containers into a real `.gif` file using a palette-optimized 15 FPS conversion
+capped at 960 pixels wide to control size while preserving the source aspect ratio.
 
 ### Response
 

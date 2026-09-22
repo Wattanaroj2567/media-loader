@@ -1,6 +1,6 @@
 # ข้อกำหนดและรายละเอียด API (API Specification)
 
-[English](API_SPEC.md) | ภาษาไทย
+> **ภาษา:** [English](../en/API_SPEC.md) · **ภาษาไทย**
 
 Base API: FastAPI Service ทำงานปกติที่ `http://localhost:8000` ระหว่างการพัฒนาแบบ Local
 
@@ -59,6 +59,7 @@ Authorization: Bearer <Supabase access token>
 วิเคราะห์ URL ของสื่อก่อนนำเข้าคิวงาน ระบบ API จะตรวจสอบความถูกต้องของ URL, รันการตรวจสอบนโยบายสิทธิ์ (Policy Check), บันทึกการตัดสินใจสำหรับผู้ใช้ที่ล็อกอิน และดึงข้อมูลเมตาพร้อมรายการฟอร์แมตสดเมื่อได้รับอนุญาต
 
 ### Request Body
+
 ```json
 {
   "url": "https://www.youtube.com/watch?v=example"
@@ -66,26 +67,41 @@ Authorization: Bearer <Supabase access token>
 ```
 
 ### Response (เมื่อได้รับอนุญาต)
+
 ```json
 {
   "ok": true,
   "data": {
-    "title": "Example Video Title",
-    "uploader": "Channel Name",
-    "duration": 240,
-    "thumbnail": "https://i.ytimg.com/vi/example/hqdefault.jpg",
+    "policy": {
+      "decision": "allowed",
+      "reason": "URL ผ่านการตรวจสอบความปลอดภัย"
+    },
+    "media": {
+      "title": "Example Video Title",
+      "platform": "youtube",
+      "thumbnail_url": "https://i.ytimg.com/vi/example/hqdefault.jpg",
+      "duration_seconds": 240,
+      "uploader": "Channel Name",
+      "source_domain": "youtube.com",
+      "view_count": 1234567,
+      "like_count": 45678,
+      "reaction_count": null,
+      "is_animated_gif": false
+    },
     "formats": [
       {
         "format_id": "1080p",
-        "quality_label": "1080p (HD)",
-        "ext": "mp4",
-        "filesize_approx": 52428800
+        "type": "video",
+        "extension": "mp4",
+        "quality_label": "1080p · 30 FPS",
+        "filesize": 52428800
       },
       {
         "format_id": "bestaudio",
-        "quality_label": "Audio Only (MP3)",
-        "ext": "mp3",
-        "filesize_approx": 4194304
+        "type": "audio",
+        "extension": "m4a",
+        "quality_label": "128 kbps · MP4A",
+        "filesize": 4194304
       }
     ]
   },
@@ -93,28 +109,49 @@ Authorization: Bearer <Supabase access token>
 }
 ```
 
+`view_count`, `like_count` และ `reaction_count` เป็นค่าที่เปิดเผยจริงใน metadata
+ของแหล่งต้นทาง หากแพลตฟอร์มไม่เปิดเผยค่าใด API จะส่ง `null` และจะไม่ประมาณหรือ
+สร้างยอดขึ้นมาเอง โดยระบบแยก reactions ออกจาก likes เพราะแพลตฟอร์มอย่าง Facebook
+รายงานยอดปฏิกิริยารวม ไม่ใช่ยอดไลก์เพียงอย่างเดียว สำหรับโพสต์ Instagram สาธารณะ
+หาก extractor หลักไม่ส่งยอดดู ระบบจะอ่าน `video_view_count` จริงจากหน้า embed
+แบบไม่ล็อกอินของ Instagram โดยไม่ใช้ cookies ของบัญชีผู้ใช้
+
+`is_animated_gif` จะเป็น `true` เฉพาะเมื่อ metadata ต้นทางระบุว่าเป็น GIF
+ระบบตรวจ `.gif` จริงได้ทุกแพลตฟอร์ม และตรวจ animated GIF ของ X จาก path สาธารณะ
+`/tweet_video/` แม้ X จะส่งไฟล์ต้นทางมาเป็น MP4 สำหรับลิงก์ `.gif` ตรงจาก Giphy
+ระบบจะคงสถานะ GIF ไว้แม้ CDN สาธารณะ redirect การวิเคราะห์ไปยัง MP4 preview แบบไม่มีเสียง
+และเมื่อเลือก GIF ระบบจะสร้างไฟล์ `.gif` จริง
+
 ---
 
-## 3. POST `/jobs`
+## 3. POST `/downloads`
 
 สร้าง คิวงานประมวลผลดาวน์โหลด/แปลงไฟล์ใหม่ลงในฐานข้อมูล
 
 ### Request Body
+
 ```json
 {
   "url": "https://www.youtube.com/watch?v=example",
-  "format_id": "1080p",
-  "audio_only": false
+  "selected_format_id": "1080p",
+  "output_format": "gif",
+  "rights_confirmed": true
 }
 ```
 
+`output_format` รองรับ `mp4`, `mp3` และ `gif` โดย API จะรับ GIF เฉพาะ source
+ที่ขั้นวิเคราะห์ตรวจว่าเป็น animated GIF เท่านั้น จากนั้น Worker จะแปลง container
+ของแพลตฟอร์มเป็นไฟล์ `.gif` จริงด้วย palette ที่ 15 FPS และจำกัดความกว้างสูงสุด
+960 พิกเซลเพื่อควบคุมขนาดไฟล์โดยคงอัตราส่วนเดิม
+
 ### Response
+
 ```json
 {
   "ok": true,
   "data": {
     "job_id": "uuid-v4-job-id",
-    "status": "PENDING"
+    "status": "QUEUED"
   },
   "error": null
 }

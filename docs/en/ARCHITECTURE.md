@@ -1,13 +1,15 @@
 # Architecture
 
+> **Language:** **English** · [ภาษาไทย](../th/ARCHITECTURE.md)
+
 ## Overview
 
 Media Loader uses a split architecture so each layer does the right job.
 
 ```text
 apps/web      → Next.js frontend on Vercel
-apps/api      → FastAPI service for policy, analysis, and job creation, running locally in Docker
-apps/worker   → Python worker for heavy media processing, running locally in Docker
+apps/api      → FastAPI service for policy, analysis, and job creation
+apps/worker   → Python worker for heavy media processing
 supabase      → Auth, PostgreSQL, Storage, RLS
 ```
 
@@ -15,27 +17,28 @@ Full architecture diagrams available at [docs/diagrams/media-loader-architecture
 
 ---
 
-## Local Docker Backend
+## Runtime Modes
 
-During development, the backend API and worker run through Docker Compose from the **repository root** (the folder that contains `apps/` and `docker-compose.yml`).
-
-```text
-Next.js on Vercel or local dev → calls http://localhost:8000
-FastAPI API container          → exposes port 8000
-Worker container               → processes queued jobs and temporary files
-Supabase Cloud                 → Auth, database, RLS, and optional future/cloud storage
-```
-
-Required files in the implementation project:
+Local development runs all three services directly from the repository with
+`pnpm dev`. This provides Next.js and FastAPI reload behavior without rebuilding
+container images after source edits.
 
 ```text
-docker-compose.yml
-apps/api/Dockerfile
-apps/worker/Dockerfile
-.dockerignore
+Next.js local dev → localhost:3000
+FastAPI local dev → localhost:8000
+Worker local dev  → polls and processes queued jobs
 ```
 
-See `docs/LOCAL_DOCKER_BACKEND.md`.
+Docker packages the API and worker only for production-like integration checks
+and deployment to a separate container host. Those containers use immutable
+source, run as a non-root user, and share a named media-output volume. Vercel
+hosts only the Next.js app and calls the containerized API over HTTPS.
+
+```text
+apps/web on Vercel       → HTTPS → containerized FastAPI
+containerized worker     → polls Supabase and writes shared media output
+containerized FastAPI    → serves authorized output from the shared volume
+```
 
 ---
 
@@ -97,6 +100,10 @@ FastAPI marks the target worker pool (`pool:local` or `pool:cloud`)
 Only a worker in that pool picks the queued job
 ```
 
+Once FastAPI accepts the job, the web app clears the analyzer and keeps the URL input
+ready for the next link. Queue polling and worker processing continue in the background;
+the existing delivery flow starts the browser download when the file is ready.
+
 Queue affinity is required in local-temp mode because different workers
 can share Supabase but cannot read each other's filesystems.
 
@@ -107,7 +114,7 @@ Worker locks job
   ↓
 Worker downloads allowed media
   ↓
-Worker converts/merges with FFmpeg
+Worker converts/merges MP4, MP3, or GIF output with FFmpeg
   ↓
 Worker writes output to local temp storage by default
   ↓

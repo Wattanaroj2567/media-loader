@@ -1,332 +1,137 @@
 # AGENTS.md
 
-This file defines the central rules for every AI Agent working on the Media Loader project.
+Central rules, constitution, and documentation index for every AI Agent working on the Media Loader project.
 
-All agents must read this file before making changes.
+All agents must read this file before making any changes.
 
 ---
 
-## Project Identity
+## 1. Project Identity & Architecture Root
 
 Media Loader is a personal, rights-aware media loading web application for daily use.
 
-The goal is a reliable private tool the owner can run locally and deploy for real downloads, conversion, and history — not a tutorial project.
-
-The application must use:
-
-- Next.js frontend deployed to Vercel
-- Supabase Auth with Google login
-- Supabase PostgreSQL
-- Supabase Storage
-- FastAPI backend service
-- Separate Python media worker for heavy processing
-- yt-dlp in restricted mode where appropriate
-- FFmpeg for allowed media conversion
-- Modern dark UI with real icon libraries, not emoji
-
----
-
-## Project Root
-
-This repository **is** the application. Source code lives at the repo root:
+Source code lives strictly at the repository root:
 
 ```text
-apps/web/      → Next.js frontend
-apps/api/      → FastAPI backend
-apps/worker/   → Python media worker
-supabase/      → schema and migrations
-docs/          → architecture and setup guides
+apps/web/      → Next.js 16 frontend (React 19, Tailwind v4, Drizzle ORM)
+apps/api/      → FastAPI backend (Python 3.12, URL analysis & policy engine)
+apps/worker/   → Python media worker (Queue polling, yt-dlp, FFmpeg conversion)
+supabase/      → PostgreSQL schema, RLS policies, and database migrations
+docs/          → Comprehensive architectural, API, and setup documentation
 ```
 
-Do not create a nested `./media-loader` copy. Edit files in place under this repo root.
-
-Before making changes, confirm you are in the repository root and that `apps/` exists.
+Do not create nested repository copies. Edit files in place under this repo root.
 
 ---
 
-## Product Goal
+## 2. Non-Negotiable Core Rules (Constitution)
 
-Build a private web app that lets the user:
+Every agent must strictly adhere to these 4 non-negotiable rules:
+Every agent must strictly adhere to these non-negotiable rules:
 
-1. Sign in with Google
-2. Paste a media URL
-3. Analyze the URL
-4. Check whether processing is allowed
-5. Select available video/audio quality
-6. Queue a download or conversion job
-7. Track progress
-8. Store the output file
-9. View private download history
+### A. Non-Bypass & Rights-Aware Policy
+
+- **Never bypass protections**: No DRM bypass, no login wall circumvention, no private/copyrighted content downloading without permission.
+- **No browser cookies**: Never use browser cookies to access restricted content.
+- **Strict Flow**: Every URL must follow: `URL input → Validation → Policy Check → Analysis → Rights Confirmation → Queue → Worker`. Never implement direct downloads.
+
+### B. Zero Secret Leakage Policy
+
+- **Strictly deny access to `.env` files**: Never read, print, view, edit, or commit any `.env*` file or secret token.
+- Never log or print secret keys in chat, console logs, or artifacts.
+- Frontend code must never contain `SUPABASE_SERVICE_ROLE_KEY` or OAuth client secrets.
+
+### C. Package Manager Constraints
+
+- **Python**: Always use `uv` (`uv venv`, `uv pip install`, `uv run`, `uv lock`, `uv sync`). **Never use `pip` directly**.
+- **Node.js**: Always use `pnpm` (`pnpm install`, `pnpm dev`, `pnpm --filter ...`). **Never use `npm` or `yarn`**.
+
+### D. Database Single Source of Truth
+
+- `apps/web/lib/db/schema.ts` is the **single source of truth** for database tables and columns using **Drizzle ORM**.
+- Never create or alter application tables with raw SQL. Raw SQL in `supabase/` is reserved only for RLS policies, triggers, and PostgreSQL functions.
+
+### E. Markdown Linting Mandate
+
+- Whenever creating or editing Markdown files (`*.md`), agents **MUST** run `pnpm lint:md` (or `pnpm lint:md:fix`) to verify and auto-format clean markdown syntax.
+- Never commit Markdown files with missing blank lines around headings, bad list indentation, or broken tables.
+
+### F. Dead Code Elimination Mandate
+
+- Whenever creating, editing, or refactoring code, agents **MUST** run `pnpm deadcode` (`knip` for Web, `vulture` for API & Worker) to detect and remove dead code.
+- Never leave behind unused exports, orphaned variables, unreferenced helper functions, or dead imports. Clean them up immediately.
+
+### G. Verification Before Completion Mandate
+
+- **No completion claims without fresh verification evidence**: Never claim a task, fix, or refactor is complete without running the corresponding verification commands in the current turn.
+- Always inspect exit codes and error logs. Never assume code "should work" or "looks right". Prove it with execution.
 
 ---
 
-## Non-Negotiable Policy
+## 3. 🗺️ AI Documentation Map (Progressive Disclosure Router)
 
-This project must not bypass protections.
+Before starting work in any domain, agents **MUST** inspect the relevant specification below:
 
-Never implement features that:
+| Domain / Task | Specification File | Purpose & Contents |
+|---|---|---|
+| **System Overview & Flow** | [docs/en/ARCHITECTURE.md](docs/en/ARCHITECTURE.md) | Blueprint, component boundaries, request flows, status model |
+| **API Endpoints & Contracts** | [docs/en/API_SPEC.md](docs/en/API_SPEC.md) | FastAPI route schemas, request/response models |
+| **Database & Migrations** | [docs/en/DATABASE_SCHEMA.md](docs/en/DATABASE_SCHEMA.md) | Table structures, column definitions, Drizzle vs Supabase rules |
+| **Security & Policy Rules** | [docs/en/SECURITY_AND_POLICY.md](docs/en/SECURITY_AND_POLICY.md) | SSRF prevention, restricted yt-dlp parameters, platform policies |
+| **Row Level Security** | [docs/en/SUPABASE_RLS_POLICY.md](docs/en/SUPABASE_RLS_POLICY.md) | Supabase PostgreSQL user isolation and RLS policies |
+| **Dev Commands & Testing** | [docs/en/DEVELOPER_GUIDE.md](docs/en/DEVELOPER_GUIDE.md) | Local run commands (`pnpm dev`), linting, and testing workflows |
+| **Tunnel & Deployment** | [docs/en/CLOUDFLARE_TUNNEL_GUIDE.md](docs/en/CLOUDFLARE_TUNNEL_GUIDE.md) | Cloudflare Tunnel setup, Docker Compose, production container rules |
+| **Environment Variables** | [docs/en/ENVIRONMENT_VARIABLES.md](docs/en/ENVIRONMENT_VARIABLES.md) | Environment variable definitions, defaults, and validation |
+| **Secrets Protocol** | [docs/en/SECRETS_PROTOCOL.md](docs/en/SECRETS_PROTOCOL.md) | Zero-leakage protocol and secret handling guidelines |
+| **Google OAuth Setup** | [docs/en/GOOGLE_OAUTH_SETUP.md](docs/en/GOOGLE_OAUTH_SETUP.md) | Supabase Google Auth configuration steps |
+| **Vercel Deployment** | [docs/en/VERCEL_SETUP.md](docs/en/VERCEL_SETUP.md) | Frontend Next.js deployment to Vercel |
 
-- Bypass DRM
-- Bypass login walls
-- Download private content without permission
-- Use browser cookies to access restricted content
-- Circumvent age gates, geo restrictions, paywalls, or platform protections
-- Encourage copyright infringement
-- Hide source platform terms from the user
+*(For Thai documentation, see corresponding files in `docs/th/`)*
 
-Every URL must pass a policy check before analysis or download.
+---
 
-The correct flow is:
+## 4. Git Commit Guidelines
+
+### Explicit Commit Approval Rule (Strict)
+
+- **Never commit automatically**: Agents must **NEVER** stage or commit changes without explicit instruction or approval from the user (e.g. user explicitly says "commit", "บันทึก commit", or "สั่งให้ commit").
+- **Editing code != committing code**: Making code edits, refactors, or bug fixes does NOT mean committing right away.
+- **Unauthorized commit cancellation**: If an agent commits changes without explicit user approval, the commit must be immediately undone/reset (`git reset`). Always wait for the user's explicit command.
+
+### Format & Conventions
+
+All agents must follow the Conventional Commits format:
 
 ```text
-URL input → URL validation → policy check → analysis → rights confirmation → job queue → worker processing
+<type>(<scope>): <subject>
+
+[optional body]
 ```
 
-Never implement:
-
-```text
-URL input → direct download
-```
+- **Allowed Types**: `feat`, `fix`, `chore`, `docs`, `refactor`, `test`, `ci`
+- **Allowed Scopes**: `(web)`, `(api)`, `(worker)`, `(db)`, `(deploy)`, `(deps)`, `(ci)`, `(docs)`
+- **Rules**: Lowercase, imperative mood, concise (≤ 72 chars), atomic domain commits.
 
 ---
 
-## Secret Handling Rules
-
-Agents must never ask the user to paste secrets into chat.
-
-Agents must never print secret values.
-
-Agents may only:
-
-- Create `.env.example`
-- Tell the user where to get a key
-- Tell the user which variable name to use
-- Ask the user to add keys locally
-- Validate whether variables exist
-- Report `OK`, `Missing`, or `Invalid`
-
-Agents must never:
-
-- Run `cat .env.local`
-- Print `.env` values
-- Commit `.env.local`
-- Put `SUPABASE_SERVICE_ROLE_KEY` in frontend code
-- Put Google client secret in browser code
-- Log secrets in console output
-
----
-
-## UI/UX Rules
-
-The UI must be:
-
-- Dark modern
-- Clean
-- Minimal but premium
-- Utility-dashboard style
-- Responsive
-- Easy to understand
-
-Do not use emoji as icons.
-
-Use a real icon library such as:
-
-- Lucide React
-- Tabler Icons
-
-Avoid:
-
-- Pastel-heavy palettes
-- Overly colorful gradients
-- Purple-heavy futuristic themes
-- Cute or childish styling
-- Emoji-based status indicators
-
-Preferred visual direction:
-
-```text
-Dark command center
-Neutral black/gray surfaces
-Subtle borders
-Sharp spacing
-Restrained blue/cyan/green accent
-Clear text hierarchy
-```
-
----
-
-## Architecture Rules
-
-Use clear separation of responsibilities.
-
-### Frontend
-
-Frontend handles:
-
-- UI
-- Forms
-- Auth session
-- Supabase browser client
-- API calls
-- Progress display
-- History display
-
-Frontend must not:
-
-- Run yt-dlp
-- Run FFmpeg
-- Use service role key
-- Perform heavy media processing
-
-### FastAPI
-
-FastAPI handles:
-
-- URL validation
-- Policy checks
-- Metadata analysis orchestration
-- Job creation
-- Secure server-side operations
-
-### Worker
-
-Worker handles:
-
-- Queue polling
-- Download execution
-- FFmpeg conversion/merge
-- Supabase Storage upload
-- Job status updates
-- Temp file cleanup
-
-### Supabase
-
-Supabase handles:
-
-- Google Auth
-- PostgreSQL data storage
-- Storage bucket
-- Row Level Security
-- Optional Realtime updates
-
----
-
-## Work Style Rules
-
-Before coding:
-
-1. Inspect relevant technical specifications in `docs/` (`docs/ARCHITECTURE.md`, `docs/API_SPEC.md`, `docs/DATABASE_SCHEMA.md`, `docs/SECURITY_AND_POLICY.md`, `docs/USER_SETUP_GUIDE.md`) for quick context.
-2. Inspect the existing structure.
-3. Identify the smallest useful change.
-4. Add or update docs if behavior changes.
-5. Run verification commands when possible.
-
-### Quick Documentation Map for Agents
-
-When needing deep domain information, read these files in `docs/`:
-- `docs/ARCHITECTURE.md` — Overall system blueprint and flow.
-- `docs/API_SPEC.md` — FastAPI endpoints and request/response specifications.
-- `docs/DATABASE_SCHEMA.md` — Supabase database tables and relationships.
-- `docs/SECURITY_AND_POLICY.md` — Non-bypass URL validation and policy enforcement rules.
-- `docs/SUPABASE_RLS_POLICY.md` — Row Level Security policies.
-- `docs/USER_SETUP_GUIDE.md` — Local & Cloud environment setup guide.
-- `docs/ENVIRONMENT_VARIABLES.md` — Environment variable definitions.
-- `docs/GOOGLE_OAUTH_SETUP.md` — Google OAuth setup instructions.
-- `docs/VERCEL_SETUP.md` — Frontend Vercel deployment guide.
-- `docs/SECRETS_PROTOCOL.md` — Zero-secret leakage handling protocol.
-
-Do not introduce unrelated features.
-
-Do not silently change the stack.
-
-Do not skip security/policy checks.
-
-Do not rewrite large unrelated files without reason.
-
-### Package Manager Rules
-
-- Never use `pip` in this project for Python package management or environment creation.
-- Always use `uv` for Python package installation, virtual environment management, and running scripts (`uv venv`, `uv pip install`, `uv run`).
-- Always use `pnpm` for Node.js package management and script execution.
-
----
-
-## Naming Rules
-
-Use clear, boring, maintainable names.
-
-Good names:
-
-- `download_jobs`
-- `profiles`
-- `policy_logs`
-- `analyzeMediaUrl`
-- `createDownloadJob`
-- `updateJobStatus`
-
-Avoid vague names:
-
-- `data`
-- `thing`
-- `handler2`
-- `magicDownload`
-- `superBypass`
-
----
-
-## Status Model
-
-Use these status values consistently:
-
-```text
-PENDING
-ANALYZING
-READY
-QUEUED
-DOWNLOADING
-CONVERTING
-UPLOADING
-COMPLETED
-FAILED
-BLOCKED
-CANCELLED
-```
-
----
-
-## Definition of Done
+## 5. Definition of Done
 
 A task is done only when:
 
-- The code matches the architecture
-- The UI follows the design guide
-- Secrets are not exposed
-- Policy checks are not bypassed
-- Errors are handled clearly
-- The user-facing behavior is understandable
-- Relevant docs are updated
-- Manual verification steps are provided
-
----
-
-## Final Reminder
-
-This project is for personal daily use and safe media management.
-
-Prioritize features that make the app usable end-to-end (worker, downloads, history). Do not turn it into a generic unrestricted downloader.
-
-
----
-
-## Local Docker Backend Rules
-
-- FastAPI backend must run locally through Docker during development.
-- Python media worker must run locally through Docker during development.
-- Create `docker-compose.yml`, `apps/api/Dockerfile`, `apps/worker/Dockerfile`, and `.dockerignore` when implementing backend phases.
-- Do not put yt-dlp, FFmpeg, or media processing inside Vercel Functions.
-- Do not put media processing inside Supabase Edge Functions.
-- Do not bake secrets into Docker images.
-- Read runtime values from `.env.local`, but never print the values.
-- Use local temporary media output as the default Free tier behavior.
-- Supabase Storage upload is optional and must not be the initial default for large media files.
-- The frontend should call `NEXT_PUBLIC_FASTAPI_BASE_URL`, defaulting to `http://localhost:8000` in local development.
+1. Code matches the system architecture and design guidelines.
+2. No secrets are exposed or committed.
+3. Policy and non-bypass checks are strictly preserved.
+4. Error handling is clear and user-facing behavior is verified.
+5. Relevant documentation under `docs/` is updated if behavior changes.
+6. **Code Quality & Verification Commands must pass with verified evidence**:
+   - `pnpm lint` (ESLint for Web, Ruff for API & Worker, Markdownlint for Docs)
+   - Formatting is clean (`prettier` and `ruff format`)
+6. **Code Quality, Formatting, & Dead Code Verification commands must pass with verified evidence**:
+   - `pnpm deadcode` (Knip for Web, Vulture for API & Worker: 0 dead code/unused exports)
+   - `pnpm format` (Prettier and Ruff format: clean code style across all services)
+   - `pnpm lint` (ESLint for Web, Ruff for API & Worker, Markdownlint for Docs: 0 errors)
+   - `pnpm lint:md` (Markdown files pass clean linting: 0 issues)
+   - `pnpm build` (TypeScript compilation and Next.js build pass with zero errors)
+   - Automated tests pass (`pnpm test:api`, `pnpm test:worker`, `pnpm test:web`)
+   - Automated tests pass (`pnpm test:web`, `pnpm test:api`, `pnpm test:worker`)
+7. **Git safety confirmed**: Changes remain unstaged until the user explicitly commands a commit.

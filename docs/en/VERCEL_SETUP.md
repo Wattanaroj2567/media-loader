@@ -1,5 +1,7 @@
 # Vercel Setup
 
+> **Language:** **English** · [ภาษาไทย](../th/VERCEL_SETUP.md)
+
 ## Purpose
 
 Vercel hosts the Next.js frontend.
@@ -12,9 +14,13 @@ Do not use Vercel Functions for heavy media download/conversion work.
 
 ```text
 apps/web → Vercel (Frontend UI)
-apps/api → Local Docker (FastAPI) + Cloudflare Tunnel (HTTPS)
-apps/worker → Local Docker (Python Worker)
+apps/api → Separate container host (FastAPI over HTTPS)
+apps/worker → Same machine/container environment as the shared media volume
 ```
+
+Vercel does not run this project's Docker Compose stack. It builds only
+`apps/web`; deploy the API and worker containers separately, then configure the
+frontend with the public HTTPS API URL.
 
 ---
 
@@ -24,7 +30,7 @@ Before deploying to Vercel, ensure you have:
 
 1. A Vercel account
 2. A Supabase project with Google OAuth configured
-3. Local Docker backend running (for development)
+3. Local services available through `pnpm dev` for development
 4. All environment variables set locally
 
 ---
@@ -41,6 +47,7 @@ Before deploying to Vercel, ensure you have:
 ## Step 2: Configure Project Settings
 
 ### Framework Preset
+
 - **Framework**: Next.js
 - **Root Directory**: Leave empty (root of repo)
 - **Build Command**: `cd apps/web && pnpm build`
@@ -74,11 +81,14 @@ After deployment, update your Supabase Auth settings:
 
 1. Go to Supabase Dashboard → Authentication → URL Configuration
 2. Add your Vercel URL to **Site URL**:
-   ```
+
+   ```text
    https://your-vercel-domain.vercel.app
    ```
+
 3. Add to **Redirect URLs**:
-   ```
+
+   ```text
    https://your-vercel-domain.vercel.app/auth/callback
    ```
 
@@ -97,15 +107,21 @@ After deployment, update your Supabase Auth settings:
 
 For production, you have options for the FastAPI backend and worker:
 
-### Option 1: Keep Local (Recommended for personal use)
-- Run Docker containers on your local machine or VPS
+### Option 1: Personal machine or VPS
+
+- Build and run the production-style API and worker with `pnpm docker:up`
 - Set `NEXT_PUBLIC_FASTAPI_BASE_URL` to your backend URL
-- Use nginx or similar to proxy requests
+- Use an HTTPS reverse proxy or a secure tunnel
 
 ### Option 2: Cloudflare Tunnel (Recommended)
+
 Expose your local Docker backend securely over HTTPS without port forwarding:
+
 - See [Cloudflare Tunnel Guide](CLOUDFLARE_TUNNEL_GUIDE.md)
 - Set `NEXT_PUBLIC_FASTAPI_BASE_URL` on Vercel to your assigned tunnel domain.
+
+The deployment platform must inject runtime secrets into the API and worker
+containers. Secrets are never included in either image.
 
 ---
 
@@ -141,16 +157,19 @@ The project includes `vercel.json` for monorepo configuration:
 ## Troubleshooting
 
 ### Build Fails
+
 - Check that `pnpm-workspace.yaml` is correct
 - Verify all dependencies are in `apps/web/package.json`
 - Check build logs for specific errors
 
 ### Auth Fails
+
 - Verify Supabase callback URL matches exactly
 - Check that Google OAuth is enabled in Supabase
 - Ensure NEXT_PUBLIC_SUPABASE_URL and ANON_KEY are correct
 
 ### API Calls Fail
+
 - Backend must be running (local or deployed)
 - Check CORS settings in FastAPI
 - Verify NEXT_PUBLIC_FASTAPI_BASE_URL is accessible

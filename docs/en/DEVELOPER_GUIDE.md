@@ -1,6 +1,6 @@
 # Developer Onboarding & Architecture Guide
 
-[English](DEVELOPER_GUIDE.md) | [ภาษาไทย](../th/DEVELOPER_GUIDE.md)
+> **Language:** **English** · [ภาษาไทย](../th/DEVELOPER_GUIDE.md)
 
 Welcome to the Media Loader developer documentation hub. This guide provides a comprehensive overview for developers working on or contributing to the codebase.
 
@@ -16,10 +16,12 @@ media-loader/
 │   ├── web/                 # Next.js 16 Frontend (App Router, Tailwind, Drizzle)
 │   ├── api/                 # FastAPI Backend Service (URL analysis & Policy engine)
 │   └── worker/              # Python Media Worker (Queue listener, yt-dlp, FFmpeg)
+├── apps/web/lib/db/
+│   └── schema.ts            # Source of truth for application tables and columns
 ├── supabase/
-│   ├── schema.sql           # Core PostgreSQL database schema
-│   ├── rls_policies.sql     # Supabase Row Level Security scripts
-│   └── migrations/          # Version-controlled database migrations
+│   ├── rls_policies.sql     # Supabase Row Level Security policies
+│   ├── profile_trigger.sql  # Auth-to-profile PostgreSQL function and trigger
+│   └── migrations/          # Historical bootstrap migrations; do not extend
 └── docs/                    # Architectural specs and setup guides
 ```
 
@@ -36,16 +38,19 @@ sequenceDiagram
     participant Storage as Supabase Storage / Local Temp
 
     User->>Web: Paste Media URL
-    Web->>API: POST /api/v1/analyze (URL)
+    Web->>API: POST /media/analyze (URL)
     API->>API: Run SSRF & Policy Checks
     API-->>Web: Return Media Formats & Metadata
-    User->>Web: Select Format & Click Download
-    Web->>DB: Insert Job (Status: PENDING)
-    Worker->>DB: Poll for PENDING Jobs
+    User->>Web: Select Format, confirm rights, and queue
+    Web->>API: POST /downloads
+    API->>API: Revalidate URL, policy, analysis, and format
+    API->>DB: Insert Job (Status: QUEUED, target worker pool)
+    Worker->>DB: Claim a QUEUED Job from its pool
     Worker->>Worker: Download & Process via yt-dlp / FFmpeg
-    Worker->>Storage: Store Output File / Local Temp
+    Worker->>Storage: Store Output in Local Temp / Optional Storage
     Worker->>DB: Update Job (Status: COMPLETED)
-    Web->>User: Display Progress & Download Link
+    Web->>API: Request authenticated file delivery
+    API->>User: Stream owner-scoped completed file
 ```
 
 ---
@@ -55,6 +60,7 @@ sequenceDiagram
 All primary development tasks can be run directly from the repository root directory using `pnpm`:
 
 ### Environment & Dependencies
+
 ```bash
 # Copy local environment template
 cp .env.example .env.local
@@ -68,18 +74,66 @@ pnpm check-env
 ```
 
 ### Running Local Development Servers
+
 ```bash
-# Terminal 1: Web Frontend (http://localhost:3000)
-pnpm dev:web
+# Default: Web, FastAPI with reload, and Worker in one terminal
+pnpm dev
 
-# Terminal 2: FastAPI Backend (http://localhost:8000)
-pnpm dev:api
+# Same stack, but tee all service logs into tmp/dev.log (git-ignored)
+# so AI agents can tail them later: pnpm dev:log
+```
 
-# Terminal 3: Python Media Worker
-pnpm dev:worker
+Use `pnpm dev:web`, `pnpm dev:api`, or `pnpm dev:worker` only when isolating a
+service. After a change is stable, run `pnpm docker:up` for a production-like
+API/worker integration check. Docker is not the default edit loop.
+
+### Testing
+
+```bash
+# Run unit tests across services
+pnpm test:web       # Next.js frontend (Node test runner)
+pnpm test:api       # FastAPI backend (pytest)
+pnpm test:worker    # Python Media Worker (pytest)
+
+# Run E2E tests
+pnpm test:e2e       # Frontend mock E2E (Playwright)
+pnpm test:api:e2e   # Python API/Worker integration script
+```
+
+### Code Quality (Linting & Formatting)
+
+```bash
+# Run lint checks across all services (ESLint + Ruff + Markdownlint)
+pnpm lint
+
+# Or run per-service:
+pnpm lint:web       # Next.js (ESLint)
+pnpm lint:api       # FastAPI (Ruff)
+pnpm lint:worker    # Media Worker (Ruff)
+pnpm lint:md        # Markdown files (markdownlint-cli2)
+pnpm lint:md:fix    # Auto-fix Markdown formatting
+
+# Format code automatically (Prettier + Ruff Format)
+pnpm format
+pnpm format:web     # Prettier
+pnpm format:api     # Ruff format
+pnpm format:worker  # Ruff format
+```
+
+### Dead Code Audit
+
+```bash
+# Audit unused files, exports, and functions (Knip + Vulture)
+pnpm deadcode
+
+# Or run per-service:
+pnpm deadcode:web     # Next.js (Knip: unused files/exports/packages)
+pnpm deadcode:api     # FastAPI (Vulture: unused functions/classes/variables)
+pnpm deadcode:worker  # Worker (Vulture)
 ```
 
 ### Database Operations (Drizzle ORM)
+
 ```bash
 # Push schema updates to Supabase / PostgreSQL
 pnpm --filter web db:push
@@ -112,9 +166,10 @@ Jobs in Media Loader follow a strict state transition flow:
 
 ```text
 PENDING ──> ANALYZING ──> READY ──> QUEUED ──> DOWNLOADING ──> CONVERTING ──> UPLOADING ──> COMPLETED
-                                                                                    └──> FAILED
-                                                                                    └──> BLOCKED
-                                                                                    └──> CANCELLED
+
+ANY STATUS ──> FAILED
+ANY STATUS ──> BLOCKED
+QUEUED / DOWNLOADING / CONVERTING ──> CANCELLED
 ```
 
 ---

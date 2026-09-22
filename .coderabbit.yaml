@@ -1,0 +1,48 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+language: "th-TH"
+early_access: false
+
+reviews:
+  profile: "chill"
+  request_changes_workflow: false
+  high_level_summary: true
+  poem: false
+  review_status: true
+  collapse_walkthrough: false
+  auto_review:
+    enabled: true
+    drafts: false
+    base_branches:
+      - "main"
+      - "master"
+      - "dev"
+  path_filters:
+    - "!**/pnpm-lock.yaml"
+    - "!**/uv.lock"
+    - "!patches/**"
+    - "!docs/diagrams/**"
+    - "!public/**"
+    - "!**/*.min.js"
+    - "!**/*.min.css"
+
+chat:
+  auto_reply: true
+
+knowledge_base:
+  opt_out: false
+  learnings:
+    scope: "auto"
+  instructions: |
+    โปรเจกต์นี้คือ "Media Loader" (เว็บแอปจัดการและแปลงสื่อส่วนตัวแบบปลอดภัยและเคารพสิทธิ์):
+    1. นโยบายความปลอดภัย (Non-negotiable Policy):
+       - ห้ามแนะนำโค้ดที่บายพาส DRM, บายพาส Login wall, หรือฝ่าฝืนข้อกำหนดของแพลตฟอร์มต้นทาง
+       - ทุก URL ต้องผ่านการตรวจสิทธิ์และ Policy ก่อนเสมอ (URL -> Validation -> Policy -> Analysis -> Job Queue -> Worker)
+    2. กฎการจัดการเครื่องมือ (Package Manager Rules):
+       - Python: ใช้ `uv` เท่านั้น (ห้ามใช้ `pip`)
+       - Node.js: ใช้ `pnpm` เท่านั้น
+    3. กฎโครงสร้างฐานข้อมูล (Database Rules):
+       - `apps/web/lib/db/schema.ts` เป็น Single Source of Truth สำหรับตารางใน DB โดยใช้ Drizzle ORM
+       - ห้ามสร้าง/แก้ไขตารางด้วย Raw SQL โดยตรง
+    4. สไตล์การรีวิว (Review Style):
+       - สรุปและให้คำแนะนำเป็นภาษาไทยที่กระชับ ตรงประเด็น สุภาพ
+       - เน้นตรวจจับข้อผิดพลาดเรื่องความปลอดภัย, Memory Leak, Performance และ Unhandled Exceptions ใน FastAPI/Next.js

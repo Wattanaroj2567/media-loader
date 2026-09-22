@@ -1,6 +1,6 @@
 # คู่มือการติดตั้งสภาพแวดล้อมระบบ (User Setup Guide)
 
-[English](USER_SETUP_GUIDE.md) | ภาษาไทย
+> **ภาษา:** [English](../en/USER_SETUP_GUIDE.md) · **ภาษาไทย**
 
 คู่มือการตั้งค่าสภาพแวดล้อมสำหรับการใช้งาน Media Loader บนเครื่องของคุณ
 
@@ -29,11 +29,13 @@ Database connection string
 ## ขั้นตอนที่ 2 — ใส่ค่าแปรสภาพแวดล้อมในเครื่อง Local
 
 1. คัดลอกแม่แบบไฟล์ Environment:
+
    ```bash
    cp .env.example .env.local
    ```
 
 2. เปิดไฟล์ `.env.local` แล้วใส่ค่าแปรสภาพแวดล้อมที่คัดลอกมา:
+
    ```env
    NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
    NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
@@ -42,6 +44,7 @@ Database connection string
    ```
 
 3. ตรวจสอบความถูกต้องของค่าแปรสภาพแวดล้อมโดยไม่แสดงรหัสลับ:
+
    ```bash
    pnpm check-env
    ```
@@ -75,25 +78,30 @@ Database connection string
 
 ## ขั้นตอนที่ 5 — อัปเดต Schema ฐานข้อมูลและ Migration
 
-ดูรายละเอียดกฎความปลอดภัยระดับตารางได้ที่ [`docs/SUPABASE_RLS_POLICY.th.md`](SUPABASE_RLS_POLICY.th.md)
+ดูรายละเอียดกฎความปลอดภัยระดับตารางได้ที่ [`SUPABASE_RLS_POLICY.md`](SUPABASE_RLS_POLICY.md)
 
 อัปเดต Schema ไปยัง Supabase PostgreSQL instance ของคุณ:
 
-### ทางเลือก A: อัปเดตผ่าน Drizzle Kit (แนะนำ)
+### สร้างตารางผ่าน Drizzle Kit
+
 ตรวจสอบว่ามีการกำหนด `DATABASE_URL` ใน `.env.local` แล้วสั่ง push schema โดยตรง:
+
 ```bash
 pnpm --filter web db:push
 ```
 
-### ทางเลือก B: ผ่าน Supabase SQL Editor
-คัดลอกและสั่งรันสคริปต์ SQL ตามลำดับตัวเลขจาก [`supabase/migrations/`](../supabase/migrations):
-1. `0001_initial_schema.sql`
-2. `0002_create_profile_trigger.sql`
-3. `0003_job_metadata.sql`
-4. `0004_lock_server_managed_tables.sql`
-5. `0005_selected_format_audio_flag.sql`
+### ติดตั้ง Policy และ Trigger เฉพาะของ Supabase
+
+หลัง Drizzle สร้างตารางแล้ว ให้รันไฟล์ SQL เฉพาะทางต่อไปนี้ผ่าน Supabase SQL Editor:
+
+1. [`supabase/profile_trigger.sql`](../../supabase/profile_trigger.sql)
+2. [`supabase/rls_policies.sql`](../../supabase/rls_policies.sql)
+
+ห้ามใช้ไฟล์เก่าใน `supabase/migrations/` สำหรับเพิ่มตารางหรือแก้คอลัมน์ใหม่
+โดย `apps/web/lib/db/schema.ts` เป็นแหล่งข้อมูล Schema หลักเพียงจุดเดียว
 
 เพื่อตรวจสอบว่าตารางถูกสร้างเรียบร้อยแล้ว ให้รันคำสั่งนี้ใน Supabase SQL Editor:
+
 ```sql
 SELECT table_name FROM information_schema.tables WHERE table_schema = 'public';
 ```
@@ -105,10 +113,12 @@ SELECT table_name FROM information_schema.tables WHERE table_schema = 'public';
 โหมดปกติจะใช้การบันทึกไฟล์ชั่วคราวบนเครื่อง Local (`local_temp`) การใช้ Supabase Storage จึงเป็นทางเลือกเสริม
 
 หากต้องการเปิดใช้งานโหมด Cloud Storage ให้สร้าง Bucket ส่วนตัวใน Supabase Dashboard:
+
 * **ชื่อ Bucket**: `media-downloads`
 * **การเข้าถึง**: Private (เปิดใช้ Row Level Security)
 
 รูปแบบโครงสร้างโฟลเดอร์ไฟล์:
+
 ```text
 {user_id}/{job_id}/output.mp4
 {user_id}/{job_id}/output.mp3
@@ -121,11 +131,13 @@ SELECT table_name FROM information_schema.tables WHERE table_schema = 'public';
 1. นำเข้า Repository เข้าไปยัง Vercel
 2. กำหนด Root Directory: `apps/web`
 3. กำหนดค่าตัวแปรสภาพแวดล้อม (Environment Variables) ใน Vercel Dashboard:
+
    ```env
    NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
    NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
    NEXT_PUBLIC_FASTAPI_BASE_URL=https://your-backend-api-url.com
    ```
+
 4. กดสั่ง Deploy
 
 ดูคู่มือการ Deploy บน Vercel ฉบับเต็มได้ที่ [`docs/VERCEL_SETUP.th.md`](VERCEL_SETUP.th.md)
@@ -135,15 +147,20 @@ SELECT table_name FROM information_schema.tables WHERE table_schema = 'public';
 ## ขั้นตอนที่ 8 — การสั่งรันระบบบนเครื่อง Local
 
 1. **ติดตั้ง Dependencies ทั้งระบบ Monorepo**:
+
    ```bash
    pnpm install
    pnpm setup:py
    ```
 
-2. **สั่งรันบริการ Development Servers (เปิด 3 หน้าต่าง Terminal ที่ Root)**:
-   * **Terminal 1 (Web Frontend)**: `pnpm dev:web`
-   * **Terminal 2 (FastAPI Backend)**: `pnpm dev:api`
-   * **Terminal 3 (Media Worker)**: `pnpm dev:worker`
+2. **เปิดบริการ local development ทั้งหมดจาก Root ของ Repository**:
+
+   ```bash
+   pnpm dev
+   ```
+
+   คำสั่งนี้เปิด Web, FastAPI แบบ reload และ Media Worker ใน Terminal เดียว
+   ส่วนคำสั่ง `pnpm dev:*` ยังใช้เมื่อต้องการแยก debug แต่ละบริการได้
 
 หากต้องการ build และเปิดเฉพาะ Next.js production server สำหรับทดสอบ Lighthouse
 ให้ตรวจสอบว่าพอร์ต `3000` ว่างอยู่ จากนั้นรัน:
@@ -166,6 +183,7 @@ pnpm check-env
 ```
 
 ผลลัพธ์ที่คาดหวัง:
+
 ```text
 Environment Check
 -----------------

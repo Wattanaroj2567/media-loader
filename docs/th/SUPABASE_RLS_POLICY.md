@@ -1,14 +1,19 @@
 # คู่มือกำหนดสิทธิ์ความปลอดภัยระดับตาราง (Supabase RLS Policy Guide)
 
-[English](SUPABASE_RLS_POLICY.md) | ภาษาไทย
+> **ภาษา:** [English](../en/SUPABASE_RLS_POLICY.md) · **ภาษาไทย**
 
 คู่มืออธิบายการกำหนดนโยบาย Row Level Security (RLS) สำหรับปกป้องข้อมูลผู้ใช้ใน Media Loader
 
-ไฟล์ SQL หลักสำหรับจัดการสิทธิ์ประกอบด้วย:
+การดูแลฐานข้อมูลแบ่งความรับผิดชอบดังนี้:
+
 ```text
-supabase/schema.sql
-supabase/rls_policies.sql
+apps/web/lib/db/schema.ts    → ตาราง คอลัมน์ Constraints และ Indexes
+supabase/profile_trigger.sql → ฟังก์ชันและ Trigger สำหรับโปรไฟล์จาก Auth
+supabase/rls_policies.sql    → นโยบาย Row Level Security
 ```
+
+ไฟล์ schema และ SQL แบบผสมใน `supabase/migrations/` เป็นประวัติการเริ่มต้นระบบ
+ห้ามเพิ่มการสร้างตารางหรือแก้คอลัมน์ใหม่ในไฟล์เหล่านั้น ให้แก้ผ่าน Drizzle schema เท่านั้น
 
 ---
 
@@ -17,6 +22,7 @@ supabase/rls_policies.sql
 ข้อมูลที่เป็นของผู้ใช้ทุกคนต้องได้รับการปกป้องด้วยเงื่อนไข `user_id = auth.uid()` หรือ `id = auth.uid()`
 
 ผู้ใช้งานแต่ละคนจะมีสิทธิ์เข้าถึงเฉพาะข้อมูลของตนเองเท่านั้น:
+
 - โปรไฟล์ (Profile)
 - คิวงานดาวน์โหลด (Download Jobs)
 - รายการฟอร์แมตสื่อ (Media Formats)
@@ -40,11 +46,13 @@ policy_logs
 ## รูปแบบนโยบายสิทธิ์ (Policy Pattern)
 
 สำหรับตารางที่มีคอลัมน์ `user_id`:
+
 ```sql
 USING (auth.uid() = user_id)
 ```
 
 สำหรับตาราง `profiles` ที่ `id` อ้างอิงถึง `auth.users(id)`:
+
 ```sql
 USING (auth.uid() = id)
 WITH CHECK (auth.uid() = id)
