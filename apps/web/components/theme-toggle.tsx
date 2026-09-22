@@ -6,11 +6,20 @@ import { Sun, Moon, Laptop, ChevronDown, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useT } from "@/lib/i18n/context";
 
-export interface ThemeToggleProps {
+interface ThemeToggleProps {
   className?: string;
   variant?: "segmented" | "dropdown" | "select";
   dropdownAlign?: "top" | "bottom";
   showLabel?: boolean;
+  /**
+   * Visual weight of the dropdown trigger.
+   * "surface" (default) shows its own border/background — use when the
+   * toggle stands alone. "ghost" is borderless/transparent by default and
+   * only reveals a background on hover — use when nesting the toggle
+   * inside another bordered container (e.g. a pill-shaped toolbar) so it
+   * doesn't create a mismatched double border/background.
+   */
+  tone?: "surface" | "ghost";
 }
 
 export function ThemeToggle({
@@ -18,6 +27,7 @@ export function ThemeToggle({
   variant = "segmented",
   dropdownAlign = "bottom",
   showLabel = true,
+  tone = "surface",
 }: ThemeToggleProps) {
   const [mounted, setMounted] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
@@ -43,11 +53,22 @@ export function ThemeToggle({
   if (!mounted) {
     if (variant === "segmented") {
       return (
-        <div className={cn("h-10 w-full animate-pulse rounded-xl border border-border/60 bg-bg-surface/40", className)} />
+        <div
+          className={cn(
+            "h-10 w-full animate-pulse rounded-xl border border-border/60 bg-bg-surface/40",
+            className
+          )}
+        />
       );
     }
     return (
-      <div className={cn("h-9 w-full animate-pulse rounded-xl border border-border/60 bg-bg-surface/40", className)} />
+      <div
+        className={cn(
+          "h-9 w-full animate-pulse rounded-full",
+          tone === "surface" && "border border-border/60 bg-bg-surface/40",
+          className
+        )}
+      />
     );
   }
 
@@ -87,7 +108,12 @@ export function ThemeToggle({
                   : "border border-transparent text-text-muted hover:bg-bg-surface/70 hover:text-text"
               )}
             >
-              <Icon className={cn("size-3.5 shrink-0 transition-transform duration-200", isActive && "scale-110 text-primary")} />
+              <Icon
+                className={cn(
+                  "size-3.5 shrink-0 transition-transform duration-200",
+                  isActive && "scale-110 text-primary"
+                )}
+              />
               <span className="truncate text-[11px] font-medium">{opt.label}</span>
             </button>
           );
@@ -101,7 +127,7 @@ export function ThemeToggle({
     const ActiveIcon = activeOption.icon;
 
     return (
-      <div className={cn("relative inline-block text-left", className)} ref={dropdownRef}>
+      <div className="relative inline-block text-left" ref={dropdownRef}>
         <button
           type="button"
           onClick={() => setIsOpen((prev) => !prev)}
@@ -110,14 +136,25 @@ export function ThemeToggle({
           aria-label={`${t("theme.selectLabel", {}, "เลือกธีม")}: ${activeOption.label}`}
           title={`${t("theme.selectLabel", {}, "เลือกธีม")}: ${activeOption.label}`}
           className={cn(
-            "flex cursor-pointer items-center justify-center rounded-xl border border-border/70 bg-bg-surface/40 text-xs font-semibold text-text-muted transition-all duration-200 hover:border-primary/40 hover:bg-primary/10 hover:text-primary outline-none",
-            showLabel ? "h-8.5 w-full gap-1.5 px-2.5" : "size-8.5"
+            "flex cursor-pointer items-center justify-center rounded-full text-xs font-semibold transition-all duration-200 outline-none",
+            tone === "ghost"
+              ? "text-text-muted hover:bg-bg-elevated hover:text-primary"
+              : "border border-border/70 bg-bg-surface/40 text-text-muted hover:border-primary/40 hover:bg-primary/10 hover:text-primary",
+            showLabel ? "h-8.5 w-full gap-1.5 px-2.5" : "size-8.5",
+            className
           )}
         >
-          <ActiveIcon className="size-3.5 shrink-0 text-text-muted transition-colors group-hover:text-primary" />
-          {showLabel && <span className="text-xs truncate text-text">{activeOption.label}</span>}
+          <ActiveIcon className="size-3.5 shrink-0 transition-colors" />
           {showLabel && (
-            <ChevronDown className={cn("size-3 text-text-dim transition-transform duration-200", isOpen && "rotate-180")} />
+            <span className="text-xs truncate text-text">{activeOption.label}</span>
+          )}
+          {showLabel && (
+            <ChevronDown
+              className={cn(
+                "size-3 text-text-dim transition-transform duration-200",
+                isOpen && "rotate-180"
+              )}
+            />
           )}
         </button>
 
@@ -125,7 +162,9 @@ export function ThemeToggle({
           <div
             className={cn(
               "absolute z-50 w-40 overflow-hidden rounded-2xl border border-border/80 bg-popover/95 p-1.5 backdrop-blur-xl animate-in fade-in-50 zoom-in-95 duration-150",
-              dropdownAlign === "top" ? "bottom-full mb-2 left-0" : "top-full mt-1.5 right-0"
+              dropdownAlign === "top"
+                ? "bottom-full mb-2 left-0"
+                : "top-full mt-1.5 right-0"
             )}
           >
             {options.map((opt) => {
@@ -176,7 +215,11 @@ export function ThemeToggle({
         className="h-9 w-full cursor-pointer rounded-xl border border-border bg-bg-surface/50 pl-7.5 pr-6 text-xs font-semibold text-text transition-all duration-200 hover:border-primary/40 hover:bg-bg-surface hover:text-primary outline-none focus:border-primary/60 focus:ring-2 focus:ring-primary/15 appearance-none"
       >
         {options.map((opt) => (
-          <option key={opt.value} value={opt.value} className="bg-bg-surface text-text font-sans">
+          <option
+            key={opt.value}
+            value={opt.value}
+            className="bg-bg-surface text-text font-sans"
+          >
             {opt.label}
           </option>
         ))}

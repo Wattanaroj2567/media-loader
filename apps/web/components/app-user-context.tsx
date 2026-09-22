@@ -17,9 +17,7 @@ export function AppUserProvider({
   children: ReactNode;
   user: AppUser;
 }) {
-  return (
-    <AppUserContext.Provider value={user}>{children}</AppUserContext.Provider>
-  );
+  return <AppUserContext.Provider value={user}>{children}</AppUserContext.Provider>;
 }
 
 export function useAppUser() {

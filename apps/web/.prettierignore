@@ -1,0 +1,10 @@
+node_modules
+.next
+.next*
+dist
+build
+out
+drizzle/migrations
+test-results
+playwright-report
+*.lock

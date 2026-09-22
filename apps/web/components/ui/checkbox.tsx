@@ -1,9 +1,9 @@
-"use client"
+"use client";
 
-import { Checkbox as CheckboxPrimitive } from "@base-ui/react/checkbox"
+import { Checkbox as CheckboxPrimitive } from "@base-ui/react/checkbox";
 
-import { cn } from "@/lib/utils"
-import { Check } from "lucide-react"
+import { cn } from "@/lib/utils";
+import { Check } from "lucide-react";
 
 function Checkbox({ className, ...props }: CheckboxPrimitive.Root.Props) {
   return (
@@ -22,7 +22,7 @@ function Checkbox({ className, ...props }: CheckboxPrimitive.Root.Props) {
         <Check />
       </CheckboxPrimitive.Indicator>
     </CheckboxPrimitive.Root>
-  )
+  );
 }
 
-export { Checkbox }
+export { Checkbox };

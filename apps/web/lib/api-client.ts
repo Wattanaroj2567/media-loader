@@ -1,3 +1,4 @@
+import { getGuestSessionId } from "./guest-session.ts";
 import { getDownloadFilename, type MediaFormat } from "./media-presenters.ts";
 
 function getApiBaseUrl(): string {
@@ -17,7 +18,7 @@ export interface Job {
   progress: number;
   selected_format: string;
   selected_quality?: string | null;
-  output_format: "mp4" | "mp3";
+  output_format: "mp4" | "mp3" | "gif";
   media_type?: "video" | "audio";
   title?: string | null;
   uploader?: string | null;
@@ -28,6 +29,7 @@ export interface Job {
   output_filename?: string | null;
   file_available?: boolean;
   file_size_mb?: number | null;
+  total_size_mb?: number | null;
   error_message?: string | null;
   created_at: string;
   updated_at: string;
@@ -49,6 +51,8 @@ export interface MediaMetadata {
   source_domain: string | null;
   view_count: number | null;
   like_count: number | null;
+  reaction_count: number | null;
+  is_animated_gif: boolean;
 }
 
 export interface MediaAnalysis {
@@ -57,10 +61,10 @@ export interface MediaAnalysis {
   formats: MediaFormat[];
 }
 
-export interface CreateJobInput {
+interface CreateJobInput {
   url: string;
   selected_format_id: string;
-  output_format: "mp4" | "mp3";
+  output_format: "mp4" | "mp3" | "gif";
   rights_confirmed: boolean;
 }
 
@@ -101,6 +105,25 @@ export function canShareFiles(): boolean {
 export function isMobileDevice(): boolean {
   if (typeof navigator === "undefined") return false;
   return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || "");
+}
+
+/**
+ * Detect iOS (iPhone / iPad) specifically.
+ *
+ * iOS Safari's Web Share sheet can offer "Save Video" / "Save Image" directly
+ * into the Photos app — a capability that makes Share the preferred primary
+ * action on iOS instead of a plain browser download.
+ *
+ * We also check navigator.maxTouchPoints > 1 to catch iPad on iPadOS 13+
+ * which reports itself as "Macintosh" in the UA string.
+ */
+export function isIosDevice(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return (
+    /iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+    // iPadOS 13+ masquerades as Mac but has touch support
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
+  );
 }
 
 /** Trigger a browser download from an in-memory blob (saves to Downloads / Files). */
@@ -144,6 +167,20 @@ function mimeFromFilename(filename: string): string | null {
   return mimeByExtension[extension] ?? null;
 }
 
+function apiErrorCode(payload: unknown): string | null {
+  if (
+    payload &&
+    typeof payload === "object" &&
+    "error" in payload &&
+    payload.error &&
+    typeof payload.error === "object" &&
+    "code" in payload.error
+  ) {
+    return String(payload.error.code);
+  }
+  return null;
+}
+
 function apiErrorMessage(payload: unknown, fallback: string) {
   if (
     payload &&
@@ -180,6 +217,27 @@ function networkErrorMessage(kind: "api" | "file"): string {
     : "ไม่สามารถดำเนินการได้ในขณะนี้ กรุณาลองใหม่อีกครั้ง";
 }
 
+export class ApiError extends Error {
+  readonly code: string | null;
+  readonly status: number;
+  readonly retryAfterSeconds: number | null;
+
+  constructor(
+    message: string,
+    options: {
+      code?: string | null;
+      status: number;
+      retryAfterSeconds?: number | null;
+    }
+  ) {
+    super(message);
+    this.name = "ApiError";
+    this.code = options.code ?? null;
+    this.status = options.status;
+    this.retryAfterSeconds = options.retryAfterSeconds ?? null;
+  }
+}
+
 export class UnauthorizedError extends Error {
   constructor(message = "Session หมดอายุ กรุณาเข้าสู่ระบบอีกครั้ง") {
     super(message);
@@ -195,15 +253,15 @@ export class ApiClient {
   constructor(
     baseUrl = getApiBaseUrl(),
     tokenProvider: TokenProvider = currentAccessToken,
-    fetcher: Fetcher = fetch,
+    fetcher: Fetcher = fetch
   ) {
     this.baseUrl = baseUrl;
     this.tokenProvider = tokenProvider;
     this.fetcher = fetcher.bind(typeof window !== "undefined" ? window : globalThis);
   }
 
-  private async authorizationHeaders(includeJson = true) {
-    let token: string | null;
+  private async authorizationHeaders(includeJson = true, requireAuth = false) {
+    let token: string | null = null;
     try {
       token = await this.tokenProvider();
     } catch (error) {
@@ -215,13 +273,21 @@ export class ApiClient {
         console.warn(`[Session Read Error]: ${detail}`);
       }
       throw new Error(
-        "ไม่สามารถตรวจสอบการเข้าสู่ระบบได้ กรุณาโหลดหน้าใหม่แล้วลองอีกครั้ง",
+        "ไม่สามารถตรวจสอบการเข้าสู่ระบบได้ กรุณาโหลดหน้าใหม่แล้วลองอีกครั้ง"
       );
     }
-    if (!token) {
+    if (requireAuth && !token) {
       throw new UnauthorizedError("Session หมดอายุ กรุณาเข้าสู่ระบบอีกครั้ง");
     }
-    const headers = new Headers({ Authorization: `Bearer ${token}` });
+    const headers = new Headers();
+    if (token) {
+      headers.set("Authorization", `Bearer ${token}`);
+    } else {
+      const guestId = getGuestSessionId();
+      if (guestId) {
+        headers.set("X-Guest-Session-ID", guestId);
+      }
+    }
     if (includeJson) headers.set("Content-Type", "application/json");
     return headers;
   }
@@ -229,19 +295,22 @@ export class ApiClient {
   private async request<T>(
     endpoint: string,
     options: RequestInit = {},
+    requireAuth = false
   ): Promise<T> {
-    const authorizationHeaders = await this.authorizationHeaders();
+    const authorizationHeaders = await this.authorizationHeaders(true, requireAuth);
     let response: Response;
     try {
       response = await this.fetcher(`${this.baseUrl}${endpoint}`, {
         ...options,
         headers: new Headers({
-          ...(Object.fromEntries(
-            authorizationHeaders.entries(),
-          ) as Record<string, string>),
-          ...(Object.fromEntries(
-            new Headers(options.headers).entries(),
-          ) as Record<string, string>),
+          ...(Object.fromEntries(authorizationHeaders.entries()) as Record<
+            string,
+            string
+          >),
+          ...(Object.fromEntries(new Headers(options.headers).entries()) as Record<
+            string,
+            string
+          >),
         }),
       });
     } catch (error) {
@@ -257,20 +326,27 @@ export class ApiClient {
       }
       throw error;
     }
-    const payload = (await response.json().catch(() => null)) as
-      | ApiEnvelope<T>
-      | null;
+    const payload = (await response.json().catch(() => null)) as ApiEnvelope<T> | null;
     if (response.status === 401) {
       throw new UnauthorizedError(
-        apiErrorMessage(payload, "Session หมดอายุ กรุณาเข้าสู่ระบบอีกครั้ง"),
+        apiErrorMessage(payload, "Session หมดอายุ กรุณาเข้าสู่ระบบอีกครั้ง")
       );
     }
     if (!response.ok || !payload?.ok || payload.data === null) {
-      throw new Error(
-        apiErrorMessage(
-          payload,
-          "ไม่สามารถดำเนินการได้ในขณะนี้ กรุณาลองใหม่อีกครั้ง",
-        ),
+      const retryAfterHeader = response.headers.get("Retry-After");
+      const retryAfterSeconds = retryAfterHeader
+        ? Number.parseInt(retryAfterHeader, 10)
+        : null;
+      throw new ApiError(
+        apiErrorMessage(payload, "ไม่สามารถดำเนินการได้ในขณะนี้ กรุณาลองใหม่อีกครั้ง"),
+        {
+          code: apiErrorCode(payload),
+          status: response.status,
+          retryAfterSeconds:
+            retryAfterSeconds !== null && Number.isFinite(retryAfterSeconds)
+              ? retryAfterSeconds
+              : null,
+        }
       );
     }
     return payload.data;
@@ -302,12 +378,14 @@ export class ApiClient {
     });
   }
 
-  async listJobs(options: {
-    limit?: number;
-    offset?: number;
-    status?: string;
-    query?: string;
-  } = {}): Promise<Job[]> {
+  async listJobs(
+    options: {
+      limit?: number;
+      offset?: number;
+      status?: string;
+      query?: string;
+    } = {}
+  ): Promise<Job[]> {
     const parameters = new URLSearchParams({
       limit: String(options.limit ?? 50),
       offset: String(options.offset ?? 0),
@@ -316,6 +394,8 @@ export class ApiClient {
     if (options.query) parameters.set("q", options.query);
     const data = await this.request<{ jobs: Job[]; total: number }>(
       `/downloads?${parameters.toString()}`,
+      {},
+      true
     );
     return data.jobs || [];
   }
@@ -367,7 +447,7 @@ export class ApiClient {
   }
 
   deleteAccount(): Promise<{ deleted: boolean }> {
-    return this.request("/account", { method: "DELETE" });
+    return this.request("/account", { method: "DELETE" }, true);
   }
 
   private async fileResponse(jobId: string) {
@@ -377,8 +457,8 @@ export class ApiClient {
         const response = await this.fetcher(
           `${this.baseUrl}/files/download/${encodeURIComponent(jobId)}`,
           {
-            headers: await this.authorizationHeaders(false),
-          },
+            headers: await this.authorizationHeaders(false, false),
+          }
         );
         if (!response.ok) {
           const payload = await response.json().catch(() => null);
@@ -399,7 +479,7 @@ export class ApiClient {
   }
 
   async chooseFileDestination(
-    preferredFilename: string,
+    preferredFilename: string
   ): Promise<FileDestination | null> {
     const pickerWindow = window as Window & {
       showSaveFilePicker?: (options: {
@@ -416,7 +496,7 @@ export class ApiClient {
   async downloadJobFile(
     jobId: string,
     preferredFilename: string,
-    destination: FileDestination | null = null,
+    destination: FileDestination | null = null
   ): Promise<"picker" | "download"> {
     if (destination) {
       const response = await this.fileResponse(jobId);
@@ -452,7 +532,7 @@ export class ApiClient {
    */
   async shareJobFile(
     jobId: string,
-    preferredFilename: string,
+    preferredFilename: string
   ): Promise<"shared" | "downloaded" | "unsupported"> {
     if (!canShareFiles()) return "unsupported";
 
@@ -460,7 +540,7 @@ export class ApiClient {
     const blob = await response.blob();
     const filename = getDownloadFilename(
       response.headers.get("Content-Disposition"),
-      preferredFilename,
+      preferredFilename
     );
     const file = new File([blob], filename, {
       // The API always serves octet-stream, but iOS decides whether the share
@@ -484,7 +564,6 @@ export class ApiClient {
       return "downloaded";
     }
   }
-
 }
 
 export const apiClient = new ApiClient();

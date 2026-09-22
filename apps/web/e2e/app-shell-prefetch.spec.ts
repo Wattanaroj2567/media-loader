@@ -2,10 +2,16 @@ import { expect, test } from "@playwright/test";
 
 const SESSION_COOKIE = "sb-localhost-auth-token";
 
-async function seedAuth(context: {
-  addCookies: (cookies: { name: string; value: string; url: string }[]) => Promise<void>;
-}, appOrigin: string) {
-  const encode = (value: object) => Buffer.from(JSON.stringify(value)).toString("base64url");
+async function seedAuth(
+  context: {
+    addCookies: (
+      cookies: { name: string; value: string; url: string }[]
+    ) => Promise<void>;
+  },
+  appOrigin: string
+) {
+  const encode = (value: object) =>
+    Buffer.from(JSON.stringify(value)).toString("base64url");
   const now = Math.floor(Date.now() / 1000);
   const user = {
     id: "user-prefetch-test",
@@ -35,12 +41,18 @@ async function seedAuth(context: {
   await context.addCookies([{ name: SESSION_COOKIE, value, url: appOrigin }]);
 }
 
-test("app shell does not duplicate destination prefetches on initial load", async ({ context, page }) => {
+test("app shell does not duplicate destination prefetches on initial load", async ({
+  context,
+  page,
+}) => {
   await seedAuth(context, new URL(test.info().project.use.baseURL!).origin);
   const routeRequests: string[] = [];
   page.on("request", (request) => {
     const url = new URL(request.url());
-    if (url.searchParams.has("_rsc") && ["/history", "/settings"].includes(url.pathname)) {
+    if (
+      url.searchParams.has("_rsc") &&
+      ["/history", "/settings"].includes(url.pathname)
+    ) {
       routeRequests.push(url.pathname);
     }
   });
@@ -48,6 +60,10 @@ test("app shell does not duplicate destination prefetches on initial load", asyn
   await page.goto("/dashboard");
   await page.waitForTimeout(500);
 
-  expect(routeRequests.filter((path) => path === "/history").length).toBeLessThanOrEqual(1);
-  expect(routeRequests.filter((path) => path === "/settings").length).toBeLessThanOrEqual(1);
+  expect(
+    routeRequests.filter((path) => path === "/history").length
+  ).toBeLessThanOrEqual(1);
+  expect(
+    routeRequests.filter((path) => path === "/settings").length
+  ).toBeLessThanOrEqual(1);
 });

@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { createContext, useContext, useState, useCallback, ReactNode } from 'react';
-import { X, CheckCircle2, AlertCircle, Info } from 'lucide-react';
+import { createContext, useContext, useState, useCallback, ReactNode } from "react";
+import { X, CheckCircle2, AlertCircle, Info } from "lucide-react";
 
-type ToastType = 'success' | 'error' | 'info';
+type ToastType = "success" | "error" | "info";
 
 interface Toast {
   id: number;
@@ -35,7 +35,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       setToasts((prev) => [...prev, { id, type, title, description }]);
       setTimeout(() => removeToast(id), 4000);
     },
-    [removeToast],
+    [removeToast]
   );
 
   const iconMap: Record<ToastType, ReactNode> = {
@@ -45,15 +45,15 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   };
 
   const borderMap: Record<ToastType, string> = {
-    success: 'border-emerald-500/20',
-    error: 'border-rose-500/20',
-    info: 'border-sky-500/20',
+    success: "border-emerald-500/20",
+    error: "border-rose-500/20",
+    info: "border-sky-500/20",
   };
 
   return (
     <ToastContext.Provider value={{ toast }}>
       {children}
-      <div className="pointer-events-none fixed inset-x-4 top-[max(1rem,env(safe-area-inset-top))] z-[10001] flex max-w-[calc(100vw-2rem)] flex-col gap-2 sm:left-auto sm:right-4 sm:top-4 sm:w-full sm:max-w-sm">
+      <div className="pointer-events-none fixed inset-x-4 top-[max(1rem,env(safe-area-inset-top))] z-10001 flex max-w-[calc(100vw-2rem)] flex-col gap-2 sm:left-auto sm:right-4 sm:top-4 sm:w-full sm:max-w-sm">
         {toasts.map((t) => (
           <div
             key={t.id}

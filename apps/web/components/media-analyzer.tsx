@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import {
   AlertCircle,
@@ -25,15 +26,24 @@ import { LoadingIndicator } from "@/components/loading-indicator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BorderBeam } from "@/components/ui/border-beam";
 import { useToast } from "@/components/toast";
-import { apiClient, type MediaAnalysis } from "@/lib/api-client";
+import { ApiError, apiClient, type MediaAnalysis } from "@/lib/api-client";
 import { registerPendingDownload } from "@/lib/download-coordinator";
 import { consumeRequestedMediaAnalysis } from "@/lib/analyzer-session";
-import { groupFormats, type MediaFormat } from "@/lib/media-presenters.ts";
+import {
+  formatCardTitle,
+  formatLikes,
+  formatReactions,
+  formatViews,
+  getAudioSourceFormats,
+  groupFormats,
+  type MediaFormat,
+} from "@/lib/media-presenters.ts";
 import { useT } from "@/lib/i18n/context";
 import { validateUrl } from "@/lib/url-validation";
+import { addGuestJobId } from "@/lib/guest-session";
 
 type AnalyzerState = "idle" | "analyzing" | "ready" | "blocked" | "error";
-type FormatTab = "video" | "audio";
+type FormatTab = "video" | "audio" | "gif";
 
 function formatDuration(seconds?: number | null) {
   if (!seconds || seconds < 0) return null;
@@ -53,70 +63,9 @@ function formatBytes(bytes?: number | null) {
   return `${mb.toFixed(1)} MB`;
 }
 
-function formatViews(views?: number | null, locale?: string) {
-  if (views === undefined || views === null || views < 0) return null;
-  if (locale === "th") {
-    if (views >= 1000000) return `${(views / 1000000).toFixed(1)} ล้านวิว`;
-    if (views >= 10000) return `${(views / 10000).toFixed(1)} หมื่นวิว`;
-    if (views >= 1000) return `${(views / 1000).toFixed(1)} พันวิว`;
-    return `${views.toLocaleString()} วิว`;
-  } else {
-    if (views >= 1000000) return `${(views / 1000000).toFixed(1)}M views`;
-    if (views >= 1000) return `${(views / 1000).toFixed(1)}K views`;
-    return `${views.toLocaleString()} views`;
-  }
-}
-
-function formatLikes(likes?: number | null, locale?: string) {
-  if (likes === undefined || likes === null || likes < 0) return null;
-  const compact = (value: number) => value.toFixed(1).replace(/\.0$/, "");
-
-  if (locale === "th") {
-    if (likes >= 1000000000) return `${compact(likes / 1000000000)} พันล้านไลก์`;
-    if (likes >= 1000000) return `${compact(likes / 1000000)} ล้านไลก์`;
-    if (likes >= 100000) return `${compact(likes / 100000)} แสนไลก์`;
-    if (likes >= 10000) return `${compact(likes / 10000)} หมื่นไลก์`;
-    if (likes >= 1000) return `${compact(likes / 1000)} พันไลก์`;
-    return `${likes.toLocaleString()} ไลก์`;
-  }
-
-  if (likes >= 1000000000) return `${compact(likes / 1000000000)}B likes`;
-  if (likes >= 1000000) return `${compact(likes / 1000000)}M likes`;
-  if (likes >= 1000) return `${compact(likes / 1000)}K likes`;
-  return `${likes.toLocaleString()} likes`;
-}
-
-
-
-function formatCardTitle(format: MediaFormat) {
-  if (format.type === "video") {
-    // For vertical videos (Reels/Shorts where height > width), use width as the resolution (e.g., 1080x1920 -> 1080p)
-    const effectiveRes = (format.width && format.height && format.height > format.width)
-      ? format.width
-      : format.height;
-
-    if (effectiveRes) {
-      if (effectiveRes >= 2160) return `${effectiveRes}p (4K)`;
-      if (effectiveRes >= 1440) return `${effectiveRes}p (2K)`;
-      return `${effectiveRes}p`;
-    }
-
-    if (format.quality_label) {
-      const cleanLabel = format.quality_label.replace(/(\d+p)\d+$/i, "$1");
-      return cleanLabel;
-    }
-  }
-
-  if (format.type === "audio" && format.bitrate) {
-    return `${Math.round(format.bitrate)} kbps`;
-  }
-
-  return format.quality_label || format.format_id;
-}
-
 function getAudioQualityLabel(
   bitrate: number,
-  t: (key: string, vars?: Record<string, string | number>, fallback?: string) => string,
+  t: (key: string, vars?: Record<string, string | number>, fallback?: string) => string
 ) {
   if (bitrate >= 256) {
     return t("download.audioStudio", {}, "คุณภาพระดับสตูดิโอ");
@@ -130,7 +79,10 @@ function getAudioQualityLabel(
   return t("download.audioLow", {}, "คุณภาพประหยัด");
 }
 
-function estimateFilesize(format: MediaFormat, durationSeconds?: number | null): string | null {
+function estimateFilesize(
+  format: MediaFormat,
+  durationSeconds?: number | null
+): string | null {
   if (format.filesize && format.filesize > 0) {
     return formatBytes(format.filesize);
   }
@@ -145,7 +97,8 @@ function estimateFilesize(format: MediaFormat, durationSeconds?: number | null):
   if (durationSeconds && durationSeconds > 0) {
     const res = Math.min(format.width || 0, format.height || 0) || format.height || 0;
     let estBitrateKbps = 0;
-    if (res >= 2160) estBitrateKbps = 12000;
+    if (res >= 4320) estBitrateKbps = 25000;
+    else if (res >= 2160) estBitrateKbps = 12000;
     else if (res >= 1440) estBitrateKbps = 6000;
     else if (res >= 1080) estBitrateKbps = 3200;
     else if (res >= 720) estBitrateKbps = 1600;
@@ -164,7 +117,7 @@ function estimateFilesize(format: MediaFormat, durationSeconds?: number | null):
 function formatCardMeta(
   format: MediaFormat,
   durationSeconds: number | null | undefined,
-  t: (key: string, vars?: Record<string, string | number>, fallback?: string) => string,
+  t: (key: string, vars?: Record<string, string | number>, fallback?: string) => string
 ) {
   const sizeLabel = estimateFilesize(format, durationSeconds);
   const pieces = [
@@ -186,10 +139,7 @@ function formatCardMeta(
 }
 
 function safeDownloadFilename(title: string, extension: string) {
-  return `${title || "media"}.${extension}`.replace(
-    /[<>:"/\\|?*\u0000-\u001F]/g,
-    "_",
-  );
+  return `${title || "media"}.${extension}`.replace(/[<>:"/\\|?*\u0000-\u001F]/g, "_");
 }
 
 function AnalyzerSkeleton() {
@@ -201,16 +151,32 @@ function AnalyzerSkeleton() {
         className="text-sm text-primary"
       />
       <div className="grid gap-4 rounded-2xl border border-border bg-bg-surface/55 p-4 sm:grid-cols-[240px_1fr]">
-        <Skeleton className="aspect-video w-full rounded-xl bg-bg-base/80" />
+        <Skeleton
+          className="aspect-video w-full rounded-xl bg-bg-base/80"
+          style={{ "--skeleton-delay": "0s" } as CSSProperties}
+        />
         <div className="space-y-3 py-1">
-          <Skeleton className="h-5 w-3/4 rounded-lg bg-bg-base/80" />
-          <Skeleton className="h-4 w-1/2 rounded-lg bg-bg-base/60" />
-          <Skeleton className="h-4 w-2/3 rounded-lg bg-bg-base/60" />
+          <Skeleton
+            className="h-5 w-3/4 rounded-lg bg-bg-base/80"
+            style={{ "--skeleton-delay": "0.12s" } as CSSProperties}
+          />
+          <Skeleton
+            className="h-4 w-1/2 rounded-lg bg-bg-base/60"
+            style={{ "--skeleton-delay": "0.24s" } as CSSProperties}
+          />
+          <Skeleton
+            className="h-4 w-2/3 rounded-lg bg-bg-base/60"
+            style={{ "--skeleton-delay": "0.36s" } as CSSProperties}
+          />
         </div>
       </div>
-      <div className="grid gap-2.5 grid-cols-2 sm:grid-cols-3 md:grid-cols-4">
+      <div className="grid gap-2.5 grid-cols-1 sm:grid-cols-3 md:grid-cols-4">
         {[1, 2, 3, 4].map((i) => (
-          <Skeleton key={i} className="h-16 rounded-2xl bg-bg-surface/80 border border-border/40" />
+          <Skeleton
+            key={i}
+            className="h-16 rounded-2xl bg-bg-surface/80 border border-border/40"
+            style={{ "--skeleton-delay": `${i * 0.12}s` } as CSSProperties}
+          />
         ))}
       </div>
     </div>
@@ -223,15 +189,23 @@ function FormatCard({
   selected,
   onSelect,
   isBest = false,
+  isGif = false,
 }: {
   format: MediaFormat;
   durationSeconds?: number | null;
   selected: boolean;
   onSelect: () => void;
   isBest?: boolean;
+  isGif?: boolean;
 }) {
   const { t } = useT();
-  const meta = formatCardMeta(format, durationSeconds, t) || (format.type === "video" ? t("download.videoFormat", {}, "สตรีมมิ่ง HD") : t("download.audioFormat", {}, "ไฟล์เสียง MP3"));
+  const meta = isGif
+    ? estimateFilesize(format, durationSeconds) || "GIF · ภาพเคลื่อนไหว"
+    : formatCardMeta(format, durationSeconds, t) ||
+      (format.type === "video"
+        ? t("download.videoFormat", {}, "สตรีมมิ่ง HD")
+        : t("download.audioFormat", {}, "ไฟล์เสียง MP3"));
+  const title = isGif ? "Original GIF" : formatCardTitle(format);
 
   return (
     <button
@@ -245,20 +219,26 @@ function FormatCard({
     >
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
-          <p className="truncate text-xs font-semibold leading-tight text-text group-hover:text-primary transition-colors">
-            {formatCardTitle(format)}
+          <p className="line-clamp-2 wrap-break-word whitespace-normal text-xs font-semibold leading-tight text-text group-hover:text-primary transition-colors">
+            {title}
           </p>
           {isBest && (
-            <span className="rounded-full border border-primary/30 bg-primary/15 px-1.5 py-0.2 text-[9px] font-bold text-text">
+            <span className="shrink-0 rounded-full border border-primary/30 bg-primary/15 px-1.5 py-0.2 text-[9px] font-bold text-text">
               BEST
             </span>
           )}
         </div>
-        <p className="mt-1 line-clamp-2 text-[11px] leading-tight text-text-muted">{meta}</p>
+        <p className="mt-1 line-clamp-2 text-[11px] leading-tight text-text-muted">
+          {meta}
+        </p>
       </div>
-      <div className={`grid size-5 shrink-0 place-items-center rounded-full border transition-all ${
-        selected ? "border-primary bg-primary text-primary-foreground" : "border-border/60 bg-transparent text-transparent group-hover:border-primary/40"
-      }`}>
+      <div
+        className={`grid size-5 shrink-0 place-items-center rounded-full border transition-all ${
+          selected
+            ? "border-primary bg-primary text-primary-foreground"
+            : "border-border/60 bg-transparent text-transparent group-hover:border-primary/40"
+        }`}
+      >
         <CheckCircle2 className="size-3.5" />
       </div>
     </button>
@@ -270,13 +250,83 @@ function tryConvertThaiLayout(text: string): string {
     return text;
   }
   const map: Record<string, string> = {
-    'ๅ': '1', 'ภ': '2', 'ถ': '3', 'ุ': '4', 'ึ': '5', 'ค': '6', 'ต': '7', 'จ': '8', 'ข': '9', 'ช': '0',
-    'ๆ': 'q', 'ไ': 'w', 'ำ': 'e', 'พ': 'r', 'ะ': 't', 'ั': 'y', 'ี': 'u', 'ร': 'i', 'น': 'o', 'ย': 'p', 'บ': '[', 'ล': ']', 'ฃ': '\\',
-    'ฟ': 'a', 'ห': 's', 'ก': 'd', 'ด': 'f', 'เ': 'g', '้': 'h', '่': 'j', 'า': 'k', 'ส': 'l', 'ว': ';', 'ง': '\'',
-    'ผ': 'z', 'ป': 'x', 'แ': 'c', 'อ': 'v', 'ิ': 'b', 'ื': 'n', 'ท': 'm', 'ม': ',', 'ใ': '.', 'ฝ': '/',
-    '+': '!', '๑': '@', '๒': '#', '๓': '$', '๔': '%', 'ู': '^', '฿': '&', '๕': '*', '๖': '(', '๗': ')', '๘': '_', '๙': '+',
-    '๐': 'Q', '"': 'W', 'ฎ': 'E', 'ฑ': 'R', 'ธ': 'T', 'ํ': 'Y', '๊': 'U', 'ณ': 'I', 'ฯ': 'O', 'ญ': 'P', 'ฐ': '{',
-    'ฤ': 'A', 'ฆ': 'S', 'ฏ': 'D', 'โ': 'F', 'ฌ': 'G', '็': 'H', '๋': 'J', 'ษ': 'K', 'ศ': 'L', 'ซ': ':'
+    ๅ: "1",
+    ภ: "2",
+    ถ: "3",
+    "ุ": "4",
+    "ึ": "5",
+    ค: "6",
+    ต: "7",
+    จ: "8",
+    ข: "9",
+    ช: "0",
+    ๆ: "q",
+    ไ: "w",
+    ำ: "e",
+    พ: "r",
+    ะ: "t",
+    "ั": "y",
+    "ี": "u",
+    ร: "i",
+    น: "o",
+    ย: "p",
+    บ: "[",
+    ล: "]",
+    ฃ: "\\",
+    ฟ: "a",
+    ห: "s",
+    ก: "d",
+    ด: "f",
+    เ: "g",
+    "้": "h",
+    "่": "j",
+    า: "k",
+    ส: "l",
+    ว: ";",
+    ง: "'",
+    ผ: "z",
+    ป: "x",
+    แ: "c",
+    อ: "v",
+    "ิ": "b",
+    "ื": "n",
+    ท: "m",
+    ม: ",",
+    ใ: ".",
+    ฝ: "/",
+    "+": "!",
+    "๑": "@",
+    "๒": "#",
+    "๓": "$",
+    "๔": "%",
+    "ู": "^",
+    "฿": "&",
+    "๕": "*",
+    "๖": "(",
+    "๗": ")",
+    "๘": "_",
+    "๙": "+",
+    "๐": "Q",
+    '"': "W",
+    ฎ: "E",
+    ฑ: "R",
+    ธ: "T",
+    "ํ": "Y",
+    "๊": "U",
+    ณ: "I",
+    ฯ: "O",
+    ญ: "P",
+    ฐ: "{",
+    ฤ: "A",
+    ฆ: "S",
+    ฏ: "D",
+    โ: "F",
+    ฌ: "G",
+    "็": "H",
+    "๋": "J",
+    ษ: "K",
+    ศ: "L",
+    ซ: ":",
   };
   return text
     .split("")
@@ -288,7 +338,10 @@ function getYouTubeEmbedUrl(url?: string | null): string | null {
   if (!url) return null;
   try {
     const parsed = new URL(url);
-    if (parsed.hostname.includes("youtube.com") || parsed.hostname.includes("youtu.be")) {
+    if (
+      parsed.hostname.includes("youtube.com") ||
+      parsed.hostname.includes("youtu.be")
+    ) {
       let videoId: string | null = null;
       if (parsed.hostname.includes("youtu.be")) {
         videoId = parsed.pathname.slice(1);
@@ -320,6 +373,7 @@ export function MediaAnalyzer() {
   const [activeTab, setActiveTab] = useState<FormatTab>("video");
   const [errorMessage, setErrorMessage] = useState("");
   const [queueing, setQueueing] = useState(false);
+  const [justQueued, setJustQueued] = useState(false);
   const [showLightbox, setShowLightbox] = useState(false);
   const [lightboxTab, setLightboxTab] = useState<"video" | "image">("video");
   const [isVideoLoading, setIsVideoLoading] = useState(true);
@@ -327,6 +381,7 @@ export function MediaAnalyzer() {
 
   const [isLoaded, setIsLoaded] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const queuedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const embedUrl = useMemo(() => getYouTubeEmbedUrl(analyzedUrl), [analyzedUrl]);
 
@@ -344,9 +399,13 @@ export function MediaAnalyzer() {
   }, [showLightbox]);
 
   // Clean up pending abort controller on unmount
+  // Clean up pending abort controller and timers on unmount
   useEffect(() => {
     return () => {
       abortControllerRef.current?.abort();
+      if (queuedTimerRef.current) {
+        clearTimeout(queuedTimerRef.current);
+      }
     };
   }, []);
 
@@ -362,10 +421,14 @@ export function MediaAnalyzer() {
       }
 
       const savedUrl = sessionStorage.getItem("media_loader_analyzer_url");
-      const savedAnalyzedUrl = sessionStorage.getItem("media_loader_analyzer_analyzed_url");
+      const savedAnalyzedUrl = sessionStorage.getItem(
+        "media_loader_analyzer_analyzed_url"
+      );
       const savedState = sessionStorage.getItem("media_loader_analyzer_state");
       const savedAnalysis = sessionStorage.getItem("media_loader_analyzer_analysis");
-      const savedSelectedFormatId = sessionStorage.getItem("media_loader_analyzer_selected_format_id");
+      const savedSelectedFormatId = sessionStorage.getItem(
+        "media_loader_analyzer_selected_format_id"
+      );
       const savedActiveTab = sessionStorage.getItem("media_loader_analyzer_active_tab");
 
       if (savedUrl) setUrl(savedUrl);
@@ -388,15 +451,24 @@ export function MediaAnalyzer() {
       if (url) sessionStorage.setItem("media_loader_analyzer_url", url);
       else sessionStorage.removeItem("media_loader_analyzer_url");
 
-      if (analyzedUrl) sessionStorage.setItem("media_loader_analyzer_analyzed_url", analyzedUrl);
+      if (analyzedUrl)
+        sessionStorage.setItem("media_loader_analyzer_analyzed_url", analyzedUrl);
       else sessionStorage.removeItem("media_loader_analyzer_analyzed_url");
 
       sessionStorage.setItem("media_loader_analyzer_state", state);
 
-      if (analysis) sessionStorage.setItem("media_loader_analyzer_analysis", JSON.stringify(analysis));
+      if (analysis)
+        sessionStorage.setItem(
+          "media_loader_analyzer_analysis",
+          JSON.stringify(analysis)
+        );
       else sessionStorage.removeItem("media_loader_analyzer_analysis");
 
-      if (selectedFormatId) sessionStorage.setItem("media_loader_analyzer_selected_format_id", selectedFormatId);
+      if (selectedFormatId)
+        sessionStorage.setItem(
+          "media_loader_analyzer_selected_format_id",
+          selectedFormatId
+        );
       else sessionStorage.removeItem("media_loader_analyzer_selected_format_id");
 
       sessionStorage.setItem("media_loader_analyzer_active_tab", activeTab);
@@ -417,23 +489,57 @@ export function MediaAnalyzer() {
 
   const groupedFormats = useMemo(
     () => groupFormats(analysis?.formats ?? []),
-    [analysis?.formats],
+    [analysis?.formats]
+  );
+
+  const audioSourceFormats = useMemo(
+    () => getAudioSourceFormats(analysis?.formats ?? []),
+    [analysis?.formats]
   );
 
   const selectedFormat = useMemo(
     () =>
       [...groupedFormats.video, ...groupedFormats.audio].find(
-        (f) => f.format_id === selectedFormatId,
+        (f) => f.format_id === selectedFormatId
       ) || null,
-    [groupedFormats, selectedFormatId],
+    [groupedFormats, selectedFormatId]
   );
 
-  const visibleFormats = groupedFormats[activeTab] || [];
+  const visibleFormats =
+    activeTab === "audio" ? audioSourceFormats : groupedFormats.video;
+  const isGiphy = useMemo(() => {
+    return (
+      media?.platform?.toLowerCase() === "giphy" ||
+      Boolean(sourceDomain?.toLowerCase().includes("giphy")) ||
+      analyzedUrl.toLowerCase().includes("giphy.com")
+    );
+  }, [media?.platform, sourceDomain, analyzedUrl]);
+
+  const availableTabs: readonly FormatTab[] = useMemo(() => {
+    if (isGiphy) return ["gif"];
+    if (media?.is_animated_gif) return ["gif", "video"];
+    return ["video", "audio"];
+  }, [isGiphy, media?.is_animated_gif]);
+
+  const handleSelectFormat = useCallback((formatId: string) => {
+    setSelectedFormatId(formatId);
+    setJustQueued(false);
+    if (queuedTimerRef.current) {
+      clearTimeout(queuedTimerRef.current);
+      queuedTimerRef.current = null;
+    }
+  }, []);
 
   const reset = useCallback(() => {
     // Cancel any pending analysis request
     abortControllerRef.current?.abort();
     abortControllerRef.current = null;
+
+    if (queuedTimerRef.current) {
+      clearTimeout(queuedTimerRef.current);
+      queuedTimerRef.current = null;
+    }
+    setJustQueued(false);
 
     setUrl("");
     setState("idle");
@@ -454,80 +560,98 @@ export function MediaAnalyzer() {
     }
   }, []);
 
-  const analyze = useCallback(async (targetUrl?: string) => {
-    const inputUrl = targetUrl !== undefined ? targetUrl : url;
-    const convertedUrl = tryConvertThaiLayout(inputUrl);
-    const validation = validateUrl(convertedUrl);
-    if (!validation.valid) {
-      setState("error");
-      setErrorMessage(validation.error || t("download.failedDesc"));
-      return;
-    }
-
-    // Cancel any previous requests
-    abortControllerRef.current?.abort();
-    const controller = new AbortController();
-    abortControllerRef.current = controller;
-
-    setState("analyzing");
-    setAnalysis(null);
-    setAnalyzedUrl(validation.url);
-    setSelectedFormatId("");
-    setErrorMessage("");
-
-    try {
-      const result = await apiClient.analyzeMedia(validation.url, { signal: controller.signal });
-      if (controller.signal.aborted) return;
-
-      if (result) {
-        setAnalysis(result);
-        const hasFormats = result.formats && result.formats.length > 0;
-        if (result.policy.decision === "blocked") {
-          setState("blocked");
-        } else if (!hasFormats) {
-          setState("error");
-          setErrorMessage(t("download.noFormats"));
-        } else {
-          setState("ready");
-          toast("success", t("download.policyPassed", {}, "ตรวจสอบสิทธิ์การดาวน์โหลดผ่านแล้ว"));
-          const grouped = groupFormats(result.formats);
-          const firstVideo = grouped.video[0];
-          const firstAudio = grouped.audio[0];
-          if (firstVideo) {
-            setActiveTab("video");
-            setSelectedFormatId(firstVideo.format_id);
-          } else if (firstAudio) {
-            setActiveTab("audio");
-            setSelectedFormatId(firstAudio.format_id);
-          }
-        }
-      } else {
+  const analyze = useCallback(
+    async (targetUrl?: string) => {
+      const inputUrl = targetUrl !== undefined ? targetUrl : url;
+      const convertedUrl = tryConvertThaiLayout(inputUrl);
+      const validation = validateUrl(convertedUrl);
+      if (!validation.valid) {
         setState("error");
-        setErrorMessage(t("download.failedDesc"));
-      }
-    } catch (err: unknown) {
-      const isAbort =
-        controller.signal.aborted ||
-        (err instanceof Error && err.name === "AbortError");
-      if (isAbort) {
-        // Suppress error reporting if the user aborted the request
+        setErrorMessage(validation.error || t("download.failedDesc"));
         return;
       }
-      console.warn("[Media Analysis Error]:", err);
-      setState("error");
-      const message = t(
-        "download.failedDesc",
-        {},
-        "ไม่สามารถวิเคราะห์ข้อมูลสื่อจากลิงก์นี้ได้ โปรดตรวจสอบความถูกต้องของ URL หรือลองใหม่อีกครั้ง",
-      );
-      setErrorMessage(message);
-      toast("error", t("download.failed"), message);
-    } finally {
-      if (abortControllerRef.current === controller) {
-        abortControllerRef.current = null;
+
+      // Cancel any previous requests
+      abortControllerRef.current?.abort();
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+
+      setState("analyzing");
+      setAnalysis(null);
+      setAnalyzedUrl(validation.url);
+      setSelectedFormatId("");
+      setErrorMessage("");
+
+      try {
+        const result = await apiClient.analyzeMedia(validation.url, {
+          signal: controller.signal,
+        });
+        if (controller.signal.aborted) return;
+
+        if (result) {
+          setAnalysis(result);
+          const hasFormats = result.formats && result.formats.length > 0;
+          if (result.policy.decision === "blocked") {
+            setState("blocked");
+          } else if (!hasFormats) {
+            setState("error");
+            setErrorMessage(t("download.noFormats"));
+          } else {
+            setState("ready");
+            toast(
+              "success",
+              t("download.policyPassed", {}, "ตรวจสอบสิทธิ์การดาวน์โหลดผ่านแล้ว")
+            );
+            const grouped = groupFormats(result.formats);
+            const firstVideo = grouped.video[0];
+            const firstAudio = grouped.audio[0];
+            const isGiphyMedia =
+              result.media?.platform?.toLowerCase() === "giphy" ||
+              Boolean(result.media?.source_domain?.toLowerCase().includes("giphy")) ||
+              validation.url.toLowerCase().includes("giphy.com");
+
+            if (isGiphyMedia || result.media?.is_animated_gif) {
+              setActiveTab("gif");
+              if (firstVideo) {
+                setSelectedFormatId(firstVideo.format_id);
+              }
+            } else if (firstVideo) {
+              setActiveTab("video");
+              setSelectedFormatId(firstVideo.format_id);
+            } else if (firstAudio) {
+              setActiveTab("audio");
+              setSelectedFormatId(firstAudio.format_id);
+            }
+          }
+        } else {
+          setState("error");
+          setErrorMessage(t("download.failedDesc"));
+        }
+      } catch (err: unknown) {
+        const isAbort =
+          controller.signal.aborted ||
+          (err instanceof Error && err.name === "AbortError");
+        if (isAbort) {
+          // Suppress error reporting if the user aborted the request
+          return;
+        }
+        console.warn("[Media Analysis Error]:", err);
+        setState("error");
+        const message = t(
+          "download.failedDesc",
+          {},
+          "ไม่สามารถวิเคราะห์ข้อมูลสื่อจากลิงก์นี้ได้ โปรดตรวจสอบความถูกต้องของ URL หรือลองใหม่อีกครั้ง"
+        );
+        setErrorMessage(message);
+        toast("error", t("download.failed"), message);
+      } finally {
+        if (abortControllerRef.current === controller) {
+          abortControllerRef.current = null;
+        }
       }
-    }
-  }, [url, toast, t]);
+    },
+    [url, toast, t]
+  );
 
   useEffect(() => {
     if (!isLoaded || !requestedAnalysisUrl) return;
@@ -538,7 +662,12 @@ export function MediaAnalyzer() {
   const startDownload = useCallback(async () => {
     if (!analyzedUrl || !selectedFormat || !media) return;
 
-    const outputFormat = selectedFormat.type === "audio" ? "mp3" : "mp4";
+    const outputFormat =
+      activeTab === "audio"
+        ? "mp3"
+        : activeTab === "gif" && media.is_animated_gif
+          ? "gif"
+          : "mp4";
     const filename = safeDownloadFilename(media.title, outputFormat);
     setQueueing(true);
     try {
@@ -549,26 +678,92 @@ export function MediaAnalyzer() {
         rights_confirmed: true,
       });
       if (job) {
+        addGuestJobId(job.job_id);
         registerPendingDownload(job.job_id, filename, null);
-        window.dispatchEvent(new CustomEvent("media-loader:job-created", { detail: { jobId: job.job_id } }));
-        window.dispatchEvent(new CustomEvent("media-loader:jobs-changed"));
+        setJustQueued(true);
+        if (queuedTimerRef.current) {
+          clearTimeout(queuedTimerRef.current);
+        }
+        queuedTimerRef.current = setTimeout(() => {
+          setJustQueued(false);
+          queuedTimerRef.current = null;
+        }, 2500);
+        toast("success", t("download.queued"), t("download.queuedDesc"));
+
+        const optimisticJob = {
+          id: job.job_id,
+          original_url: analyzedUrl,
+          source_domain: media.source_domain,
+          platform: media.platform,
+          title: media.title,
+          uploader: media.uploader,
+          duration_seconds: media.duration_seconds,
+          thumbnail_url: media.thumbnail_url,
+          status: job.status || "QUEUED",
+          progress: 0,
+          selected_format: selectedFormat.quality_label || selectedFormat.format_id,
+          selected_quality: selectedFormat.quality_label,
+          output_format: outputFormat,
+          created_at: new Date().toISOString(),
+        };
+
+        window.dispatchEvent(
+          new CustomEvent("media-loader:jobs-changed", {
+            detail: { job: optimisticJob },
+          })
+        );
+
+        // The queue renders below the analyzer, so bring it into view once
+        // the optimistic job has been painted.
+        window.requestAnimationFrame(() => {
+          window.setTimeout(() => {
+            const target =
+              document.getElementById("download-queue-anchor") ||
+              document.getElementById("download-queue");
+            if (!target) return;
+            const reduceMotion =
+              typeof window.matchMedia === "function" &&
+              window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+            target.scrollIntoView({
+              behavior: reduceMotion ? "auto" : "smooth",
+              block: "start",
+            });
+          }, 120);
+        });
       } else {
-        toast("error", t("download.failed"), t("download.failedDesc"));
+        toast("error", t("download.queueFailed"), t("download.queueFailedDesc"));
       }
     } catch (err) {
       console.warn("[Start Download Error]:", err);
-      toast("error", t("download.failed"), t("error.genericDesc"));
+      if (
+        err instanceof ApiError &&
+        (err.code === "TOO_MANY_REQUESTS" || err.status === 429)
+      ) {
+        toast(
+          "error",
+          t("download.rateLimited"),
+          t("download.rateLimitedDesc", {
+            seconds: err.retryAfterSeconds ?? 60,
+          })
+        );
+      } else {
+        const message =
+          err instanceof Error && err.message.trim()
+            ? err.message
+            : t("download.queueFailedDesc");
+        toast("error", t("download.queueFailed"), message);
+      }
     } finally {
       setQueueing(false);
     }
-  }, [analyzedUrl, media, selectedFormat, t, toast]);
+  }, [activeTab, analyzedUrl, media, selectedFormat, t, toast]);
 
   return (
     <div className="w-full">
       {/* ── Search bar hero ── */}
       <div className="mb-5">
         <p className="ui-kicker mb-3">
-          {t("download.placeholderLabel", {}, "วางลิงก์วิดีโอหรือเสียง")}
+          {t("download.placeholderLabel", {}, "วางลิงก์คลิป")}
         </p>
         <div className="group relative overflow-hidden flex min-h-16 gap-2 rounded-2xl border border-border bg-bg-surface/60 p-2 transition-all duration-200 focus-within:border-primary/60 focus-within:bg-bg-elevated focus-within:ring-3 focus-within:ring-primary/15">
           {state === "analyzing" && (
@@ -580,11 +775,24 @@ export function MediaAnalyzer() {
           <input
             type="url"
             value={url}
+            // Browser extensions (autofill/password managers) may tag this
+            // field with extra attributes before hydration; tolerate that.
+            suppressHydrationWarning
+            autoComplete="off"
+            autoCorrect="off"
+            spellCheck={false}
             onChange={(e) => setUrl(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter") {
                 void analyze();
               }
+            }}
+            onPaste={(e) => {
+              const pasted = e.clipboardData.getData("text").trim();
+              if (!pasted) return;
+              const converted = tryConvertThaiLayout(pasted);
+              // Let React update the input value first, then analyze
+              window.setTimeout(() => void analyze(converted), 0);
             }}
             placeholder="https://..."
             className="min-w-0 flex-1 bg-transparent py-2 text-base font-medium text-text placeholder:font-normal placeholder:text-text-dim outline-none sm:text-lg"
@@ -616,7 +824,10 @@ export function MediaAnalyzer() {
                     }
                   }
                 } catch (err) {
-                  console.warn("[Paste Action Error]: Clipboard access denied or empty", err);
+                  console.warn(
+                    "[Paste Action Error]: Clipboard access denied or empty",
+                    err
+                  );
                 }
               }}
               title={t("download.pasteTitle", {}, "คัดลอกลิงก์แล้วกดวาง")}
@@ -629,9 +840,7 @@ export function MediaAnalyzer() {
         </div>
         <div className="mt-3 flex items-start gap-2.5 rounded-xl border border-border/70 bg-bg-surface/40 px-3.5 py-2.5 text-[11px] leading-relaxed text-text-muted">
           <Info className="mt-0.5 size-3.5 shrink-0 text-primary" />
-          <p className="font-medium">
-            {t("download.policyNote")}
-          </p>
+          <p className="font-medium">{t("download.policyNote")}</p>
         </div>
       </div>
 
@@ -683,7 +892,11 @@ export function MediaAnalyzer() {
                   setShowLightbox(true);
                 }}
                 title={t("download.viewMedia", {}, "คลิกเพื่อรับชมมีเดียแบบเต็มจอ")}
-                aria-label={t("download.viewMedia", {}, "คลิกเพื่อรับชมมีเดียแบบเต็มจอ")}
+                aria-label={t(
+                  "download.viewMedia",
+                  {},
+                  "คลิกเพื่อรับชมมีเดียแบบเต็มจอ"
+                )}
                 className="group block aspect-video w-full overflow-hidden rounded-2xl border border-border/80 bg-bg-surface text-left transition-all duration-200 hover:border-primary/50 active:scale-[0.99] cursor-pointer"
               >
                 {/* The analyzed thumbnail is the dashboard's LCP image. */}
@@ -734,10 +947,12 @@ export function MediaAnalyzer() {
                     {formatViews(media.view_count, locale)}
                   </span>
                 )}
-                {formatLikes(media.like_count, locale) && (
+                {(formatLikes(media.like_count, locale) ??
+                  formatReactions(media.reaction_count, locale)) && (
                   <span className="flex items-center gap-1.5 text-xs text-text-muted sm:text-sm">
                     <Heart className="size-3.5 shrink-0 text-text-dim" />
-                    {formatLikes(media.like_count, locale)}
+                    {formatLikes(media.like_count, locale) ??
+                      formatReactions(media.reaction_count, locale)}
                   </span>
                 )}
                 {media.platform && (
@@ -757,15 +972,20 @@ export function MediaAnalyzer() {
                 {t("download.quality")}
               </p>
               <div className="flex gap-1 rounded-xl border border-border/80 bg-bg-base/60 p-1">
-                {(["video", "audio"] as const).map((tab) => (
+                {availableTabs.map((tab) => (
                   <button
                     key={tab}
                     type="button"
                     onClick={() => {
                       setActiveTab(tab);
-                      setSelectedFormatId(groupedFormats[tab][0]?.format_id || "");
+                      const formats =
+                        tab === "audio" ? audioSourceFormats : groupedFormats.video;
+                      handleSelectFormat(formats[0]?.format_id || "");
                     }}
-                    disabled={groupedFormats[tab].length === 0}
+                    disabled={
+                      (tab === "audio" ? audioSourceFormats : groupedFormats.video)
+                        .length === 0
+                    }
                     className={`min-h-9 rounded-lg px-3.5 py-1 text-xs font-semibold transition-all duration-200 cursor-pointer disabled:cursor-not-allowed disabled:opacity-30 ${
                       activeTab === tab
                         ? "bg-primary text-primary-foreground"
@@ -774,7 +994,9 @@ export function MediaAnalyzer() {
                   >
                     {tab === "video"
                       ? `${t("download.video")} (MP4)`
-                      : `${t("download.audio")} (MP3)`}
+                      : tab === "audio"
+                        ? `${t("download.audio")} (MP3)`
+                        : "GIF"}
                   </button>
                 ))}
               </div>
@@ -786,31 +1008,41 @@ export function MediaAnalyzer() {
                 {t("download.noFormats")}
               </p>
             ) : (
-              <div className="grid gap-2.5 grid-cols-2 sm:grid-cols-3 md:grid-cols-4">
+              <div className="grid gap-2.5 grid-cols-1 sm:grid-cols-3 md:grid-cols-4">
                 {visibleFormats.map((format, index) => (
                   <FormatCard
                     key={`${format.type}-${format.format_id}`}
                     format={format}
                     durationSeconds={media.duration_seconds}
                     selected={selectedFormatId === format.format_id}
-                    onSelect={() => setSelectedFormatId(format.format_id)}
+                    onSelect={() => handleSelectFormat(format.format_id)}
                     isBest={index === 0}
+                    isGif={activeTab === "gif"}
                   />
                 ))}
               </div>
             )}
 
-            {/* Download Action Footer (Right-aligned, comfortable width on desktop/Windows) */}
+            {/* Download Action Footer */}
             <div className="mt-5 flex justify-end">
-              <div className="flex w-full flex-col items-stretch sm:w-80 sm:items-end">
+              <div className="flex w-full flex-col items-stretch sm:w-auto sm:items-end">
                 <Button
                   type="button"
                   onClick={() => void startDownload()}
                   disabled={!selectedFormat || queueing}
-                  className="h-11 w-full rounded-xl px-8 text-xs font-semibold sm:w-50 cursor-pointer"
+                  className={`h-11 w-full rounded-xl px-8 text-xs font-semibold sm:w-50 cursor-pointer transition-all ${
+                    justQueued
+                      ? "border-emerald-500/40 bg-emerald-600/90 hover:bg-emerald-600 text-white"
+                      : ""
+                  }`}
                 >
                   {queueing ? (
                     <LoadingIndicator label={t("download.preparing")} />
+                  ) : justQueued ? (
+                    <>
+                      <CheckCircle2 className="size-4 text-white" />
+                      {t("download.queued", {}, "เพิ่มเข้าคิวแล้ว")}
+                    </>
                   ) : (
                     <>
                       <Download className="size-4" />
@@ -825,126 +1057,134 @@ export function MediaAnalyzer() {
       )}
 
       {/* ── Unified Media Viewer Lightbox Overlay ── */}
-      {showLightbox && media?.thumbnail_url && typeof window !== "undefined" && createPortal(
-        <div
-          onClick={() => setShowLightbox(false)}
-          className="fixed inset-0 z-9999 flex h-full w-full items-center justify-center bg-black/85 p-3 sm:p-6 transition-all duration-200 animate-fade-in-up backdrop-blur-md"
-        >
+      {showLightbox &&
+        media?.thumbnail_url &&
+        typeof window !== "undefined" &&
+        createPortal(
           <div
-            onClick={(e) => e.stopPropagation()}
-            className="ui-panel relative flex flex-col max-h-[92vh] w-full max-w-4xl items-center justify-center overflow-hidden rounded-3xl border border-border/80 bg-bg-surface p-3 shadow-2xl sm:p-5"
+            onClick={() => setShowLightbox(false)}
+            className="fixed inset-0 z-9999 flex h-full w-full items-center justify-center bg-black/85 p-3 sm:p-6 transition-all duration-200 animate-fade-in-up backdrop-blur-md"
           >
-            {/* Header Action Bar */}
-            <div className="mb-3 flex w-full flex-wrap items-center justify-between gap-2.5 border-b border-border/60 pb-3 px-1">
-              {embedUrl ? (
-                <div className="flex gap-1 rounded-xl border border-border/80 bg-bg-base/70 p-1">
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className="ui-panel relative flex flex-col max-h-[92vh] w-full max-w-4xl items-center justify-center overflow-hidden rounded-3xl border border-border/80 bg-bg-surface p-3 shadow-2xl sm:p-5"
+            >
+              {/* Header Action Bar */}
+              <div className="mb-3 flex w-full flex-wrap items-center justify-between gap-2.5 border-b border-border/60 pb-3 px-1">
+                {embedUrl ? (
+                  <div className="flex gap-1 rounded-xl border border-border/80 bg-bg-base/70 p-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLightboxTab("video");
+                        setIsVideoLoading(true);
+                      }}
+                      className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
+                        lightboxTab === "video"
+                          ? "bg-primary text-primary-foreground shadow-xs"
+                          : "text-text-muted hover:text-text"
+                      }`}
+                    >
+                      <Play className="size-3.5 fill-current" />
+                      <span>{t("download.playPreview", {}, "เล่นตัวอย่าง")}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setLightboxTab("image")}
+                      className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
+                        lightboxTab === "image"
+                          ? "bg-primary text-primary-foreground shadow-xs"
+                          : "text-text-muted hover:text-text"
+                      }`}
+                    >
+                      <Film className="size-3.5" />
+                      <span>{t("download.thumbnailPreview", {}, "รูปภาพหน้าปก")}</span>
+                    </button>
+                  </div>
+                ) : (
+                  <span className="truncate text-xs font-semibold text-text-muted">
+                    {t("download.thumbnailPreview", {}, "รูปภาพหน้าปก")}
+                  </span>
+                )}
+
+                <div className="flex items-center gap-2 ml-auto">
+                  {lightboxTab === "image" && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={async () => {
+                        try {
+                          const res = await fetch(media.thumbnail_url!);
+                          const blob = await res.blob();
+                          const blobUrl = URL.createObjectURL(blob);
+                          const a = document.createElement("a");
+                          a.href = blobUrl;
+                          a.download = safeDownloadFilename(media.title, "jpg");
+                          document.body.appendChild(a);
+                          a.click();
+                          document.body.removeChild(a);
+                          URL.revokeObjectURL(blobUrl);
+                        } catch {
+                          if (media.thumbnail_url)
+                            window.open(media.thumbnail_url, "_blank");
+                        }
+                      }}
+                      className="h-9 gap-1.5 rounded-xl px-3 text-xs font-semibold cursor-pointer"
+                    >
+                      <Download className="size-3.5 text-primary" />
+                      <span>{t("download.saveImage", {}, "ดาวน์โหลดรูป")}</span>
+                    </Button>
+                  )}
                   <button
                     type="button"
-                    onClick={() => {
-                      setLightboxTab("video");
-                      setIsVideoLoading(true);
-                    }}
-                    className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
-                      lightboxTab === "video"
-                        ? "bg-primary text-primary-foreground shadow-xs"
-                        : "text-text-muted hover:text-text"
-                    }`}
+                    onClick={() => setShowLightbox(false)}
+                    aria-label={t("common.close", {}, "ปิด")}
+                    className="grid size-9 place-items-center rounded-xl border border-border bg-bg-base/80 text-text-muted transition-colors hover:bg-bg-surface hover:text-text cursor-pointer"
                   >
-                    <Play className="size-3.5 fill-current" />
-                    <span>{t("download.playPreview", {}, "เล่นตัวอย่าง")}</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setLightboxTab("image")}
-                    className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
-                      lightboxTab === "image"
-                        ? "bg-primary text-primary-foreground shadow-xs"
-                        : "text-text-muted hover:text-text"
-                    }`}
-                  >
-                    <Film className="size-3.5" />
-                    <span>{t("download.thumbnailPreview", {}, "รูปภาพหน้าปก")}</span>
+                    <X className="size-4" />
                   </button>
                 </div>
-              ) : (
-                <span className="truncate text-xs font-semibold text-text-muted">
-                  {t("download.thumbnailPreview", {}, "รูปภาพหน้าปก")}
-                </span>
-              )}
+              </div>
 
-              <div className="flex items-center gap-2 ml-auto">
-                {lightboxTab === "image" && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={async () => {
-                      try {
-                        const res = await fetch(media.thumbnail_url!);
-                        const blob = await res.blob();
-                        const blobUrl = URL.createObjectURL(blob);
-                        const a = document.createElement("a");
-                        a.href = blobUrl;
-                        a.download = safeDownloadFilename(media.title, "jpg");
-                        document.body.appendChild(a);
-                        a.click();
-                        document.body.removeChild(a);
-                        URL.revokeObjectURL(blobUrl);
-                      } catch {
-                        if (media.thumbnail_url) window.open(media.thumbnail_url, "_blank");
-                      }
-                    }}
-                    className="h-9 gap-1.5 rounded-xl px-3 text-xs font-semibold cursor-pointer"
-                  >
-                    <Download className="size-3.5 text-primary" />
-                    <span>{t("download.saveImage", {}, "ดาวน์โหลดรูป")}</span>
-                  </Button>
+              {/* Main Content Area */}
+              <div className="flex w-full flex-1 items-center justify-center overflow-hidden">
+                {lightboxTab === "video" && embedUrl ? (
+                  <div className="relative aspect-video w-full overflow-hidden rounded-2xl border border-border/80 bg-black shadow-lg">
+                    {isVideoLoading && (
+                      <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-black/90 text-white backdrop-blur-xs transition-opacity duration-300">
+                        <LoadingIndicator
+                          label={t(
+                            "download.connectingVideo",
+                            {},
+                            "กำลังเชื่อมต่อวิดีโอตัวอย่าง..."
+                          )}
+                          className="text-xs font-medium text-primary"
+                        />
+                      </div>
+                    )}
+                    <iframe
+                      src={embedUrl}
+                      title={media.title}
+                      onLoad={() => setIsVideoLoading(false)}
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                      className="h-full w-full border-0"
+                    />
+                  </div>
+                ) : (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img
+                    src={media.thumbnail_url}
+                    alt={media.title}
+                    className="block max-h-[75vh] max-w-full rounded-2xl object-contain shadow-md"
+                  />
                 )}
-                <button
-                  type="button"
-                  onClick={() => setShowLightbox(false)}
-                  aria-label={t("common.close", {}, "ปิด")}
-                  className="grid size-9 place-items-center rounded-xl border border-border bg-bg-base/80 text-text-muted transition-colors hover:bg-bg-surface hover:text-text cursor-pointer"
-                >
-                  <X className="size-4" />
-                </button>
               </div>
             </div>
-
-            {/* Main Content Area */}
-            <div className="flex w-full flex-1 items-center justify-center overflow-hidden">
-              {lightboxTab === "video" && embedUrl ? (
-                <div className="relative aspect-video w-full overflow-hidden rounded-2xl border border-border/80 bg-black shadow-lg">
-                  {isVideoLoading && (
-                    <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-black/90 text-white backdrop-blur-xs transition-opacity duration-300">
-                      <LoadingIndicator
-                        label={t("download.connectingVideo", {}, "กำลังเชื่อมต่อวิดีโอตัวอย่าง...")}
-                        className="text-xs font-medium text-primary"
-                      />
-                    </div>
-                  )}
-                  <iframe
-                    src={embedUrl}
-                    title={media.title}
-                    onLoad={() => setIsVideoLoading(false)}
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                    className="h-full w-full border-0"
-                  />
-                </div>
-              ) : (
-                /* eslint-disable-next-line @next/next/no-img-element */
-                <img
-                  src={media.thumbnail_url}
-                  alt={media.title}
-                  className="block max-h-[75vh] max-w-full rounded-2xl object-contain shadow-md"
-                />
-              )}
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
+          </div>,
+          document.body
+        )}
     </div>
   );
 }
