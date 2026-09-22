@@ -7,6 +7,8 @@ from app.job_service import (
     can_delete_job,
     create_job,
 )
+from app.routers.downloads import is_format_compatible
+from app.schemas import FormatInfo
 
 
 class FakeResult:
@@ -88,3 +90,75 @@ def test_create_job_requires_user_and_persists_analysis_metadata(monkeypatch):
     assert fake.download_jobs.inserted["selected_has_audio"] is False
     assert fake.download_jobs.inserted["locked_by"] == "pool:local"
     assert fake.download_jobs.inserted["locked_at"] is None
+
+
+def test_create_job_supports_guest_session(monkeypatch):
+    fake = FakeSupabase()
+    monkeypatch.setattr("app.job_service.get_supabase_client", lambda: fake)
+
+    job_id = create_job(
+        user_id=None,
+        guest_session_id="guest-session-456",
+        url="https://example.com/watch/guest",
+        format_id="140",
+        output_format="mp3",
+        title="Guest Music",
+        platform="Youtube",
+        uploader="Artist",
+        source_domain="example.com",
+        thumbnail_url=None,
+        duration_seconds=200,
+        media_type="audio",
+        selected_quality="128 kbps",
+        selected_has_audio=True,
+    )
+
+    assert job_id
+    assert fake.download_jobs.inserted["user_id"] is None
+    assert fake.download_jobs.inserted["guest_session_id"] == "guest-session-456"
+    assert fake.download_jobs.inserted["title"] == "Guest Music"
+    assert fake.download_jobs.inserted["output_format"] == "mp3"
+
+
+def test_mp3_accepts_video_format_with_audio_track():
+    format_info = FormatInfo(
+        format_id="18",
+        type="video",
+        quality_label="360p",
+        has_video=True,
+        has_audio=True,
+    )
+
+    assert is_format_compatible(format_info, "mp3") is True
+
+
+def test_mp3_rejects_video_format_without_audio_track():
+    format_info = FormatInfo(
+        format_id="137",
+        type="video",
+        quality_label="1080p",
+        has_video=True,
+        has_audio=False,
+    )
+
+    assert is_format_compatible(format_info, "mp3") is False
+
+
+def test_gif_accepts_video_and_rejects_audio_sources():
+    video = FormatInfo(
+        format_id="http",
+        type="video",
+        quality_label="Original video",
+        has_video=True,
+        has_audio=False,
+    )
+    audio = FormatInfo(
+        format_id="audio",
+        type="audio",
+        quality_label="Original audio",
+        has_video=False,
+        has_audio=True,
+    )
+
+    assert is_format_compatible(video, "gif") is True
+    assert is_format_compatible(audio, "gif") is False

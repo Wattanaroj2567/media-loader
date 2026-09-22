@@ -187,9 +187,7 @@ def test_delete_job_refuses_running_work_and_cleans_terminal_output(
         delete_job("job-u1-active", user_id="user-1", temp_root=tmp_path)
     assert error.value.code == "JOB_STILL_RUNNING"
 
-    assert (
-        delete_job("job-u1-done", user_id="user-1", temp_root=tmp_path) is True
-    )
+    assert delete_job("job-u1-done", user_id="user-1", temp_root=tmp_path) is True
     assert output.exists() is False
     assert get_job("job-u1-done", user_id="user-1") is None
 

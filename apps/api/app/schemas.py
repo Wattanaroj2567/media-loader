@@ -6,7 +6,6 @@ These define the contract between frontend and backend.
 
 from pydantic import BaseModel, Field, HttpUrl
 
-
 # ─── Request schemas ───
 
 
@@ -44,8 +43,22 @@ class MediaMetadata(BaseModel):
     duration_seconds: int | None = None
     uploader: str | None = None
     source_domain: str | None = None
-    view_count: int | None = None
-    like_count: int | None = None
+    view_count: int | None = Field(
+        default=None,
+        description="Public count reported by source metadata; null when unavailable",
+    )
+    like_count: int | None = Field(
+        default=None,
+        description="Public likes-only count reported by source metadata; null when unavailable",
+    )
+    reaction_count: int | None = Field(
+        default=None,
+        description="Public reaction count reported by the source; null when unavailable",
+    )
+    is_animated_gif: bool = Field(
+        default=False,
+        description="True only when source metadata identifies animated GIF media",
+    )
 
 
 class FormatInfo(BaseModel):
