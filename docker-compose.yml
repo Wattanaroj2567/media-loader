@@ -11,6 +11,8 @@ services:
     restart: unless-stopped
     env_file:
       - .env.local
+    environment:
+      TEMP_DIR: /app/tmp/media-loader
     ports:
       - "8000:8000"
     volumes:
@@ -36,6 +38,8 @@ services:
     restart: unless-stopped
     env_file:
       - .env.local
+    environment:
+      TEMP_DIR: /app/tmp/media-loader
     volumes:
       - media-output:/app/tmp
     depends_on:
