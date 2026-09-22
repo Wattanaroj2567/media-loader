@@ -16,7 +16,8 @@ create table if not exists public.profiles (
 -- Download jobs
 create table if not exists public.download_jobs (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references auth.users(id) on delete cascade,
+  user_id uuid references auth.users(id) on delete cascade,
+  guest_session_id text,
   original_url text not null,
   platform text not null default 'unknown',
   title text,
@@ -35,6 +36,7 @@ create table if not exists public.download_jobs (
   storage_bucket text,
   storage_path text,
   file_size bigint,
+  total_bytes_estimate bigint,
   rights_confirmed boolean not null default false,
   locked_at timestamptz,
   locked_by text,
@@ -57,5 +59,6 @@ create table if not exists public.policy_logs (
 
 -- Helpful indexes
 create index if not exists idx_download_jobs_user_id_created_at on public.download_jobs(user_id, created_at desc);
+create index if not exists idx_download_jobs_guest_session on public.download_jobs(guest_session_id) where guest_session_id is not null;
 create index if not exists idx_download_jobs_status on public.download_jobs(status);
 create index if not exists idx_policy_logs_user_id_created_at on public.policy_logs(user_id, created_at desc);
