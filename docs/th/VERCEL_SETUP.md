@@ -1,6 +1,6 @@
 # คู่มือการ Deploy บน Vercel (Vercel Setup Guide)
 
-[English](VERCEL_SETUP.md) | ภาษาไทย
+> **ภาษา:** [English](../en/VERCEL_SETUP.md) · **ภาษาไทย**
 
 ## วัตถุประสงค์ (Purpose)
 
@@ -14,9 +14,13 @@ Vercel ใช้สำหรับโฮสต์ Next.js Frontend (`apps/web`)
 
 ```text
 apps/web    → Vercel (Frontend UI)
-apps/api    → Local Docker (FastAPI) + Cloudflare Tunnel (HTTPS)
-apps/worker → Local Docker (Python Worker)
+apps/api    → Container Host แยกต่างหาก (FastAPI ผ่าน HTTPS)
+apps/worker → เครื่อง/Container Environment เดียวกับ Shared Media Volume
 ```
+
+Vercel ไม่ได้รัน Docker Compose ของโปรเจกต์นี้ แต่ build เฉพาะ `apps/web`
+ให้ deploy API และ Worker เป็น container แยก แล้วกำหนด URL แบบ HTTPS ของ API
+ให้ Frontend บน Vercel ส่วน secrets ต้องถูก inject ตอน runtime และไม่รวมใน image
 
 ดูวิธีเชื่อมต่อ Backend เข้ากับ Vercel ผ่าน HTTPS ได้ที่ [คู่มือ Cloudflare Tunnel](CLOUDFLARE_TUNNEL_GUIDE.md)
 
@@ -34,6 +38,7 @@ apps/worker → Local Docker (Python Worker)
 ## ขั้นตอนที่ 2: ตั้งค่าโปรเจกต์ (Project Settings)
 
 ### Framework Preset
+
 - **Framework Preset**: Next.js
 - **Root Directory**: ปล่อยว่าง (อยู่ที่ Root ของ Repo)
 - **Build Command**: `cd apps/web && pnpm build`

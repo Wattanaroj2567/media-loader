@@ -1,6 +1,6 @@
 # User Setup Guide
 
-[English](USER_SETUP_GUIDE.md) | [ภาษาไทย](../th/USER_SETUP_GUIDE.md)
+> **Language:** **English** · [ภาษาไทย](../th/USER_SETUP_GUIDE.md)
 
 First-time setup to run Media Loader for **real use** on your machine.
 
@@ -29,11 +29,13 @@ Database connection string
 ## Step 2 — Add Supabase Values Locally
 
 1. Copy the example environment template:
+
    ```bash
    cp .env.example .env.local
    ```
 
 2. Open `.env.local` and populate the required keys:
+
    ```env
    NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
    NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
@@ -42,6 +44,7 @@ Database connection string
    ```
 
 3. Validate environment configuration without exposing secret values:
+
    ```bash
    pnpm check-env
    ```
@@ -79,21 +82,26 @@ For detailed Row Level Security rules, refer to [`SUPABASE_RLS_POLICY.md`](SUPAB
 
 Apply database schema to your Supabase PostgreSQL instance:
 
-### Option A: Via Drizzle Kit (Recommended)
+### Apply Tables with Drizzle Kit
+
 Ensure `DATABASE_URL` is set in `.env.local`, then push schema directly:
+
 ```bash
 pnpm --filter web db:push
 ```
 
-### Option B: Via Supabase SQL Editor
-Copy and execute SQL scripts in numerical order from [`supabase/migrations/`](../../supabase/migrations):
-1. `0001_initial_schema.sql`
-2. `0002_create_profile_trigger.sql`
-3. `0003_job_metadata.sql`
-4. `0004_lock_server_managed_tables.sql`
-5. `0005_selected_format_audio_flag.sql`
+### Apply Supabase Policies and Trigger
+
+After Drizzle creates the tables, run these focused SQL files in the Supabase SQL Editor:
+
+1. [`supabase/profile_trigger.sql`](../../supabase/profile_trigger.sql)
+2. [`supabase/rls_policies.sql`](../../supabase/rls_policies.sql)
+
+Do not use historical files under `supabase/migrations/` for new table or
+column changes. `apps/web/lib/db/schema.ts` is the schema source of truth.
 
 To verify database tables were created successfully, run in Supabase SQL Editor:
+
 ```sql
 SELECT table_name FROM information_schema.tables WHERE table_schema = 'public';
 ```
@@ -105,10 +113,12 @@ SELECT table_name FROM information_schema.tables WHERE table_schema = 'public';
 Local temporary output (`local_temp`) is the default behavior. Supabase Storage is optional.
 
 If enabling cloud storage mode, create a private bucket in Supabase Dashboard:
+
 * **Bucket Name**: `media-downloads`
 * **Access**: Private (Row Level Security enabled)
 
 Object path pattern:
+
 ```text
 {user_id}/{job_id}/output.mp4
 {user_id}/{job_id}/output.mp3
@@ -121,11 +131,13 @@ Object path pattern:
 1. Import repository to Vercel
 2. Configure Root Directory: `apps/web`
 3. Set Environment Variables in Vercel Dashboard:
+
    ```env
    NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
    NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
    NEXT_PUBLIC_FASTAPI_BASE_URL=https://your-backend-api-url.com
    ```
+
 4. Deploy application
 
 For detailed Vercel hosting instructions, see [`VERCEL_SETUP.md`](VERCEL_SETUP.md).
@@ -135,15 +147,21 @@ For detailed Vercel hosting instructions, see [`VERCEL_SETUP.md`](VERCEL_SETUP.m
 ## Step 8 — Run Local Development
 
 1. **Install dependencies across monorepo**:
+
    ```bash
    pnpm install
    pnpm setup:py
    ```
 
-2. **Start Development Servers (3 Terminals at root)**:
-   * **Terminal 1 (Web Frontend)**: `pnpm dev:web`
-   * **Terminal 2 (FastAPI Backend)**: `pnpm dev:api`
-   * **Terminal 3 (Media Worker)**: `pnpm dev:worker`
+2. **Start all local development services from the repository root**:
+
+   ```bash
+   pnpm dev
+   ```
+
+   This starts the web app, reload-enabled FastAPI service, and media worker in
+   one terminal. The individual `pnpm dev:*` commands remain available for
+   isolated debugging.
 
 To build and start only the Next.js production server for Lighthouse testing,
 make sure port `3000` is available, then run:
@@ -166,6 +184,7 @@ pnpm check-env
 ```
 
 Expected output:
+
 ```text
 Environment Check
 -----------------

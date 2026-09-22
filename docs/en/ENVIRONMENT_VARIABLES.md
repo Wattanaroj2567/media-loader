@@ -1,5 +1,7 @@
 # Environment Variables
 
+> **Language:** **English** · [ภาษาไทย](../th/ENVIRONMENT_VARIABLES.md)
+
 Use `.env.example` for placeholders only.
 
 Use `.env.local` for real local values.
@@ -78,7 +80,6 @@ TUNNEL_TOKEN=
 ```
 
 `CLOUDFLARE_TUNNEL_TOKEN` / `TUNNEL_TOKEN` stores your Cloudflare Zero Trust Named Tunnel token. If left blank, Docker automatically launches a temporary Quick Tunnel on `trycloudflare.com`.
-
 
 ---
 

@@ -1,5 +1,7 @@
 # Google OAuth Setup Guide
 
+> **Language:** **English** · [ภาษาไทย](../th/GOOGLE_OAUTH_SETUP.md)
+
 This guide explains how to configure Google OAuth 2.0 authentication for Supabase Auth in Media Loader.
 
 ---
@@ -44,6 +46,7 @@ Add your Google account as a Test User if the app publishing status is set to Te
 ## Step 4 — Add Authorized Redirect URI
 
 In Supabase Dashboard, open:
+
 ```text
 Authentication → Providers → Google
 ```
@@ -55,12 +58,14 @@ Copy the callback URL shown by Supabase (format: `https://<your-project-ref>.sup
 ## Step 5 — Add Google Credentials to Supabase
 
 Google Cloud Console will generate:
+
 ```text
 Client ID
 Client Secret
 ```
 
 Paste both credentials into:
+
 ```text
 Supabase Dashboard → Authentication → Providers → Google → Enable Provider
 ```
@@ -74,11 +79,13 @@ Supabase Dashboard → Authentication → Providers → Google → Enable Provid
 In Supabase Dashboard → **Authentication** → **URL Configuration**:
 
 Add local callback URL:
+
 ```text
 http://localhost:3000/auth/callback
 ```
 
 Add production callback URL after deploying to Vercel:
+
 ```text
 https://<your-vercel-domain>.vercel.app/auth/callback
 ```
@@ -88,6 +95,7 @@ https://<your-vercel-domain>.vercel.app/auth/callback
 ## Step 7 — Verification & Validation
 
 To verify setup, test Google sign-in flow on the frontend:
+
 1. Start frontend server: `pnpm dev:web`
 2. Open `http://localhost:3000`
 3. Click **Sign in with Google**

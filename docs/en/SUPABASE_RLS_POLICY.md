@@ -1,13 +1,20 @@
 # Supabase RLS Policy Guide
 
+> **Language:** **English** · [ภาษาไทย](../th/SUPABASE_RLS_POLICY.md)
+
 This guide explains how Row Level Security should be used in Media Loader.
 
-The actual starter SQL files are:
+Database ownership is split deliberately:
 
 ```text
-supabase/schema.sql
-supabase/rls_policies.sql
+apps/web/lib/db/schema.ts    → application tables, columns, constraints, and indexes
+supabase/profile_trigger.sql → Auth profile function and trigger
+supabase/rls_policies.sql    → Row Level Security policies
 ```
+
+The schema and mixed SQL files retained under `supabase/migrations/` are
+historical bootstrap artifacts. Do not extend them for new table or column
+changes; make those changes in the Drizzle schema.
 
 ---
 

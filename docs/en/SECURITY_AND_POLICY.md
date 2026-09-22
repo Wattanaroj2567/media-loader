@@ -1,5 +1,7 @@
 # Security and Policy
 
+> **Language:** **English** · [ภาษาไทย](../th/SECURITY_AND_POLICY.md)
+
 ## Purpose
 
 This project must stay rights-aware and safe.

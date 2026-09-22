@@ -1,0 +1,97 @@
+name: Weekly yt-dlp Auto-Update
+
+on:
+  schedule:
+    # Run every Sunday at 03:00 UTC (10:00 AM Bangkok Time)
+    - cron: '0 3 * * 0'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update-ytdlp:
+    name: Bump yt-dlp & Verify Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Upgrade yt-dlp in API and Worker
+        run: |
+          echo "Upgrading yt-dlp in apps/api..."
+          cd apps/api
+          uv lock --upgrade-package yt-dlp
+          cd ../worker
+          echo "Upgrading yt-dlp in apps/worker..."
+          uv lock --upgrade-package yt-dlp
+
+      - name: Check for lockfile changes
+        id: check_diff
+        run: |
+          if git diff --quiet apps/api/uv.lock apps/worker/uv.lock; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "yt-dlp is already up to date. No changes needed."
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "yt-dlp updates detected in lockfiles."
+          fi
+
+      - name: Get updated yt-dlp version
+        if: steps.check_diff.outputs.changed == 'true'
+        id: get_version
+        run: |
+          cd apps/api
+          uv sync --extra dev
+          VERSION=$(uv run python -c "import yt_dlp.version; print(yt_dlp.version.__version__)")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Detected new yt-dlp version: $VERSION"
+
+      - name: Run API Tests
+        if: steps.check_diff.outputs.changed == 'true'
+        env:
+          PYTHONPATH: .
+        run: |
+          cd apps/api
+          uv run pytest
+
+      - name: Run Worker Tests
+        if: steps.check_diff.outputs.changed == 'true'
+        env:
+          PYTHONPATH: .
+        run: |
+          cd apps/worker
+          uv sync --extra dev
+          uv run pytest
+
+      - name: Create Pull Request
+        if: steps.check_diff.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: deps/weekly-ytdlp-update
+          delete-branch: true
+          title: "chore(deps): bump yt-dlp to ${{ steps.get_version.outputs.version }}"
+          commit-message: "chore(deps): bump yt-dlp to ${{ steps.get_version.outputs.version }}"
+          body: |
+            ### Automated Weekly yt-dlp Update
+
+            - **Target packages**: `apps/api` and `apps/worker`
+            - **New yt-dlp version**: `${{ steps.get_version.outputs.version }}`
+            - **Validation**: Both `apps/api` and `apps/worker` pytest suites passed successfully.
+
+            This PR was generated automatically by the weekly yt-dlp maintenance workflow.
+          labels: |
+            dependencies
+            automated

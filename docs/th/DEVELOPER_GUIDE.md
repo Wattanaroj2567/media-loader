@@ -1,5 +1,7 @@
 # คู่มือพัฒนาและผังสถาปัตยกรรมระบบ (Developer Onboarding & Architecture Guide)
 
+> **ภาษา:** [English](../en/DEVELOPER_GUIDE.md) · **ภาษาไทย**
+
 ยินดีต้อนรับสู่ศูนย์รวมเอกสารสำหรับนักพัฒนา (Developer Documentation Hub) ของโปรเจกต์ Media Loader คู่มือนี้สรุปข้อมูลสถาปัตยกรรม คำสั่ง เครื่องมือ และข้อกำหนดที่จำเป็นสำหรับการพัฒนาและต่อยอดระบบ
 
 ---
@@ -14,10 +16,12 @@ media-loader/
 │   ├── web/                 # Next.js 16 Frontend (App Router, Tailwind, Drizzle)
 │   ├── api/                 # FastAPI Backend Service (URL analysis & Policy engine)
 │   └── worker/              # Python Media Worker (Queue listener, yt-dlp, FFmpeg)
+├── apps/web/lib/db/
+│   └── schema.ts            # แหล่งข้อมูลหลักของตารางและคอลัมน์แอปพลิเคชัน
 ├── supabase/
-│   ├── schema.sql           # โครงสร้างฐานข้อมูล PostgreSQL หลัก
-│   ├── rls_policies.sql     # สคริปต์ Supabase Row Level Security
-│   └── migrations/          # สคริปต์ Migration ตามระบบควบคุมเวอร์ชัน
+│   ├── rls_policies.sql     # นโยบาย Supabase Row Level Security
+│   ├── profile_trigger.sql  # ฟังก์ชันและ Trigger สร้างโปรไฟล์จาก Auth
+│   └── migrations/          # Migration เริ่มต้นในอดีต ห้ามเพิ่มการแก้ schema ใหม่ที่นี่
 └── docs/                    # คู่มือสถาปัตยกรรมและข้อกำหนดทางเทคนิค
 ```
 
@@ -34,16 +38,19 @@ sequenceDiagram
     participant Storage as Supabase Storage / Local Temp
 
     User->>Web: วาง URL สื่อที่ต้องการ
-    Web->>API: POST /api/v1/analyze (URL)
+    Web->>API: POST /media/analyze (URL)
     API->>API: ตรวจสอบ SSRF & Policy
     API-->>Web: คืนค่ารายการฟอร์แมต & ข้อมูลเมตา
-    User->>Web: เลือกฟอร์แมต & กดดาวน์โหลด
-    Web->>DB: บันทึก Job ใหม่ (Status: PENDING)
-    Worker->>DB: ดักรอคิวงาน PENDING
+    User->>Web: เลือกฟอร์แมต ยืนยันสิทธิ์ และเข้าคิว
+    Web->>API: POST /downloads
+    API->>API: ตรวจ URL, Policy, Analysis และฟอร์แมตซ้ำ
+    API->>DB: บันทึก Job (Status: QUEUED พร้อม Worker Pool)
+    Worker->>DB: รับงาน QUEUED จาก Pool ของตน
     Worker->>Worker: ดาวน์โหลดและแปลงไฟล์ด้วย yt-dlp / FFmpeg
-    Worker->>Storage: บันทึกไฟล์ผลลัพธ์ลง Storage / Local Temp
+    Worker->>Storage: บันทึกผลลัพธ์ลง Local Temp / Optional Storage
     Worker->>DB: อัปเดตสถานะ Job (Status: COMPLETED)
-    Web->>User: แสดงความคืบหน้า & ลิงก์ดาวน์โหลด
+    Web->>API: ขอรับไฟล์ผ่าน Endpoint ที่ตรวจสิทธิ์
+    API->>User: Stream ไฟล์ของเจ้าของงาน
 ```
 
 ---
@@ -53,6 +60,7 @@ sequenceDiagram
 คำสั่งการพัฒนาหลักทั้งหมดสามารถรันได้โดยตรงจาก Root Directory ของโปรเจกต์ผ่าน `pnpm`:
 
 ### การจัดการสภาพแวดล้อมและ Dependencies
+
 ```bash
 # คัดลอกแม่แบบไฟล์ Environment
 cp .env.example .env.local
@@ -66,18 +74,66 @@ pnpm check-env
 ```
 
 ### การสั่งรันบริการ Local Development
+
 ```bash
-# Terminal 1: Web Frontend (http://localhost:3000)
-pnpm dev:web
+# ค่าเริ่มต้น: เปิด Web, FastAPI แบบ reload และ Worker ใน Terminal เดียว
+pnpm dev
 
-# Terminal 2: FastAPI Backend (http://localhost:8000)
-pnpm dev:api
+# เหมือนกัน แต่เขียน log ทุกบริการลง tmp/dev.log (git-ignored)
+# ให้ AI Agent มาตามอ่านทีหลังได้: pnpm dev:log
+```
 
-# Terminal 3: Python Media Worker
-pnpm dev:worker
+ใช้ `pnpm dev:web`, `pnpm dev:api` หรือ `pnpm dev:worker` เมื่อต้องการแยกตรวจ
+เฉพาะบริการ หลังโค้ดนิ่งแล้วใช้ `pnpm docker:up` เพื่อตรวจ API/Worker ในสภาพ
+production-like โดย Docker ไม่ใช่วงจรแก้โค้ดหลัก
+
+### การทดสอบ (Testing)
+
+```bash
+# รัน Unit Tests ทุก Service
+pnpm test:web       # ทดสอบ Frontend (Node test runner)
+pnpm test:api       # ทดสอบ FastAPI (pytest)
+pnpm test:worker    # ทดสอบ Media Worker (pytest)
+
+# ทดสอบ E2E
+pnpm test:e2e       # ทดสอบ Playwright Mock บน Frontend
+pnpm test:api:e2e   # ทดสอบ E2E API/Worker ด้วย Python script
+```
+
+### การตรวจสอบคุณภาพโค้ด (Linting & Formatting)
+
+```bash
+# ตรวจสอบ Linting ทุก Service พร้อมกัน (ESLint + Ruff + Markdownlint)
+pnpm lint
+
+# หรือตรวจแยกเฉพาะส่วน:
+pnpm lint:web       # Next.js (ESLint)
+pnpm lint:api       # FastAPI (Ruff)
+pnpm lint:worker    # Media Worker (Ruff)
+pnpm lint:md        # Markdown files (markdownlint-cli2)
+pnpm lint:md:fix    # Auto-fix Markdown formatting
+
+# จัดรูปแบบโค้ดอัตโนมัติ (Prettier + Ruff Format)
+pnpm format
+pnpm format:web     # Prettier
+pnpm format:api     # Ruff format
+pnpm format:worker  # Ruff format
+```
+
+### การตรวจจับ Dead Code และไฟล์ที่ไม่ได้ใช้งาน (Dead Code Audit)
+
+```bash
+# ตรวจสอบ Dead Code ทั่วทั้ง Monorepo (Knip + Vulture)
+pnpm deadcode
+
+# ตรวจจับเฉพาะส่วน:
+pnpm deadcode:web     # Next.js (Knip: ตรวจจับ Unused files/exports/dependencies)
+pnpm deadcode:api     # FastAPI (Vulture: ตรวจจับ Unused functions/classes/variables)
+pnpm deadcode:worker  # Worker (Vulture)
 ```
 
 ### การจัดการฐานข้อมูล (Drizzle ORM)
+
 ```bash
 # Push การอัปเดต Schema ไปยัง Supabase / PostgreSQL
 pnpm --filter web db:push
@@ -110,9 +166,10 @@ pnpm --filter web db:push
 
 ```text
 PENDING ──> ANALYZING ──> READY ──> QUEUED ──> DOWNLOADING ──> CONVERTING ──> UPLOADING ──> COMPLETED
-                                                                                    └──> FAILED
-                                                                                    └──> BLOCKED
-                                                                                    └──> CANCELLED
+
+ทุกสถานะ ──> FAILED
+ทุกสถานะ ──> BLOCKED
+QUEUED / DOWNLOADING / CONVERTING ──> CANCELLED
 ```
 
 ---
