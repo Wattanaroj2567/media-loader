@@ -1,5 +1,7 @@
 # Secrets Protocol
 
+> **Language:** **English** · [ภาษาไทย](../th/SECRETS_PROTOCOL.md)
+
 This project uses a strict secret-handling protocol.
 
 The AI Agent must guide the user, but must not see secret values.

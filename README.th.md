@@ -6,7 +6,7 @@
 [![Docker](https://img.shields.io/badge/Runtime-Docker%20Compose-2496ED?style=flat-square&logo=docker)](https://www.docker.com)
 [![License](https://img.shields.io/badge/License-Private-red?style=flat-square)](#)
 
-[English](README.md) | [ภาษาไทย](README.th.md)
+> **ภาษา:** [English](./README.md) · **ภาษาไทย**
 
 เว็บแอปพลิเคชันดาวน์โหลดและแปลงไฟล์วิดีโอ/เสียงส่วนตัวระดับพรีเมียม (Private Media Downloader & Converter) ที่เคารพสิทธิ์และออกแบบมาสำหรับการใช้งานประจำวัน วิเคราะห์ URL สื่อ, เลือกความละเอียดและฟอร์แมตวิดีโอ/เสียง, คิวงานดาวน์โหลดและแปลงไฟล์, และจัดการไฟล์ย้อนหลังได้อย่างปลอดภัยผ่านอินเทอร์เฟซโทนเข้มสไตล์ Command-Center ที่ทันสมัย
 
@@ -17,9 +17,11 @@
 เริ่มต้นรันระบบทั้ง Monorepo บนเครื่อง Local ได้ง่ายๆ ในไม่กี่ขั้นตอน:
 
 ### 1. สิ่งที่ต้องเตรียม (Prerequisites)
-ตรวจสอบให้แน่ใจว่าติดตั้ง Node.js (v18+), pnpm (`npm install -g pnpm`), Python 3.12+, `uv`, และ FFmpeg บนเครื่องแล้ว
+
+ตรวจสอบให้แน่ใจว่าติดตั้ง Node.js 22.13+, pnpm 11+, Python 3.12+, `uv` และ FFmpeg บนเครื่องแล้ว
 
 ### 2. ตั้งค่าไฟล์ Environment & ติดตั้ง Dependencies
+
 ```bash
 # 1. คัดลอกแม่แบบไฟล์ Environment
 cp .env.example .env.local
@@ -38,9 +40,10 @@ pnpm setup:py
 pnpm dev
 ```
 
-> **หากต้องการสั่งรันแยก Terminal หรือใช้ Docker?**
+> **หากต้องการสั่งรันแยก Terminal หรือตรวจแบบ production container?**
+>
 > * **รันแยก Terminal**: สั่งรัน `pnpm dev:web`, `pnpm dev:api`, หรือ `pnpm dev:worker` แยกทีละตัวได้ตามสะดวก
-> * **รันผ่าน Docker Mode**: สั่งรัน `docker compose --profile worker up --build`
+> * **ตรวจด้วย Docker**: หลังโค้ดนิ่งแล้วสั่ง `pnpm docker:up` เพื่อ build และเปิดเฉพาะ API กับ Worker ส่วน Web deploy บน Vercel แยกต่างหาก
 
 > [!TIP]
 > สั่งรัน `pnpm check-env` ได้ตลอดเวลาเพื่อตรวจสอบความถูกต้องของค่าแปรสภาพแวดล้อมโดยไม่พิมพ์รหัสลับออกมา
@@ -75,7 +78,7 @@ pnpm dev
 | **Backend API** | FastAPI, Uvicorn, Python 3.12 | [`apps/api`](apps/api) |
 | **Media Worker** | Python 3.12, yt-dlp, FFmpeg | [`apps/worker`](apps/worker) |
 | **Database & Auth**| Supabase PostgreSQL, Supabase Auth | [`supabase`](supabase) |
-| **Tooling** | `pnpm` (Node.js), `uv` (Python) | Monorepo Root |
+| **Tooling & Quality** | `pnpm`, `uv`, ESLint, Prettier, Knip, Ruff, Vulture | Monorepo Root |
 
 ---
 

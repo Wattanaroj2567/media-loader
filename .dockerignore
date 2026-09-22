@@ -1,9 +1,34 @@
+# Git and IDE
 .git
+.gitignore
+.dockerignore
+.agents
+.claude
+.codex
+.cursor
+.gemini
+.vscode
+.idea
+
+# Node / Frontend
 node_modules
+apps/web/node_modules
 .next
 .turbo
+apps/web/.next
+apps/web/out
+dist
+build
+
+# Python
 .venv
+apps/api/.venv
+apps/worker/.venv
 __pycache__
+**/__pycache__/**
+*.pyc
+*.pyo
+*.pyd
 .pytest_cache
 .env
 .env.local
@@ -17,3 +42,17 @@ storage
 *.m4a
 *.webm
 pnpm-lock.yaml
+.ruff_cache
+
+# Environment and Secrets
+.env*
+!.env.example
+
+# Temporary media files and testing
+tmp/
+**/tmp/**
+test-results/
+playwright-report/
+
+# Documentation and meta
+docs/

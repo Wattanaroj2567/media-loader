@@ -1,6 +1,6 @@
 # นโยบายความปลอดภัยและการเคารพสิทธิ์ (Security & Policy Specification)
 
-[English](SECURITY_AND_POLICY.md) | ภาษาไทย
+> **ภาษา:** [English](../en/SECURITY_AND_POLICY.md) · **ภาษาไทย**
 
 ## วัตถุประสงค์ (Purpose)
 
@@ -56,6 +56,7 @@
 ## นโยบายไม่ข้ามระบบป้องกัน (Non-Bypass Policy)
 
 ระบบจะต้องไม่ข้ามระบบป้องกันของแพลตฟอร์มใดๆ:
+
 - ห้ามข้าม DRM (Digital Rights Management)
 - ห้ามข้ามหน้าต่างล็อกอิน หรือการสมัครสมาชิก (Paywall / Login Walls)
 - ห้ามใช้ Cookies ของเบราว์เซอร์เพื่อเข้าถึงเนื้อหาที่ถูกจำกัดสิทธิ์

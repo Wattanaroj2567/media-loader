@@ -1,6 +1,6 @@
 # คู่มือการตั้งค่า Google OAuth (Google OAuth Setup Guide)
 
-[English](GOOGLE_OAUTH_SETUP.md) | ภาษาไทย
+> **ภาษา:** [English](../en/GOOGLE_OAUTH_SETUP.md) · **ภาษาไทย**
 
 คู่มืออธิบายการตั้งค่าระบบยืนยันตัวตน Google OAuth 2.0 ร่วมกับ Supabase Auth สำหรับ Media Loader
 
@@ -46,6 +46,7 @@
 ## ขั้นตอนที่ 4 — เพิ่ม Authorized Redirect URI
 
 ใน Supabase Dashboard ให้เปิดหน้าต่าง:
+
 ```text
 Authentication → Providers → Google
 ```
@@ -57,12 +58,14 @@ Authentication → Providers → Google
 ## ขั้นตอนที่ 5 — นำค่า Google Credentials ไปใส่ใน Supabase
 
 Google Cloud Console จะสร้างรหัสคู่มาให้:
+
 ```text
 Client ID
 Client Secret
 ```
 
 คัดลอกทั้งสองค่าไปใส่ที่:
+
 ```text
 Supabase Dashboard → Authentication → Providers → Google → กด Enable Provider
 ```
@@ -76,11 +79,13 @@ Supabase Dashboard → Authentication → Providers → Google → กด Enable
 ใน Supabase Dashboard → **Authentication** → **URL Configuration**:
 
 เพิ่ม URL Callback สำหรับ Local:
+
 ```text
 http://localhost:3000/auth/callback
 ```
 
 เพิ่ม URL Callback สำหรับ Production หลังจาก deploy บน Vercel:
+
 ```text
 https://<your-vercel-domain>.vercel.app/auth/callback
 ```
@@ -90,6 +95,7 @@ https://<your-vercel-domain>.vercel.app/auth/callback
 ## ขั้นตอนที่ 7 — การทดสอบและการตรวจสอบ (Verification)
 
 ทดสอบขั้นตอนการล็อกอินด้วย Google บน Frontend:
+
 1. สั่งรัน Frontend Server: `pnpm dev:web`
 2. เปิดเบราว์เซอร์ไปที่ `http://localhost:3000`
 3. คลิกปุ่ม **Sign in with Google**

@@ -7,6 +7,12 @@ on:
       - 'docs/**'
       - '**.md'
       - '.agents/**'
+  pull_request:
+    branches: [ main, master, dev ]
+    paths-ignore:
+      - 'docs/**'
+      - '**.md'
+      - '.agents/**'
   workflow_dispatch:
 
 jobs:
@@ -61,10 +67,13 @@ jobs:
           uv sync --extra dev
           uv run pytest
 
-      - name: Run Worker Sync Check
+      - name: Run Worker Tests
+        env:
+          PYTHONPATH: .
         run: |
           cd apps/worker
           uv sync --extra dev
+          uv run pytest
 
   docker-check:
     name: Docker Build Validation

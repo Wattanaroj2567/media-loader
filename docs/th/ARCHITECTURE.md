@@ -1,6 +1,6 @@
 # สถาปัตยกรรมระบบ (System Architecture)
 
-[English](ARCHITECTURE.md) | ภาษาไทย
+> **ภาษา:** [English](../en/ARCHITECTURE.md) · **ภาษาไทย**
 
 ## ภาพรวมสถาปัตยกรรม (Overview)
 
@@ -17,23 +17,25 @@ supabase      → Auth, PostgreSQL Database, Storage และ Row Level Securit
 
 ---
 
-## สภาพแวดล้อม Backend แบบ Local & Docker (Local Docker Backend)
+## รูปแบบการรัน Local และ Container
 
-ในระหว่างการพัฒนา สภาพแวดล้อมฝั่ง Backend API และ Worker จะรันผ่าน Docker Compose หรือ Python Local จาก Root Directory ของโปรเจกต์:
+ระหว่างพัฒนาให้ใช้ `pnpm dev` จาก Root ของโปรเจกต์เพื่อเปิด Web, FastAPI แบบ reload
+และ Worker พร้อมกันโดยตรง จึงไม่ต้อง rebuild image ทุกครั้งที่แก้ source code
 
 ```text
-Next.js บน Vercel หรือ Local Dev → เรียกใช้ API ที่ http://localhost:8000
-FastAPI API Container          → เปิดพอร์ต 8000
-Worker Container               → ประมวลผลคิวงานดาวน์โหลดและไฟล์ชั่วคราว
-Supabase Cloud                 → Auth, Database, RLS และ Storage (ตัวเลือกเสริม)
+Next.js Local Dev → localhost:3000
+FastAPI Local Dev → localhost:8000
+Worker Local Dev  → ตรวจและประมวลผลงานในคิว
 ```
 
-ไฟล์สำคัญที่เกี่ยวข้องกับการรัน Docker:
+Docker ใช้สำหรับตรวจระบบแบบ production-like และ deploy API/Worker บนเครื่องหรือ
+container host แยกจาก Vercel ตัว container ใช้ source แบบ immutable, ทำงานด้วย
+ผู้ใช้ non-root และแชร์ named volume สำหรับไฟล์ผลลัพธ์ ส่วน Vercel โฮสต์เฉพาะ Web
+
 ```text
-docker-compose.yml
-apps/api/Dockerfile
-apps/worker/Dockerfile
-.dockerignore
+apps/web บน Vercel       → HTTPS → FastAPI Container
+Worker Container         → ตรวจคิวและเขียนไฟล์ลง Shared Volume
+FastAPI Container        → ส่งไฟล์ที่ผ่านการตรวจสิทธิ์จาก Shared Volume
 ```
 
 ---
@@ -43,6 +45,7 @@ apps/worker/Dockerfile
 การประมวลผลสื่อ (ดาวน์โหลดและแปลงไฟล์วิดีโอ/เสียง) เป็นงานที่ใช้เวลาและทรัพยากรสูง
 
 หน้าที่หลักของ Worker ได้แก่:
+
 - การเรียกใช้งาน `yt-dlp` ในโหมดควบคุมความปลอดภัย
 - การประมวลผลไฟล์ด้วย `FFmpeg` (การตัดต่อ แปลงไฟล์ และสกัดเสียง)
 - การบริหารจัดการไฟล์ชั่วคราว (Temporary File Cleanup)
@@ -56,26 +59,36 @@ apps/worker/Dockerfile
 ## ลำดับการไหลของคำขอ (Request Flow)
 
 ### 1. การเข้าสู่ระบบ (Login)
+
 ```text
 ผู้ใช้งาน ──> ล็อกอินผ่าน Google ──> Supabase Auth ──> คืนค่า JWT Session ──> Next.js Web App
 ```
 
 ### 2. การวิเคราะห์ URL (URL Analysis)
+
 ```text
-กรอก URL ──> Web App ──> FastAPI (/api/v1/analyze) ──> ตรวจสอบ SSRF & Policy ──> คืนค่ารายการฟอร์แมตสด
+กรอก URL ──> Web App ──> FastAPI (/media/analyze) ──> ตรวจสอบ SSRF & Policy ──> คืนค่ารายการฟอร์แมตสด
 ```
 
 ### 3. การสร้างและประมวลผลคิวงาน (Job Queue Processing)
+
 ```text
-เลือกฟอร์แมต ──> Web App ──> บันทึก Job ลง Supabase DB (Status: QUEUED)
-                                     │ พร้อมเป้าหมาย pool:local / pool:cloud
-Worker ใน pool เดียวกันดักรอคิวงาน ◄─┘
+เลือกฟอร์แมตและยืนยันสิทธิ์ ──> Web App ──> FastAPI (POST /downloads)
+                                              │ ตรวจ URL, Policy และ Analysis ซ้ำ
+                                              ↓
+                              บันทึก Job ลง Supabase DB (Status: QUEUED)
+                                              │ พร้อมเป้าหมาย pool:local / pool:cloud
+Worker ใน pool เดียวกันรับงาน ◄───────────────┘
     │
     ├──> ดาวน์โหลดสื่อผ่าน yt-dlp
-    ├──> แปลงไฟล์ด้วย FFmpeg
+    ├──> แปลงไฟล์ MP4, MP3 หรือ GIF ด้วย FFmpeg
     ├──> อัปเดตความคืบหน้าลง DB (Status: DOWNLOADING / CONVERTING)
     └──> บันทึกไฟล์ผลลัพธ์ลง Local Temp / Storage (Status: COMPLETED)
 ```
+
+หลัง FastAPI รับงานเข้าคิวแล้ว Web App จะล้างผลวิเคราะห์และเตรียมช่อง URL สำหรับลิงก์ถัดไปทันที
+ส่วนการ polling คิวและการประมวลผลของ Worker จะทำงานเบื้องหลังต่อไป เมื่อไฟล์พร้อมระบบจะใช้
+ขั้นตอนส่งไฟล์เข้าเบราว์เซอร์อัตโนมัติเดิม
 
 การแยก worker pool จำเป็นในโหมด Local Temp เพราะ worker แต่ละเครื่องสามารถใช้
 Supabase ชุดเดียวกันได้ แต่ไม่สามารถอ่านไฟล์ข้าม filesystem ของกันและกัน

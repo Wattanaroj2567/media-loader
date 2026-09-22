@@ -1,6 +1,6 @@
 # รายการตัวแปรสภาพแวดล้อม (Environment Variables Specification)
 
-[English](ENVIRONMENT_VARIABLES.md) | ภาษาไทย
+> **ภาษา:** [English](../en/ENVIRONMENT_VARIABLES.md) · **ภาษาไทย**
 
 ใช้ `.env.example` สำหรับไฟล์แม่แบบตัวอย่างเท่านั้น
 

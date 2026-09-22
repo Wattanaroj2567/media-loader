@@ -6,7 +6,7 @@
 [![Docker](https://img.shields.io/badge/Runtime-Docker%20Compose-2496ED?style=flat-square&logo=docker)](https://www.docker.com)
 [![License](https://img.shields.io/badge/License-Private-red?style=flat-square)](#)
 
-[English](README.md) | [ภาษาไทย](README.th.md)
+> **Language:** **English** · [ภาษาไทย](./README.th.md)
 
 A premium, private, rights-aware media downloader & converter application built for personal daily use. Analyze media URLs, select video/audio quality, queue download/conversion tasks, and manage files securely via a modern dark command-center interface.
 
@@ -17,9 +17,11 @@ A premium, private, rights-aware media downloader & converter application built 
 Get the entire monorepo stack running locally in simple steps:
 
 ### 1. Prerequisites
-Ensure you have Node.js (v18+), pnpm (`npm install -g pnpm`), Python 3.12+, `uv`, and FFmpeg installed.
+
+Ensure you have Node.js 22.13+, pnpm 11+, Python 3.12+, `uv`, and FFmpeg installed.
 
 ### 2. Setup Environment & Dependencies
+
 ```bash
 # 1. Copy environment template
 cp .env.example .env.local
@@ -38,9 +40,10 @@ Run Next.js Web UI, FastAPI Backend, and Python Media Worker all together in a s
 pnpm dev
 ```
 
-> **Prefer separate terminals or Docker?**
+> **Prefer separate terminals or a production-like container check?**
+>
 > * **Separate Terminals**: Run `pnpm dev:web`, `pnpm dev:api`, or `pnpm dev:worker` individually.
-> * **Docker Mode**: Run `docker compose --profile worker up --build`.
+> * **Docker Verification**: Run `pnpm docker:up` after changes are stable. The containers package only the API and worker; Vercel hosts the web app separately.
 
 > [!TIP]
 > Run `pnpm check-env` at any time to validate your environment configuration without leaking secret values.
@@ -76,6 +79,7 @@ pnpm dev
 | **Media Worker** | Python 3.12, yt-dlp, FFmpeg | [`apps/worker`](apps/worker) |
 | **Database & Auth**| Supabase PostgreSQL, Supabase Auth | [`supabase`](supabase) |
 | **Tooling** | `pnpm` (Node.js), `uv` (Python) | Monorepo Root |
+| **Tooling & Quality** | `pnpm`, `uv`, ESLint, Prettier, Knip, Ruff, Vulture | Monorepo Root |
 
 ---
 

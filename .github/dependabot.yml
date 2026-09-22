@@ -1,0 +1,78 @@
+version: 2
+updates:
+  # 1. Frontend Web (Next.js & React ecosystem in apps/web)
+  - package-ecosystem: "npm"
+    directory: "/apps/web"
+    schedule:
+      interval: "monthly"
+    open-pull-requests-limit: 5
+    groups:
+      nextjs-react:
+        patterns:
+          - "next"
+          - "react"
+          - "react-dom"
+          - "@types/react*"
+          - "eslint-config-next"
+      ui-styling:
+        patterns:
+          - "tailwind*"
+          - "@tailwindcss/*"
+          - "lucide-react"
+          - "clsx"
+          - "tailwind-merge"
+          - "tw-animate-css"
+      code-quality:
+        patterns:
+          - "eslint"
+          - "prettier"
+          - "knip"
+          - "@playwright/test"
+    ignore:
+      # Exclude drizzle-kit to preserve compatibility with patches/drizzle-kit.patch
+      - dependency-name: "drizzle-kit"
+
+  # 2. Backend API (FastAPI dependencies in apps/api)
+  - package-ecosystem: "pip"
+    directory: "/apps/api"
+    schedule:
+      interval: "monthly"
+    open-pull-requests-limit: 3
+    groups:
+      fastapi-backend:
+        patterns:
+          - "fastapi"
+          - "uvicorn"
+          - "pydantic*"
+          - "httpx"
+          - "supabase"
+    ignore:
+      # Handled via weekly custom workflow with uv.lock sync
+      - dependency-name: "yt-dlp"
+      # Pinned to <0.16.0 for TLS impersonation and build stability
+      - dependency-name: "curl_cffi"
+
+  # 3. Worker Service (Python dependencies in apps/worker)
+  - package-ecosystem: "pip"
+    directory: "/apps/worker"
+    schedule:
+      interval: "monthly"
+    open-pull-requests-limit: 3
+    groups:
+      worker-libs:
+        patterns:
+          - "supabase"
+          - "pydantic*"
+          - "imageio-ffmpeg"
+    ignore:
+      # Handled via weekly custom workflow with uv.lock sync
+      - dependency-name: "yt-dlp"
+      # Pinned to <0.16.0 for TLS impersonation and build stability
+      - dependency-name: "curl_cffi"
+
+  # 4. GitHub Actions (CI & Automation workflows)
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    open-pull-requests-limit: 3
