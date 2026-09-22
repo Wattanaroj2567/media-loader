@@ -5,10 +5,10 @@ Uses pydantic-settings to validate env vars at startup.
 Never prints or logs secret values.
 """
 
-from functools import lru_cache
-from pathlib import Path
 import re
 import shutil
+from functools import lru_cache
+from pathlib import Path
 
 import imageio_ffmpeg
 from pydantic_settings import BaseSettings
@@ -83,7 +83,9 @@ class Settings(BaseSettings):
         configured = Path(value).expanduser()
         if configured.is_dir():
             candidates = (configured / filename, configured / f"{filename}.exe")
-            configured = next((path for path in candidates if path.is_file()), configured)
+            configured = next(
+                (path for path in candidates if path.is_file()), configured
+            )
         return configured.resolve() if configured.is_file() else None
 
     @property
