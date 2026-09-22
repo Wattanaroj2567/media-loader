@@ -11,7 +11,7 @@ const deliveriesInProgress = new Set<string>();
 export function registerPendingDownload(
   jobId: string,
   filename: string,
-  destination: FileDestination | null,
+  destination: FileDestination | null
 ) {
   pendingDownloads.set(jobId, { destination, filename });
 }

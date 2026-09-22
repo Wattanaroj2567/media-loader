@@ -1,22 +1,28 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useCallback, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   ArrowRight,
-  CheckCircle2,
+  FileImage,
   HardDrive,
+  Info,
   ShieldCheck,
+  Sparkles,
   Video,
   Volume2,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+
 import { LoadingIndicator } from "@/components/loading-indicator";
 import { Badge } from "@/components/ui/badge";
-import { BorderBeam } from "@/components/ui/border-beam";
+import { HeaderUtilityControls } from "@/components/header-utility-controls";
+import { MediaAnalyzer } from "@/components/media-analyzer";
+import { JobList } from "@/components/job-list";
+import { JobPollingProvider } from "@/components/job-polling-provider";
+import { GlobalJobNotifier } from "@/components/global-job-notifier";
 import { useT } from "@/lib/i18n/context";
-
 
 function GoogleIcon() {
   return (
@@ -69,21 +75,22 @@ function AuthErrorMessage({ message }: { message: string }) {
   );
 }
 
-export default function LandingPage() {
+function LandingPageContent() {
   const { t } = useT();
   const [loading, setLoading] = useState(false);
   const [authError, setAuthError] = useState("");
-  const [isMounted, setIsMounted] = useState(false);
 
-  useEffect(() => {
-    setIsMounted(true);
+  const scrollToTop = useCallback(() => {
+    window.requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
   }, []);
 
   const handleLogin = async () => {
     setLoading(true);
     setAuthError("");
     try {
-      const { createClient } = await import("@/utils/supabase/client");
+      const { createClient } = await import("@/lib/supabase/client");
       const { error } = await createClient().auth.signInWithOAuth({
         provider: "google",
         options: {
@@ -116,325 +123,543 @@ export default function LandingPage() {
 
   const platforms = [
     {
+      id: "youtube",
       name: "YouTube",
-      tag: "1080p / 60fps",
+      tag: "Up to 8K / 4K / 60fps",
       tagColor: "border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-300",
       videoDesc: t("landing.ytVideo"),
       audioDesc: t("landing.ytAudio"),
+      gifDesc: t("landing.ytGif"),
+      gifAvailable: false,
       sizeDesc: t("landing.ytSize"),
       exactSize: true,
-      outputs: ["MP4 (1080p)", "MP3 (320k)"],
     },
     {
+      id: "tiktok",
       name: "TikTok",
       tag: "ByteVC1 & H.264",
       tagColor: "border-cyan-500/30 bg-cyan-500/10 text-cyan-600 dark:text-cyan-300",
       videoDesc: t("landing.ttVideo"),
       audioDesc: t("landing.ttAudio"),
+      gifDesc: t("landing.ttGif"),
+      gifAvailable: false,
       sizeDesc: t("landing.ttSize"),
       exactSize: true,
-      outputs: ["MP4 (1080p)", "MP3"],
     },
     {
+      id: "instagram",
       name: "Instagram",
       tag: "Reels & Posts",
-      tagColor: "border-fuchsia-500/30 bg-fuchsia-500/10 text-fuchsia-600 dark:text-fuchsia-300",
+      tagColor:
+        "border-fuchsia-500/30 bg-fuchsia-500/10 text-fuchsia-600 dark:text-fuchsia-300",
       videoDesc: t("landing.igVideo"),
       audioDesc: t("landing.igAudio"),
+      gifDesc: t("landing.igGif"),
+      gifAvailable: false,
       sizeDesc: t("landing.igSize"),
       exactSize: false,
-      outputs: ["MP4", "MP3"],
     },
     {
+      id: "facebook",
       name: "Facebook",
       tag: "Reels & Watch",
       tagColor: "border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-300",
       videoDesc: t("landing.fbVideo"),
       audioDesc: t("landing.fbAudio"),
+      gifDesc: t("landing.fbGif"),
+      gifAvailable: false,
       sizeDesc: t("landing.fbSize"),
       exactSize: false,
-      outputs: ["MP4 (HD/SD)", "MP3"],
+    },
+    {
+      id: "x",
+      name: "X",
+      tag: t("landing.sourceDependent", {}, "Source-dependent"),
+      tagColor:
+        "border-slate-500/30 bg-slate-500/10 text-slate-600 dark:text-slate-300",
+      videoDesc: t("landing.xVideo"),
+      audioDesc: t("landing.xAudio"),
+      gifDesc: t("landing.xGif"),
+      gifAvailable: true,
+      sizeDesc: t("landing.xSize"),
+      exactSize: false,
+    },
+    {
+      id: "bilibili",
+      name: "Bilibili",
+      tag: t("landing.sourceDependent", {}, "Source-dependent"),
+      tagColor:
+        "border-orange-500/30 bg-orange-500/10 text-orange-600 dark:text-orange-300",
+      videoDesc: t("landing.bilibiliVideo"),
+      audioDesc: t("landing.bilibiliAudio"),
+      gifDesc: t("landing.bilibiliGif"),
+      gifAvailable: false,
+      sizeDesc: t("landing.bilibiliSize"),
+      exactSize: false,
+    },
+    {
+      id: "vk",
+      name: "VK Video",
+      tag: "Up to 4K / 2160p",
+      tagColor: "border-sky-500/30 bg-sky-500/10 text-sky-600 dark:text-sky-300",
+      videoDesc: t("landing.vkVideo"),
+      audioDesc: t("landing.vkAudio"),
+      gifDesc: t("landing.vkGif"),
+      gifAvailable: false,
+      sizeDesc: t("landing.vkSize"),
+      exactSize: false,
+    },
+    {
+      id: "giphy",
+      name: "Giphy",
+      tag: "Native GIF",
+      tagColor:
+        "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+      videoDesc: t("landing.giphyVideo"),
+      audioDesc: t("landing.giphyAudio"),
+      gifDesc: t("landing.giphyGif"),
+      gifAvailable: true,
+      sizeDesc: t("landing.giphySize"),
+      exactSize: false,
     },
   ];
 
   return (
-    <main className="relative min-h-dvh w-full bg-bg-base px-4 py-8 text-foreground sm:px-6 md:py-12 lg:px-10 lg:py-12 xl:px-14 flex flex-col justify-start items-center overflow-x-hidden">
+    <main className="relative min-h-dvh w-full bg-bg-base text-foreground flex flex-col justify-start items-center overflow-x-clip">
       {/* Ambient glow mesh in background */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute -top-32 left-1/2 -translate-x-1/2 h-96 w-[90vw] max-w-4xl rounded-full bg-primary/6 blur-[140px] dark:bg-primary/8"
       />
+      <div
+        aria-hidden="true"
+        data-testid="hero-ambient-motion"
+        className="hero-ambient-motion"
+      >
+        <span className="hero-ambient-ring" />
+        <span className="hero-ambient-ring" />
+      </div>
 
-      <div className="relative mx-auto grid w-full max-w-7xl items-center gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:gap-12 xl:gap-16 2xl:max-w-screen-2xl">
-        {/* Left Column: Hero & Bento Features */}
-        <section className="w-full max-w-3xl">
-          <div className="mb-4 sm:mb-5 lg:mb-4 flex items-center gap-2">
-            <div className="size-2 rounded-full bg-emerald-500 animate-pulse" />
-            <p className="font-heading text-base font-semibold tracking-tight text-text sm:text-lg">
-              {t("app.name")}
-            </p>
+      {/* ─── Top Header Navigation ─────────────────────────────────────── */}
+      <header className="sticky top-0 z-50 w-full shrink-0 lg:top-4 lg:mt-6 lg:px-8">
+        <div
+          data-testid="landing-topbar"
+          className="mx-auto flex h-13.5 w-full items-center justify-between gap-2 border-b border-border/70 bg-bg-base/80 px-3.5 shadow-xs backdrop-blur-xl sm:h-14 sm:px-6 lg:h-auto lg:max-w-6xl lg:rounded-full lg:border lg:border-border/60 lg:bg-bg-surface/80 lg:p-2 lg:pl-5 lg:shadow-lg lg:shadow-black/5 dark:lg:border-white/10 dark:lg:shadow-black/25"
+        >
+          <span className="font-heading text-sm font-semibold tracking-tight text-text min-[360px]:text-base">
+            {t("app.name")}
+          </span>
+
+          <HeaderUtilityControls
+            trailing={
+              <Button
+                type="button"
+                size="sm"
+                onClick={handleLogin}
+                disabled={loading}
+                className="h-8 gap-2 rounded-full px-4 text-xs font-semibold shadow-xs transition-[box-shadow,background-color,color,transform] duration-200 hover:shadow-primary/20 active:scale-[0.99] cursor-pointer lg:h-10 lg:px-5"
+              >
+                {loading ? (
+                  <LoadingIndicator label={t("landing.signingIn")} />
+                ) : (
+                  <>
+                    <GoogleIcon />
+                    <span className="hidden sm:inline">{t("landing.signIn")}</span>
+                    <span className="sm:hidden">{t("landing.signInShort")}</span>
+                    <ArrowRight className="size-3.5" />
+                  </>
+                )}
+              </Button>
+            }
+          />
+        </div>
+      </header>
+
+      {/* ─── Hero & Downloader Command Center ───────────────────────────── */}
+      <div className="relative z-10 mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
+        <div className="mx-auto mb-5 max-w-3xl text-center sm:mb-9">
+          <div className="inline-flex max-w-full items-center gap-2 rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-[11px] font-semibold text-primary backdrop-blur-sm sm:px-3.5 sm:text-xs">
+            <Sparkles className="size-3.5 shrink-0" />
+            <span>
+              {t("landing.badgeInstant", {}, "ดาวน์โหลดได้ทันที โดยไม่ต้องเข้าสู่ระบบ")}
+            </span>
           </div>
 
-          <Badge
-            variant="outline"
-            className="rounded-full border-primary/25 bg-primary/10 px-3.5 py-1 text-xs font-semibold text-primary backdrop-blur-sm"
-          >
-            {t("landing.eyebrow")}
-          </Badge>
-
-          <h1 className="mt-4 max-w-3xl font-heading text-3xl font-bold leading-[1.08] tracking-[-0.035em] text-text sm:text-4xl lg:text-5xl xl:text-6xl">
+          <h1 className="mt-3 font-heading text-3xl font-bold leading-[1.12] text-text sm:mt-3.5 sm:text-4xl lg:text-5xl">
             {t("landing.title")}
           </h1>
 
-          <p className="mt-4 max-w-2xl text-sm leading-relaxed text-text-muted sm:text-base lg:text-lg">
+          <p className="mx-auto mt-2 max-w-2xl text-sm leading-relaxed text-text-muted sm:mt-3 sm:text-base">
             {t("landing.subtitle")}
           </p>
-
-          {/* CTA & Platform Badges */}
-          <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center animate-fade-in-up [animation-delay:400ms]">
-            <Button
-              type="button"
-              size="lg"
-              onClick={handleLogin}
-              disabled={loading}
-              className="h-12 rounded-2xl px-7 text-sm font-semibold shadow-lg transition-all duration-200 hover:shadow-primary/20 hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
-            >
-              {loading ? (
-                <LoadingIndicator label={t("landing.signingIn")} />
-              ) : (
-                <>
-                  <GoogleIcon />
-                  <span>{t("landing.signIn")}</span>
-                  <ArrowRight className="size-4" />
-                </>
-              )}
-            </Button>
-          </div>
-
-          <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-text-dim animate-fade-in-up [animation-delay:500ms]">
-            <span className="text-text-muted">{t("landing.supportedPlatformsPrefix", {}, "รองรับการดาวน์โหลด:")}</span>
-            <div className="flex flex-wrap items-center gap-1.5 font-medium text-text">
-              <span className="rounded-md border border-border bg-bg-surface/80 px-2 py-0.5 text-[11px]">YouTube</span>
-              <span className="rounded-md border border-border bg-bg-surface/80 px-2 py-0.5 text-[11px]">Instagram</span>
-              <span className="rounded-md border border-border bg-bg-surface/80 px-2 py-0.5 text-[11px]">TikTok</span>
-              <span className="rounded-md border border-border bg-bg-surface/80 px-2 py-0.5 text-[11px]">Facebook</span>
-            </div>
-            <span className="text-border mx-1">•</span>
-            <div className="flex items-center gap-1 text-[11px] font-mono text-text-dim">
-              <span className="text-primary font-bold">MP4</span>
-              <span>/</span>
-              <span className="text-primary font-bold">MP3</span>
-            </div>
-          </div>
 
           <Suspense fallback={null}>
             <AuthErrorMessage message={authError} />
           </Suspense>
+        </div>
 
-          {/* Assurances Bento Grid (3-column) */}
-          <div className="mt-6 grid gap-3 sm:grid-cols-3">
+        {/* Interactive Downloader Box */}
+        <div className="ui-panel rounded-3xl p-4 shadow-xl sm:p-6 lg:p-7 border border-border/90 bg-bg-surface/80 backdrop-blur-xl">
+          <MediaAnalyzer />
+
+          <div
+            id="download-queue-anchor"
+            className="w-full scroll-mt-24 empty:hidden has-[*]:mt-5"
+          >
+            <JobList mode="queue" compact={true} onQueueClosed={scrollToTop} />
+          </div>
+
+          {/* Guest notice banner */}
+          <div className="mt-4 flex flex-col gap-2.5 rounded-2xl border border-primary/20 bg-primary/5 p-3 text-xs sm:mt-5 sm:flex-row sm:items-center sm:justify-between sm:px-4 sm:py-3">
+            <div className="flex items-center gap-2.5 text-text-muted">
+              <div className="grid size-6 shrink-0 place-items-center rounded-lg bg-primary/15 text-primary">
+                <Info className="size-3.5" />
+              </div>
+              <span className="wrap-break-word">
+                {t(
+                  "landing.guestNotice",
+                  {},
+                  "กำลังใช้งานในโหมดผู้เยี่ยมชม — สามารถดาวน์โหลดไฟล์ได้ทันที หากต้องการบันทึกประวัติการดาวน์โหลดไว้ดูย้อนหลัง"
+                )}
+              </span>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleLogin}
+              disabled={loading}
+              className="h-8 w-full shrink-0 gap-1.5 rounded-xl border-primary/30 bg-primary/10 text-xs font-semibold text-primary hover:bg-primary/20 cursor-pointer sm:w-auto"
+            >
+              <GoogleIcon />
+              <span>
+                {t("landing.signInForHistory", {}, "เข้าสู่ระบบเพื่อบันทึกประวัติ")}
+              </span>
+            </Button>
+          </div>
+        </div>
+
+        {/* Platform quick badges */}
+        <div
+          data-testid="platform-quick-badges"
+          className="mt-4 flex flex-wrap items-center justify-center gap-1.5 text-[11px] text-text-dim sm:mt-6 sm:gap-2 sm:text-xs"
+        >
+          <span className="text-text-muted">
+            {t("landing.supportedPlatformsPrefix", {}, "รองรับการดาวน์โหลด:")}
+          </span>
+          <div
+            data-testid="platform-badge-list"
+            className="flex w-full min-w-0 flex-wrap items-center justify-center gap-1.5 font-medium text-text sm:w-auto"
+          >
+            <span className="rounded-md border border-border bg-bg-surface/80 px-2 py-0.5 text-[10px] sm:px-2.5 sm:text-[11px]">
+              YouTube
+            </span>
+            <span className="rounded-md border border-border bg-bg-surface/80 px-2 py-0.5 text-[10px] sm:px-2.5 sm:text-[11px]">
+              Instagram
+            </span>
+            <span className="rounded-md border border-border bg-bg-surface/80 px-2 py-0.5 text-[10px] sm:px-2.5 sm:text-[11px]">
+              TikTok
+            </span>
+            <span className="rounded-md border border-border bg-bg-surface/80 px-2 py-0.5 text-[10px] sm:px-2.5 sm:text-[11px]">
+              Facebook
+            </span>
+            <span className="rounded-md border border-border bg-bg-surface/80 px-2.5 py-0.5 text-[11px]">
+              X
+            </span>
+            <span className="rounded-md border border-border bg-bg-surface/80 px-2.5 py-0.5 text-[11px]">
+              Bilibili
+            </span>
+            <span className="rounded-md border border-border bg-bg-surface/80 px-2.5 py-0.5 text-[11px]">
+              VK Video
+            </span>
+            <span className="rounded-md border border-border bg-bg-surface/80 px-2.5 py-0.5 text-[11px]">
+              Giphy
+            </span>
+          </div>
+          <div className="flex shrink-0 items-center">
+            <span
+              data-testid="platform-format-separator"
+              className="text-border mx-1 hidden sm:inline"
+            >
+              •
+            </span>
+            <div
+              data-testid="platform-output-formats"
+              className="flex items-center gap-1 text-[11px] font-mono text-text-dim"
+            >
+              <span className="text-primary font-bold">MP4</span>
+              <span>/</span>
+              <span className="text-primary font-bold">MP3</span>
+              <span>/</span>
+              <span className="text-primary font-bold">GIF</span>
+            </div>
+          </div>
+        </div>
+
+        {/* ─── 4-Step Explanation Section ─────────────────────────────── */}
+        <section className="relative mt-12 w-full lg:mt-16">
+          <div className="mb-6 flex flex-wrap items-center gap-3">
+            <h2 className="font-heading text-xl font-bold tracking-tight text-text sm:text-2xl">
+              {t("landing.panelTitle")}
+            </h2>
+            <Badge
+              variant="outline"
+              className="rounded-full border-primary/25 bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary"
+            >
+              {t("landing.howItWorks", {}, "HOW IT WORKS")}
+            </Badge>
+          </div>
+
+          {/* Desktop Table View */}
+          <div className="hidden overflow-hidden rounded-2xl border border-border bg-bg-surface/60 backdrop-blur-md md:block">
+            <table
+              data-testid="workflow-table"
+              className="ui-data-table w-full text-left text-xs"
+            >
+              <thead>
+                <tr className="bg-bg-elevated/40 text-[11px] font-semibold uppercase tracking-wider text-text-dim">
+                  <th className="px-5 py-3.5 w-28">
+                    {t("landing.colStepNumber", {}, "ขั้นตอนที่")}
+                  </th>
+                  <th className="px-5 py-3.5">
+                    {t("landing.colStepAction", {}, "รายละเอียดการทำงาน")}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {steps.map((step, index) => (
+                  <tr key={step}>
+                    <td className="px-5 py-4">
+                      <span className="grid size-8 shrink-0 place-items-center rounded-xl border border-primary/20 bg-primary/10 font-mono text-xs font-bold text-primary">
+                        {String(index + 1).padStart(2, "0")}
+                      </span>
+                    </td>
+                    <td className="px-5 py-4 text-sm font-medium text-text">{step}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile View */}
+          <div className="grid gap-0 overflow-hidden rounded-2xl border border-border bg-bg-surface/60 backdrop-blur-md divide-y divide-border/40 md:hidden">
+            {steps.map((step, index) => (
+              <div key={step} className="flex items-center gap-4 px-4 py-3.5">
+                <span className="grid size-8 shrink-0 place-items-center rounded-xl border border-primary/20 bg-primary/10 font-mono text-xs font-bold text-primary">
+                  {String(index + 1).padStart(2, "0")}
+                </span>
+                <p className="text-sm font-medium text-text">{step}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* ─── Platform Capabilities & Format Support Section ─────────── */}
+        <section
+          data-testid="platform-capabilities-section"
+          className="relative mt-12 w-full lg:mt-16"
+        >
+          <div className="mb-6 flex flex-col gap-1.5 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <Badge
+                variant="outline"
+                className="rounded-full border-primary/25 bg-primary/10 px-3 py-0.5 text-[11px] font-semibold text-primary"
+              >
+                {t("landing.comparisonEyebrow", {}, "Platform Transparency")}
+              </Badge>
+              <h2 className="mt-2 font-heading text-xl font-bold tracking-tight text-text sm:text-2xl">
+                {t(
+                  "landing.comparisonTitle",
+                  {},
+                  "Platform Capabilities & Format Support"
+                )}
+              </h2>
+              <p className="mt-1 text-xs text-text-muted sm:text-sm">
+                {t(
+                  "landing.comparisonSubtitle",
+                  {},
+                  "Each platform serves media differently. Here is what is analyzed and extracted across platforms."
+                )}
+              </p>
+            </div>
+          </div>
+
+          {/* Desktop Table View (sm and above) */}
+          <div className="hidden overflow-x-auto rounded-2xl border border-border bg-bg-surface/60 backdrop-blur-md md:block">
+            <table
+              data-testid="platform-table"
+              className="ui-data-table min-w-[920px] w-full text-left text-xs"
+            >
+              <thead>
+                <tr className="bg-bg-elevated/40 text-[11px] font-semibold uppercase tracking-wider text-text-dim">
+                  <th className="px-5 py-3.5">
+                    {t("landing.colPlatform", {}, "Platform")}
+                  </th>
+                  <th className="px-5 py-3.5">{t("landing.colVideo", {}, "Video")}</th>
+                  <th className="px-5 py-3.5">{t("landing.colAudio", {}, "Audio")}</th>
+                  <th className="px-5 py-3.5">{t("landing.colGif", {}, "GIF")}</th>
+                  <th className="px-5 py-3.5">
+                    {t("landing.colSize", {}, "Size Estimation")}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {platforms.map((p) => (
+                  <tr key={p.name}>
+                    <td className="px-5 py-4">
+                      <div className="flex flex-col gap-1">
+                        <span className="font-semibold text-text">{p.name}</span>
+                        <span
+                          className={`inline-flex w-fit rounded-full border px-2 py-0.5 text-[10px] font-medium ${p.tagColor}`}
+                        >
+                          {p.tag}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-5 py-4 text-text-muted">{p.videoDesc}</td>
+                    <td className="px-5 py-4 text-text-muted">{p.audioDesc}</td>
+                    <td className="px-5 py-4">
+                      <span
+                        className={`inline-flex items-center gap-1.5 font-medium ${
+                          p.gifAvailable ? "text-primary" : "text-text-dim"
+                        }`}
+                      >
+                        <FileImage className="size-3.5 shrink-0" aria-hidden="true" />
+                        {p.gifDesc}
+                      </span>
+                    </td>
+                    <td className="px-5 py-4">
+                      <span
+                        className={`inline-flex items-center gap-1 font-medium ${
+                          p.exactSize
+                            ? "text-emerald-600 dark:text-emerald-400"
+                            : "text-amber-600 dark:text-amber-400"
+                        }`}
+                      >
+                        <span
+                          className={`size-1.5 rounded-full ${
+                            p.exactSize ? "bg-emerald-500" : "bg-amber-500"
+                          }`}
+                        />
+                        {p.sizeDesc}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile Card View (below md) */}
+          <div className="grid gap-3 md:hidden">
+            {platforms.map((p) => (
+              <div
+                key={p.name}
+                data-testid={`platform-card-${p.id}`}
+                className="rounded-2xl border border-border bg-bg-surface/60 p-4 backdrop-blur-md"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-text">{p.name}</span>
+                  <span
+                    className={`rounded-full border px-2 py-0.5 text-[10px] font-medium ${p.tagColor}`}
+                  >
+                    {p.tag}
+                  </span>
+                </div>
+                <div className="mt-4 overflow-hidden rounded-xl border border-border/70 bg-bg-base/40 text-xs divide-y divide-border/60">
+                  <div className="grid grid-cols-[3.25rem_1fr] items-start gap-3 px-3 py-2.5">
+                    <span className="font-mono text-[10px] font-bold tracking-wide text-text-dim">
+                      MP4
+                    </span>
+                    <div className="flex items-start gap-2">
+                      <Video className="mt-0.5 size-3.5 shrink-0 text-text-dim" />
+                      <span className="text-text-muted">{p.videoDesc}</span>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-[3.25rem_1fr] items-start gap-3 px-3 py-2.5">
+                    <span className="font-mono text-[10px] font-bold tracking-wide text-text-dim">
+                      MP3
+                    </span>
+                    <div className="flex items-start gap-2">
+                      <Volume2 className="mt-0.5 size-3.5 shrink-0 text-text-dim" />
+                      <span className="text-text-muted">{p.audioDesc}</span>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-[3.25rem_1fr] items-start gap-3 px-3 py-2.5">
+                    <span
+                      className={`font-mono text-[10px] font-bold tracking-wide ${
+                        p.gifAvailable ? "text-primary" : "text-text-dim"
+                      }`}
+                    >
+                      GIF
+                    </span>
+                    <div className="flex items-start gap-2">
+                      <FileImage
+                        className={`mt-0.5 size-3.5 shrink-0 ${
+                          p.gifAvailable ? "text-primary" : "text-text-dim"
+                        }`}
+                      />
+                      <span
+                        className={
+                          p.gifAvailable ? "font-medium text-primary" : "text-text-dim"
+                        }
+                      >
+                        {p.gifDesc}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-3 flex items-start gap-2 px-1 text-xs">
+                  <HardDrive className="mt-0.5 size-3.5 shrink-0 text-text-dim" />
+                  <span
+                    className={`font-medium ${
+                      p.exactSize
+                        ? "text-emerald-600 dark:text-emerald-400"
+                        : "text-amber-600 dark:text-amber-400"
+                    }`}
+                  >
+                    {p.sizeDesc}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* Trust assurances */}
+        <section data-testid="assurances-section" className="mt-10 lg:mt-12">
+          <div className="grid gap-3.5 sm:grid-cols-3">
             {assurances.map((item, index) => (
               <div
                 key={item}
-                className="group relative flex flex-col justify-between rounded-2xl border border-border bg-bg-surface/60 p-4 backdrop-blur-md transition-all duration-200 hover:border-primary/30 hover:bg-bg-surface dark:bg-bg-surface/40 animate-fade-in-up"
-                style={{ animationDelay: `${600 + index * 100}ms` }}
+                data-testid="assurance-card"
+                className="relative flex flex-col justify-between rounded-2xl border border-border bg-bg-surface/60 p-4 backdrop-blur-md dark:bg-bg-surface/40"
               >
                 <div className="flex items-center justify-between">
-                  <div className="grid size-8 place-items-center rounded-xl border border-primary/20 bg-primary/10 text-primary transition-transform group-hover:scale-105">
+                  <div className="grid size-8 place-items-center rounded-xl border border-primary/20 bg-primary/10 text-primary">
                     <ShieldCheck className="size-4.5" />
                   </div>
-                  <span className="font-mono text-[10px] text-text-dim">0{index + 1}</span>
+                  <span className="font-mono text-[10px] text-text-dim">
+                    0{index + 1}
+                  </span>
                 </div>
-                <p className="mt-3 text-xs font-medium leading-relaxed text-text-muted group-hover:text-text transition-colors">
+                <p className="mt-3 text-xs font-medium leading-relaxed text-text-muted">
                   {item}
                 </p>
               </div>
             ))}
           </div>
         </section>
-
-        {/* Right Column: Interactive 4-Step Workflow Card */}
-        <section className="ui-panel relative overflow-hidden rounded-3xl border border-border bg-bg-surface/70 p-4 sm:p-5 lg:p-6 backdrop-blur-xl shadow-2xl animate-fade-in-up [animation-delay:800ms]">
-          <BorderBeam size={220} duration={10} colorFrom="#00c8ff" colorTo="#0070f3" />
-          <div className="absolute inset-x-12 -top-px h-px bg-linear-to-r from-transparent via-primary/80 to-transparent" />
-          
-          <div className="flex items-center justify-between border-b border-border/70 pb-4">
-            <div>
-              <p className="text-[10px] font-mono font-semibold uppercase tracking-[0.18em] text-primary">
-                {t("landing.howItWorks", {}, "FOUR SIMPLE STEPS")}
-              </p>
-              <h2 className="mt-0.5 font-heading text-base font-semibold text-text sm:text-lg">
-                {t("landing.panelTitle")}
-              </h2>
-            </div>
-            <div className="flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-600 dark:text-emerald-300">
-              <CheckCircle2 className="size-3.5" />
-              <span>Ready</span>
-            </div>
-          </div>
-
-          {/* Steps list with smooth animated progress bars */}
-          <div className="mt-4 grid gap-3">
-            {steps.map((step, index) => (
-              <div
-                key={step}
-                className="group flex gap-3.5 rounded-2xl border border-border/80 bg-bg-base/40 p-3 sm:p-3.5 transition-all duration-200 hover:border-border hover:bg-bg-base/70"
-              >
-                <span className="grid size-8 shrink-0 place-items-center rounded-xl border border-primary/20 bg-primary/10 font-mono text-xs font-bold text-primary transition-transform group-hover:scale-105">
-                  {String(index + 1).padStart(2, "0")}
-                </span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs sm:text-sm font-medium text-text group-hover:text-primary transition-colors">
-                    {step}
-                  </p>
-                  <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-bg-surface/80">
-                    <div
-                      className="h-full rounded-full bg-primary transition-all ease-out duration-700"
-                      style={{
-                        width: isMounted ? `${(index + 1) * 25}%` : "0%",
-                        transitionDelay: `${1000 + index * 150}ms`,
-                      }}
-                    />
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
       </div>
-
-      {/* ─── Platform Capabilities & Format Support Section ─────────── */}
-      <section className="relative mx-auto mt-12 w-full max-w-7xl lg:mt-16 animate-fade-in-up [animation-delay:900ms]">
-        <div className="mb-6 flex flex-col gap-1.5 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <Badge
-              variant="outline"
-              className="rounded-full border-primary/25 bg-primary/10 px-3 py-0.5 text-[11px] font-semibold text-primary"
-            >
-              {t("landing.comparisonEyebrow", {}, "Platform Transparency")}
-            </Badge>
-            <h2 className="mt-2 font-heading text-xl font-bold tracking-tight text-text sm:text-2xl">
-              {t("landing.comparisonTitle", {}, "Platform Capabilities & Format Support")}
-            </h2>
-            <p className="mt-1 text-xs text-text-muted sm:text-sm">
-              {t("landing.comparisonSubtitle", {}, "Each platform serves media differently. Here is what is analyzed and extracted across platforms.")}
-            </p>
-          </div>
-        </div>
-
-        {/* Desktop Table View (sm and above) */}
-        <div className="hidden overflow-hidden rounded-2xl border border-border bg-bg-surface/60 backdrop-blur-md md:block">
-          <table className="w-full text-left text-xs">
-            <thead>
-              <tr className="border-b border-border/80 bg-bg-elevated/40 text-[11px] font-semibold uppercase tracking-wider text-text-dim">
-                <th className="px-5 py-3.5">{t("landing.colPlatform", {}, "Platform")}</th>
-                <th className="px-5 py-3.5">{t("landing.colVideo", {}, "Video Quality")}</th>
-                <th className="px-5 py-3.5">{t("landing.colAudio", {}, "Audio (MP3)")}</th>
-                <th className="px-5 py-3.5">{t("landing.colSize", {}, "Filesize Display")}</th>
-                <th className="px-5 py-3.5">{t("landing.colOutput", {}, "Output Formats")}</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border/60">
-              {platforms.map((p) => (
-                <tr key={p.name} className="transition-colors hover:bg-bg-surface/90">
-                  <td className="px-5 py-4">
-                    <div className="flex items-center gap-2">
-                      <span className="font-heading font-semibold text-text">{p.name}</span>
-                      <span className={`rounded-md border px-2 py-0.5 text-[10px] font-medium ${p.tagColor}`}>
-                        {p.tag}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="px-5 py-4 text-text-muted">
-                    <div className="flex items-center gap-1.5">
-                      <Video className="size-3.5 text-primary shrink-0" />
-                      <span>{p.videoDesc}</span>
-                    </div>
-                  </td>
-                  <td className="px-5 py-4 text-text-muted">
-                    <div className="flex items-center gap-1.5">
-                      <Volume2 className="size-3.5 text-emerald-500 shrink-0" />
-                      <span>{p.audioDesc}</span>
-                    </div>
-                  </td>
-                  <td className="px-5 py-4 text-text-muted">
-                    <div className="flex items-center gap-1.5">
-                      <HardDrive className="size-3.5 text-amber-500 shrink-0" />
-                      <span>{p.sizeDesc}</span>
-                    </div>
-                  </td>
-                  <td className="px-5 py-4">
-                    <div className="flex flex-wrap gap-1">
-                      {p.outputs.map((out) => (
-                        <span
-                          key={out}
-                          className="rounded-md border border-border/80 bg-bg-base/70 px-2 py-0.5 font-mono text-[10px] font-semibold text-text"
-                        >
-                          {out}
-                        </span>
-                      ))}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Mobile Cards View (< md) */}
-        <div className="grid gap-3 md:hidden">
-          {platforms.map((p) => (
-            <div
-              key={p.name}
-              className="rounded-2xl border border-border bg-bg-surface/60 p-4 backdrop-blur-md"
-            >
-              <div className="flex items-center justify-between border-b border-border/60 pb-2.5">
-                <span className="font-heading text-sm font-bold text-text">{p.name}</span>
-                <span className={`rounded-md border px-2 py-0.5 text-[10px] font-medium ${p.tagColor}`}>
-                  {p.tag}
-                </span>
-              </div>
-              <div className="mt-3 grid gap-2 text-xs">
-                <div className="flex items-start gap-2">
-                  <Video className="size-3.5 text-primary shrink-0 mt-0.5" />
-                  <div>
-                    <span className="text-text-dim text-[11px] block">{t("landing.colVideo", {}, "Video Quality")}:</span>
-                    <span className="text-text-muted">{p.videoDesc}</span>
-                  </div>
-                </div>
-                <div className="flex items-start gap-2">
-                  <Volume2 className="size-3.5 text-emerald-500 shrink-0 mt-0.5" />
-                  <div>
-                    <span className="text-text-dim text-[11px] block">{t("landing.colAudio", {}, "Audio (MP3)")}:</span>
-                    <span className="text-text-muted">{p.audioDesc}</span>
-                  </div>
-                </div>
-                <div className="flex items-start gap-2">
-                  <HardDrive className="size-3.5 text-amber-500 shrink-0 mt-0.5" />
-                  <div>
-                    <span className="text-text-dim text-[11px] block">{t("landing.colSize", {}, "Filesize")}:</span>
-                    <span className="text-text-muted">{p.sizeDesc}</span>
-                  </div>
-                </div>
-                <div className="mt-1 flex items-center gap-1.5 pt-1 border-t border-border/40">
-                  <span className="text-text-dim text-[11px]">{t("landing.colOutput", {}, "Output")}:</span>
-                  <div className="flex flex-wrap gap-1">
-                    {p.outputs.map((out) => (
-                      <span
-                        key={out}
-                        className="rounded-md border border-border/80 bg-bg-base/70 px-2 py-0.5 font-mono text-[10px] font-semibold text-text"
-                      >
-                        {out}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
     </main>
   );
 }
 
+export default function LandingPage() {
+  return (
+    <JobPollingProvider>
+      <GlobalJobNotifier />
+      <LandingPageContent />
+    </JobPollingProvider>
+  );
+}

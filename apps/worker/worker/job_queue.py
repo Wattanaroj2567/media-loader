@@ -8,8 +8,8 @@ import logging
 from datetime import datetime, timezone
 from typing import Any
 
-from worker.supabase_client import get_supabase_client
 from worker.config import get_settings
+from worker.supabase_client import get_supabase_client
 
 logger = logging.getLogger("media_loader_worker.job_queue")
 
@@ -85,7 +85,14 @@ def poll_queued_job() -> dict | None:
         return None
 
 
-def update_job_status(job_id: str, status: str, error_message: str = None, **metadata: Any) -> bool:
+def update_job_status(
+    job_id: str,
+    status: str,
+    error_message: str = None,
+    *,
+    expected_status: str | None = None,
+    **metadata: Any,
+) -> bool:
     """Update job status and optional metadata.
 
     Returns True if update succeeded, False otherwise.
@@ -95,7 +102,6 @@ def update_job_status(job_id: str, status: str, error_message: str = None, **met
         logger.error("Supabase client not configured")
         return False
 
-    settings = get_settings()
     now = datetime.now(timezone.utc)
 
     update_data = {
@@ -114,13 +120,18 @@ def update_job_status(job_id: str, status: str, error_message: str = None, **met
         if status != "CANCELLED" and is_job_cancelled(job_id):
             logger.info("Skipped status %s for cancelled job %s", status, job_id)
             return False
-        (
-            supabase.table("download_jobs")
-            .update(update_data)
-            .eq("id", job_id)
-            .execute()
-        )
-        logger.info(f"Updated job {job_id} to status {status}")
+        query = supabase.table("download_jobs").update(update_data).eq("id", job_id)
+        if expected_status is not None:
+            query = query.eq("status", expected_status)
+        result = query.execute()
+        if expected_status is not None and not result.data:
+            logger.info(
+                "Skipped stale status update for job %s; expected %s",
+                job_id,
+                expected_status,
+            )
+            return False
+        logger.info("Updated job %s to status %s", job_id, status)
         return True
     except Exception as e:
         logger.error(f"Failed to update job {job_id}: {e}")
@@ -155,7 +166,7 @@ def update_job_progress(
     job_id: str,
     progress: int,
     download_speed: float | None = None,
-    file_size: int | None = None,
+    total_bytes: int | None = None,
 ) -> bool:
     metadata = {}
     if download_speed is not None:
@@ -163,16 +174,19 @@ def update_job_progress(
             metadata["download_speed"] = int(download_speed)
         except (ValueError, TypeError):
             pass
-    if file_size is not None:
+    if total_bytes is not None:
         try:
-            metadata["file_size"] = int(file_size)
+            # Live source estimate only. The completed output keeps using
+            # file_size so the two numbers never overwrite each other.
+            metadata["total_bytes_estimate"] = int(total_bytes)
         except (ValueError, TypeError):
             pass
     return update_job_status(
         job_id,
         "DOWNLOADING",
+        expected_status="DOWNLOADING",
         progress=max(0, min(progress, 99)),
-        **metadata
+        **metadata,
     )
 
 
@@ -215,11 +229,13 @@ def release_job_lock(job_id: str) -> bool:
         return False
 
     try:
-        supabase.table("download_jobs").update({
-            "locked_by": None,
-            "locked_at": None,
-            "updated_at": datetime.now(timezone.utc).isoformat(),
-        }).eq("id", job_id).execute()
+        supabase.table("download_jobs").update(
+            {
+                "locked_by": None,
+                "locked_at": None,
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            }
+        ).eq("id", job_id).execute()
         logger.info(f"Released lock on job {job_id}")
         return True
     except Exception as e:

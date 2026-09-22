@@ -26,12 +26,8 @@ export const profiles = pgTable("profiles", {
   email: text("email"),
   fullName: text("full_name"),
   avatarUrl: text("avatar_url"),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .defaultNow()
-    .notNull(),
-  updatedAt: timestamp("updated_at", { withTimezone: true })
-    .defaultNow()
-    .notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
 // Download jobs table
@@ -39,9 +35,8 @@ export const downloadJobs = pgTable(
   "download_jobs",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    userId: uuid("user_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
+    userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }),
+    guestSessionId: text("guest_session_id"),
     originalUrl: text("original_url").notNull(),
     platform: text("platform").default("unknown").notNull(),
     title: text("title"),
@@ -60,15 +55,12 @@ export const downloadJobs = pgTable(
     storageBucket: text("storage_bucket"),
     storagePath: text("storage_path"),
     fileSize: bigint("file_size", { mode: "bigint" }),
+    totalBytesEstimate: bigint("total_bytes_estimate", { mode: "bigint" }),
     rightsConfirmed: boolean("rights_confirmed").default(false).notNull(),
     lockedAt: timestamp("locked_at", { withTimezone: true }),
     lockedBy: text("locked_by"),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .defaultNow()
-      .notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .defaultNow()
-      .notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
     completedAt: timestamp("completed_at", { withTimezone: true }),
     downloadSpeed: bigint("download_speed", { mode: "bigint" }),
   },
@@ -76,11 +68,14 @@ export const downloadJobs = pgTable(
     return {
       userIdCreatedAtIdx: index("idx_download_jobs_user_id_created_at").on(
         table.userId,
-        table.createdAt,
+        table.createdAt
+      ),
+      guestSessionIdx: index("idx_download_jobs_guest_session").on(
+        table.guestSessionId
       ),
       statusIdx: index("idx_download_jobs_status").on(table.status),
     };
-  },
+  }
 );
 
 // Policy logs table
@@ -95,16 +90,14 @@ export const policyLogs = pgTable(
     platform: text("platform").default("unknown").notNull(),
     decision: text("decision").notNull(),
     reason: text("reason").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .defaultNow()
-      .notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => {
     return {
       userIdCreatedAtIdx: index("idx_policy_logs_user_id_created_at").on(
         table.userId,
-        table.createdAt,
+        table.createdAt
       ),
     };
-  },
+  }
 );

@@ -1,36 +1,50 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Media Loader Web
 
-## Getting Started
+Next.js 16 frontend for Media Loader. It owns authentication UI, URL submission,
+format selection, job progress, history, settings, and authenticated file delivery.
+Media analysis and job creation always go through FastAPI; the browser does not
+write server-managed queue or policy records directly.
 
-First, run the development server:
+## Development
+
+Run commands from the repository root:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm dev:web
+pnpm --filter web lint
+pnpm --filter web test
+pnpm --filter web test:e2e:mock
+pnpm --filter web build
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Use `pnpm dev` when the web app, API, and worker should run together.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Key Paths
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- `app/` — App Router pages, layouts, and route handlers
+- `components/` — shared interface components
+- `lib/api-client.ts` — authenticated FastAPI client and contracts
+- `lib/i18n/` — English and Thai locale configuration
+- `lib/db/schema.ts` — single source of truth for application tables and columns
+- `e2e/` — Playwright browser tests
 
-## Learn More
+## Database Changes
 
-To learn more about Next.js, take a look at the following resources:
+Define application tables, columns, constraints, and indexes in
+`lib/db/schema.ts`. Use Drizzle commands from the repository root:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+pnpm --filter web db:push
+pnpm --filter web db:generate
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Raw SQL under `supabase/` is reserved for Row Level Security policies,
+PostgreSQL functions, triggers, and extensions.
 
-## Deploy on Vercel
+## Documentation
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- [Developer guide](../../docs/en/DEVELOPER_GUIDE.md)
+- [Architecture](../../docs/en/ARCHITECTURE.md)
+- [API specification](../../docs/en/API_SPEC.md)
+- [Database schema](../../docs/en/DATABASE_SCHEMA.md)
+- [Security and policy](../../docs/en/SECURITY_AND_POLICY.md)

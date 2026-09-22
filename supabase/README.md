@@ -1,35 +1,29 @@
-# Supabase Database Migration Guide
+# Supabase Database Support Files
 
-This directory contains the initial schema structures and Row Level Security (RLS) policies for the Media Loader workspace application.
-
----
-
-## SQL Migration Details
-
-Apply every file under `supabase/migrations/` in numeric order:
-
-1. `0001_initial_schema.sql` — tables, indexes, RLS
-2. `0002_create_profile_trigger.sql` — Google Auth profile bootstrap
-3. `0003_job_metadata.sql` — analyzer/history metadata
-4. `0004_lock_server_managed_tables.sql` — blocks direct browser queue mutations
-5. `0005_selected_format_audio_flag.sql` — keeps video/audio merge selection faithful
+Application tables and columns are owned by Drizzle in
+`apps/web/lib/db/schema.ts`. This directory contains only the Supabase-specific
+Row Level Security policies, PostgreSQL functions, and triggers needed around
+that schema.
 
 ---
 
-## How to Apply SQL Migrations
+## Fresh Setup
 
-Follow these steps inside your Supabase project dashboard:
+From the repository root, create or update application tables through Drizzle:
 
-1. Navigate to the **Supabase Dashboard** -> select your project.
-2. Click **SQL Editor** from the left navigation sidebar.
-3. Click **New query** (or **New Blank Query**).
-4. Open each migration in numeric order and copy it into the SQL Editor.
-5. Click **Run** (or press `Ctrl + Enter` / `Cmd + Enter`) before moving to the next file.
-6. Confirm that each migration returns `Success. No rows returned` or similar.
+```bash
+pnpm --filter web db:push
+```
 
----
+Then run these files in the Supabase SQL Editor, in order:
 
-## Verifying the Table and RLS Setup
+1. `profile_trigger.sql` — creates the Auth-to-profile function and trigger
+2. `rls_policies.sql` — enables RLS and installs user-scoped policies
+
+Files under `migrations/` and `schema.sql` are retained as historical bootstrap
+artifacts. Do not add new application table or column changes there.
+
+## Verify the Setup
 
 ### 1. Check if tables exist
 

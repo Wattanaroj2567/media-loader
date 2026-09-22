@@ -35,7 +35,7 @@ export function UserAvatar({
     <div
       className={cn(
         "relative grid size-9 shrink-0 place-items-center overflow-hidden rounded-full border border-border bg-bg-elevated text-xs font-bold text-primary select-none",
-        className,
+        className
       )}
       role="img"
       aria-label={name}
@@ -60,4 +60,3 @@ export function UserAvatar({
     </div>
   );
 }
-

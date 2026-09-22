@@ -82,9 +82,7 @@ def test_delete_account_cancels_jobs_cleans_files_and_deletes_auth_user(
         },
     ]
     database = FakeSupabase(rows)
-    monkeypatch.setattr(
-        "app.account_service.get_supabase_client", lambda: database
-    )
+    monkeypatch.setattr("app.account_service.get_supabase_client", lambda: database)
 
     delete_account("user-1", temp_root=tmp_path)
 

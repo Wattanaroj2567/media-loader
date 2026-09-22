@@ -18,4 +18,21 @@ dependencies = [
 packages = ["worker"]
 
 [project.optional-dependencies]
-dev = ["pytest", "pytest-asyncio"]
+dev = [
+    "pytest",
+    "pytest-asyncio",
+    "ruff>=0.9.0",
+    "vulture>=2.14",
+]
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B"]
+ignore = ["E501"]
+
+[tool.vulture]
+min_confidence = 80
+paths = ["worker"]

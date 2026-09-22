@@ -5,6 +5,7 @@ import {
   apiClient,
   canShareFiles,
   isMobileDevice,
+  isIosDevice,
 } from "@/lib/api-client";
 import { isActiveStatus, isTerminalStatus } from "@/lib/media-presenters";
 import { useToast } from "@/components/toast";
@@ -27,14 +28,18 @@ export function GlobalJobNotifier() {
     jobId: string;
     title: string;
     filename: string;
+    isIos: boolean;
   } | null>(null);
   const choiceRef = useRef<{
     jobId: string;
     title: string;
     filename: string;
+    isIos: boolean;
   } | null>(null);
   const [delivering, setDelivering] = useState(false);
-  const [deliveryAction, setDeliveryAction] = useState<"share" | "download" | null>(null);
+  const [deliveryAction, setDeliveryAction] = useState<"share" | "download" | null>(
+    null
+  );
 
   const closeChoice = useCallback(() => {
     choiceRef.current = null;
@@ -46,10 +51,7 @@ export function GlobalJobNotifier() {
     setDeliveryAction("share");
     setDelivering(true);
     try {
-      const result = await apiClient.shareJobFile(
-        choice.jobId,
-        choice.filename,
-      );
+      const result = await apiClient.shareJobFile(choice.jobId, choice.filename);
       finishDownloadDelivery(choice.jobId, true);
       closeChoice();
       toast(
@@ -57,7 +59,7 @@ export function GlobalJobNotifier() {
         result === "shared"
           ? t("file.sharedSuccess", {}, "แชร์ไฟล์แล้ว")
           : t("queue.completedToastTitle", {}, "ดาวน์โหลดสำเร็จแล้ว"),
-        choice.filename,
+        choice.filename
       );
     } catch (err) {
       console.warn("[Share File Error]:", err);
@@ -66,7 +68,7 @@ export function GlobalJobNotifier() {
       toast(
         "error",
         t("file.shareError", {}, "แชร์ไฟล์ไม่สำเร็จ"),
-        t("error.genericDesc"),
+        t("error.genericDesc")
       );
     } finally {
       setDelivering(false);
@@ -85,7 +87,7 @@ export function GlobalJobNotifier() {
       toast(
         "success",
         t("queue.completedToastTitle", {}, "ดาวน์โหลดสำเร็จแล้ว"),
-        choice.filename,
+        choice.filename
       );
     } catch (err) {
       console.warn("[Download File Error]:", err);
@@ -94,7 +96,7 @@ export function GlobalJobNotifier() {
       toast(
         "error",
         t("history.downloadError", {}, "ดาวน์โหลดไฟล์ไม่สำเร็จ"),
-        err instanceof Error && err.message ? err.message : t("error.genericDesc"),
+        err instanceof Error && err.message ? err.message : t("error.genericDesc")
       );
     } finally {
       setDelivering(false);
@@ -111,11 +113,7 @@ export function GlobalJobNotifier() {
     toast(
       "info",
       t("file.savedLaterTitle", {}, "เก็บไฟล์ไว้ให้แล้ว"),
-      t(
-        "file.savedLaterDesc",
-        {},
-        "ไปที่หน้าประวัติเพื่อแชร์หรือดาวน์โหลดได้",
-      ),
+      t("file.savedLaterDesc", {}, "ไปที่หน้าประวัติเพื่อแชร์หรือดาวน์โหลดได้")
     );
   }, [choice, delivering, t, toast, closeChoice]);
 
@@ -146,9 +144,7 @@ export function GlobalJobNotifier() {
             // browser download. Keep only one chooser open so the user can
             // decide how to handle each completed file clearly.
             const preferShareSheet =
-              isMobileDevice() &&
-              canShareFiles() &&
-              !pendingDownload.destination;
+              isMobileDevice() && canShareFiles() && !pendingDownload.destination;
 
             // While a chooser is already open, don't claim extra completed
             // jobs — they will be offered once the current one is resolved.
@@ -164,6 +160,7 @@ export function GlobalJobNotifier() {
                   jobId: job.id,
                   title: job.title || pendingDownload.filename,
                   filename: pendingDownload.filename,
+                  isIos: isIosDevice(),
                 };
                 setChoice(choiceRef.current);
                 continue;
@@ -173,13 +170,13 @@ export function GlobalJobNotifier() {
                 await apiClient.downloadJobFile(
                   job.id,
                   pendingDownload.filename,
-                  pendingDownload.destination,
+                  pendingDownload.destination
                 );
                 finishDownloadDelivery(job.id, true);
                 toast(
                   "success",
                   t("queue.completedToastTitle", {}, "ดาวน์โหลดสำเร็จแล้ว"),
-                  pendingDownload.filename,
+                  pendingDownload.filename
                 );
               } catch (err) {
                 finishDownloadDelivery(job.id, false);
@@ -188,7 +185,9 @@ export function GlobalJobNotifier() {
                 toast(
                   "error",
                   t("history.downloadError", {}, "ดาวน์โหลดไฟล์ไม่สำเร็จ"),
-                  err instanceof Error && err.message ? err.message : t("error.genericDesc"),
+                  err instanceof Error && err.message
+                    ? err.message
+                    : t("error.genericDesc")
                 );
               }
             }
@@ -203,9 +202,17 @@ export function GlobalJobNotifier() {
             forgetPendingDownload(job.id);
             const title = job.title || job.output_filename || job.original_url;
             if (job.status === "FAILED") {
-              toast("error", t("queue.failedToastTitle", {}, "ดาวน์โหลดล้มเหลว"), title);
+              toast(
+                "error",
+                t("queue.failedToastTitle", {}, "ดาวน์โหลดล้มเหลว"),
+                title
+              );
             } else if (job.status === "BLOCKED") {
-              toast("error", t("queue.blockedToastTitle", {}, "ดาวน์โหลดถูกบล็อก"), title);
+              toast(
+                "error",
+                t("queue.blockedToastTitle", {}, "ดาวน์โหลดถูกบล็อก"),
+                title
+              );
             }
           }
 
@@ -221,13 +228,25 @@ export function GlobalJobNotifier() {
               if (handledPendingDownload) {
                 // The pending download path already announced this outcome.
               } else if (job.status === "COMPLETED") {
-                toast("success", t("queue.completedToastTitle", {}, "ดาวน์โหลดสำเร็จแล้ว"), title);
+                toast(
+                  "success",
+                  t("queue.completedToastTitle", {}, "ดาวน์โหลดสำเร็จแล้ว"),
+                  title
+                );
               } else if (job.status === "FAILED") {
                 forgetPendingDownload(job.id);
-                toast("error", t("queue.failedToastTitle", {}, "ดาวน์โหลดล้มเหลว"), title);
+                toast(
+                  "error",
+                  t("queue.failedToastTitle", {}, "ดาวน์โหลดล้มเหลว"),
+                  title
+                );
               } else if (job.status === "BLOCKED") {
                 forgetPendingDownload(job.id);
-                toast("error", t("queue.blockedToastTitle", {}, "ดาวน์โหลดถูกบล็อก"), title);
+                toast(
+                  "error",
+                  t("queue.blockedToastTitle", {}, "ดาวน์โหลดถูกบล็อก"),
+                  title
+                );
               } else if (job.status === "CANCELLED") {
                 forgetPendingDownload(job.id);
               }
@@ -270,6 +289,7 @@ export function GlobalJobNotifier() {
       title={choice?.title ?? ""}
       busy={delivering}
       busyAction={deliveryAction}
+      isIos={choice?.isIos ?? false}
       onShare={() => void deliverSharedFile()}
       onDownload={() => void deliverDownloadFile()}
       onDismiss={dismissChoice}

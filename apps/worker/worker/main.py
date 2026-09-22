@@ -8,11 +8,11 @@ import asyncio
 import logging
 import signal
 import sys
+
 from worker.cleanup import cleanup_expired_outputs
 from worker.config import get_settings
 from worker.job_queue import (
     get_job_status,
-    is_job_cancelled,
     poll_queued_job,
     release_job_lock,
     update_job_status,
@@ -32,7 +32,7 @@ logger = logging.getLogger("media_loader_worker.main")
 shutdown_requested = False
 
 
-def handle_shutdown(signum, frame):
+def handle_shutdown(signum, _frame):
     """Handle shutdown signals gracefully."""
     global shutdown_requested
     logger.info(f"Received signal {signum}, initiating graceful shutdown...")
@@ -88,13 +88,29 @@ async def worker_loop():
 
                     if not success:
                         status = get_job_status(job_id)
-                        if status not in {"FAILED", "CANCELLED", "BLOCKED", "COMPLETED", "PAUSED", "NETWORK_ERROR"}:
-                            update_job_status(job_id, "FAILED", error_message="Processing failed")
+                        if status not in {
+                            "FAILED",
+                            "CANCELLED",
+                            "BLOCKED",
+                            "COMPLETED",
+                            "PAUSED",
+                            "NETWORK_ERROR",
+                        }:
+                            update_job_status(
+                                job_id, "FAILED", error_message="Processing failed"
+                            )
 
                 except Exception as e:
                     logger.error(f"Error processing job {job_id}: {e}")
                     status = get_job_status(job_id)
-                    if status not in {"FAILED", "CANCELLED", "BLOCKED", "COMPLETED", "PAUSED", "NETWORK_ERROR"}:
+                    if status not in {
+                        "FAILED",
+                        "CANCELLED",
+                        "BLOCKED",
+                        "COMPLETED",
+                        "PAUSED",
+                        "NETWORK_ERROR",
+                    }:
                         update_job_status(
                             job_id,
                             "FAILED",

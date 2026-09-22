@@ -60,7 +60,8 @@ def _database():
 
 def create_job(
     *,
-    user_id: str,
+    user_id: str | None = None,
+    guest_session_id: str | None = None,
     url: str,
     format_id: str,
     output_format: str,
@@ -73,16 +74,18 @@ def create_job(
     media_type: str,
     selected_quality: str,
     selected_has_audio: bool,
+    rights_confirmed: bool = True,
 ) -> str:
     """Create a new download job in Supabase."""
     supabase = _database()
 
     job_id = str(uuid.uuid4())
     now = datetime.now(timezone.utc).isoformat()
-    
+
     job_data: dict[str, Any] = {
         "id": job_id,
         "user_id": user_id,
+        "guest_session_id": guest_session_id,
         "original_url": url,
         "title": title,
         "platform": platform,
@@ -96,7 +99,7 @@ def create_job(
         "selected_quality": selected_quality,
         "selected_has_audio": selected_has_audio,
         "output_format": output_format,
-        "rights_confirmed": True,
+        "rights_confirmed": rights_confirmed,
         # Reserve the existing lock field as a routing marker while QUEUED.
         # Old workers ignore non-null markers, so a cloud worker cannot steal
         # a job created by the local API during a rolling deployment.
@@ -108,7 +111,9 @@ def create_job(
 
     try:
         supabase.table("download_jobs").insert(job_data).execute()
-        logger.info("Created job %s for user %s", job_id, user_id)
+        logger.info(
+            "Created job %s for user %s (guest: %s)", job_id, user_id, guest_session_id
+        )
         return job_id
     except AppError:
         raise
@@ -127,6 +132,8 @@ def _normalize_job(job: dict, *, include_internal: bool = False) -> dict:
     job = dict(job)
     if "file_size" in job and job["file_size"] is not None:
         job["file_size_mb"] = round(job["file_size"] / (1024 * 1024), 2)
+    if "total_bytes_estimate" in job and job["total_bytes_estimate"] is not None:
+        job["total_size_mb"] = round(job["total_bytes_estimate"] / (1024 * 1024), 2)
     if "selected_format_id" in job and "selected_format" not in job:
         job["selected_format"] = job["selected_format_id"]
     storage_path = job.get("storage_path")
@@ -157,11 +164,7 @@ def list_jobs(
     """List recent download jobs."""
     supabase = _database()
     try:
-        request = (
-            supabase.table("download_jobs")
-            .select("*")
-            .eq("user_id", user_id)
-        )
+        request = supabase.table("download_jobs").select("*").eq("user_id", user_id)
         if status:
             request = request.eq("status", status)
         result = (
@@ -196,24 +199,34 @@ def list_jobs(
         raise AppError(500, "JOB_LIST_FAILED", "ไม่สามารถโหลดรายการงานได้") from error
 
 
+def _apply_owner_filter(
+    query: Any, *, user_id: str | None, guest_session_id: str | None
+) -> Any:
+    if user_id is not None:
+        return query.eq("user_id", user_id)
+    if guest_session_id is not None:
+        return query.eq("guest_session_id", guest_session_id)
+    raise AppError(401, "AUTH_REQUIRED", "จำเป็นต้องระบุข้อมูลผู้ใช้หรือเซสชัน")
+
+
 def get_job(
-    job_id: str, *, user_id: str, include_internal: bool = False
+    job_id: str,
+    *,
+    user_id: str | None = None,
+    guest_session_id: str | None = None,
+    include_internal: bool = False,
 ) -> dict | None:
     """Get a single job by ID."""
     supabase = _database()
     try:
-        result = (
-            supabase.table("download_jobs")
-            .select("*")
-            .eq("id", job_id)
-            .eq("user_id", user_id)
-            .execute()
+        query = supabase.table("download_jobs").select("*").eq("id", job_id)
+        query = _apply_owner_filter(
+            query, user_id=user_id, guest_session_id=guest_session_id
         )
+        result = query.execute()
         data = result.data
         return (
-            _normalize_job(data[0], include_internal=include_internal)
-            if data
-            else None
+            _normalize_job(data[0], include_internal=include_internal) if data else None
         )
     except AppError:
         raise
@@ -223,7 +236,12 @@ def get_job(
 
 
 def update_job_status(
-    job_id: str, status: str, *, user_id: str, **kwargs: Any
+    job_id: str,
+    status: str,
+    *,
+    user_id: str | None = None,
+    guest_session_id: str | None = None,
+    **kwargs: Any,
 ) -> dict:
     """Update job status and metadata in Supabase."""
     supabase = _database()
@@ -235,13 +253,11 @@ def update_job_status(
         update_data[key] = value
 
     try:
-        result = (
-            supabase.table("download_jobs")
-            .update(update_data)
-            .eq("id", job_id)
-            .eq("user_id", user_id)
-            .execute()
+        query = supabase.table("download_jobs").update(update_data).eq("id", job_id)
+        query = _apply_owner_filter(
+            query, user_id=user_id, guest_session_id=guest_session_id
         )
+        result = query.execute()
         if not result.data:
             raise AppError(404, "JOB_NOT_FOUND", "ไม่พบงานนี้")
         return _normalize_job(result.data[0])
@@ -252,8 +268,13 @@ def update_job_status(
         raise AppError(500, "JOB_UPDATE_FAILED", "ไม่สามารถอัปเดตงานได้") from error
 
 
-def cancel_job(job_id: str, *, user_id: str) -> dict:
-    job = get_job(job_id, user_id=user_id)
+def cancel_job(
+    job_id: str,
+    *,
+    user_id: str | None = None,
+    guest_session_id: str | None = None,
+) -> dict:
+    job = get_job(job_id, user_id=user_id, guest_session_id=guest_session_id)
     if not job:
         raise AppError(404, "JOB_NOT_FOUND", "ไม่พบงานนี้")
     if not can_cancel_job(job["status"]):
@@ -266,13 +287,25 @@ def cancel_job(job_id: str, *, user_id: str) -> dict:
         job_id,
         "CANCELLED",
         user_id=user_id,
+        guest_session_id=guest_session_id,
         locked_by=None,
         locked_at=None,
     )
 
 
-def delete_job(job_id: str, *, user_id: str, temp_root: str | Path) -> bool:
-    job = get_job(job_id, user_id=user_id, include_internal=True)
+def delete_job(
+    job_id: str,
+    *,
+    user_id: str | None = None,
+    guest_session_id: str | None = None,
+    temp_root: str | Path,
+) -> bool:
+    job = get_job(
+        job_id,
+        user_id=user_id,
+        guest_session_id=guest_session_id,
+        include_internal=True,
+    )
     if not job:
         raise AppError(404, "JOB_NOT_FOUND", "ไม่พบงานนี้")
     if not can_delete_job(job["status"]):
@@ -290,26 +323,29 @@ def delete_job(job_id: str, *, user_id: str, temp_root: str | Path) -> bool:
         # it also must not prevent the owner from removing their history row.
         logger.warning("Skipped unsafe output while deleting job %s", job_id)
     try:
-        (
-            _database()
-            .table("download_jobs")
-            .delete()
-            .eq("id", job_id)
-            .eq("user_id", user_id)
-            .execute()
+        query = _database().table("download_jobs").delete().eq("id", job_id)
+        query = _apply_owner_filter(
+            query, user_id=user_id, guest_session_id=guest_session_id
         )
+        query.execute()
         return True
     except Exception as error:
         logger.error("Failed to delete job %s: %s", job_id, type(error).__name__)
         raise AppError(500, "JOB_DELETE_FAILED", "ไม่สามารถลบรายการได้") from error
 
 
-def clear_job_output(job_id: str, *, user_id: str) -> None:
+def clear_job_output(
+    job_id: str,
+    *,
+    user_id: str | None = None,
+    guest_session_id: str | None = None,
+) -> None:
     try:
         update_job_status(
             job_id,
             "COMPLETED",
             user_id=user_id,
+            guest_session_id=guest_session_id,
             storage_path=None,
             storage_bucket=None,
         )
@@ -321,8 +357,13 @@ PAUSABLE_STATUSES = {"PENDING", "READY", "QUEUED", "DOWNLOADING", "CONVERTING"}
 RESUMABLE_STATUSES = {"PAUSED"}
 
 
-def pause_job(job_id: str, *, user_id: str) -> dict:
-    job = get_job(job_id, user_id=user_id)
+def pause_job(
+    job_id: str,
+    *,
+    user_id: str | None = None,
+    guest_session_id: str | None = None,
+) -> dict:
+    job = get_job(job_id, user_id=user_id, guest_session_id=guest_session_id)
     if not job:
         raise AppError(404, "JOB_NOT_FOUND", "ไม่พบงานนี้")
     if job["status"] not in PAUSABLE_STATUSES:
@@ -335,13 +376,19 @@ def pause_job(job_id: str, *, user_id: str) -> dict:
         job_id,
         "PAUSED",
         user_id=user_id,
+        guest_session_id=guest_session_id,
         locked_by=None,
         locked_at=None,
     )
 
 
-def resume_job(job_id: str, *, user_id: str) -> dict:
-    job = get_job(job_id, user_id=user_id)
+def resume_job(
+    job_id: str,
+    *,
+    user_id: str | None = None,
+    guest_session_id: str | None = None,
+) -> dict:
+    job = get_job(job_id, user_id=user_id, guest_session_id=guest_session_id)
     if not job:
         raise AppError(404, "JOB_NOT_FOUND", "ไม่พบงานนี้")
     if job["status"] not in RESUMABLE_STATUSES:
@@ -354,6 +401,7 @@ def resume_job(job_id: str, *, user_id: str) -> dict:
         job_id,
         "QUEUED",
         user_id=user_id,
+        guest_session_id=guest_session_id,
         locked_by=get_settings().queue_target_marker,
         locked_at=None,
     )

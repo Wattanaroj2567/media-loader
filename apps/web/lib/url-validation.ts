@@ -5,7 +5,7 @@
  * The real policy check happens server-side.
  */
 
-export type UrlValidationResult = {
+type UrlValidationResult = {
   valid: boolean;
   error?: string;
   /** Cleaned/trimmed URL */
@@ -34,11 +34,7 @@ const PRIVATE_IP_PATTERNS = [
   /^169\.254\.\d{1,3}\.\d{1,3}$/,
 ];
 
-const BLOCKED_HOSTNAMES = new Set([
-  "localhost",
-  "localhost.localdomain",
-  "[::1]",
-]);
+const BLOCKED_HOSTNAMES = new Set(["localhost", "localhost.localdomain", "[::1]"]);
 
 /**
  * Validate a URL string for basic safety and format.
@@ -121,17 +117,4 @@ export function validateUrl(input: string): UrlValidationResult {
   }
 
   return { valid: true, url: parsed.href };
-}
-
-/**
- * Extract a human-readable domain from a URL.
- * Returns the hostname without "www." prefix.
- */
-export function extractDomain(url: string): string {
-  try {
-    const parsed = new URL(url);
-    return parsed.hostname.replace(/^www\./, "");
-  } catch {
-    return "unknown";
-  }
 }

@@ -12,7 +12,13 @@ from pathlib import Path
 from fastapi import APIRouter, Depends, Header, Query, Response
 from fastapi.responses import FileResponse
 
-from app.auth import CurrentUser, generate_download_token, get_current_user, verify_download_token
+from app.auth import (
+    CurrentUser,
+    generate_download_token,
+    get_current_user,
+    get_current_user_optional,
+    verify_download_token,
+)
 from app.config import get_settings
 from app.errors import AppError
 from app.file_service import delete_local_output, resolve_local_output
@@ -49,17 +55,28 @@ def build_download_filename(job: dict, file_path: Path) -> str:
 @router.get("/token/{job_id}")
 async def get_download_token(
     job_id: str,
-    current_user: CurrentUser = Depends(get_current_user),
+    current_user: CurrentUser | None = Depends(get_current_user_optional),
+    guest_session_id: str | None = Header(default=None, alias="x-guest-session-id"),
 ) -> dict:
     """Generate a one-time secure download token for direct browser streaming."""
-    job = get_job(job_id, user_id=current_user.id, include_internal=False)
+    user_id = current_user.id if current_user else None
+    if not user_id and not guest_session_id:
+        raise AppError(401, "AUTH_REQUIRED", "จำเป็นต้องระบุข้อมูลผู้ใช้หรือเซสชัน")
+
+    job = get_job(
+        job_id,
+        user_id=user_id,
+        guest_session_id=guest_session_id,
+        include_internal=False,
+    )
     if not job:
         raise AppError(404, "JOB_NOT_FOUND", "ไม่พบงานนี้")
 
     if job.get("status") != "COMPLETED":
         raise AppError(409, "JOB_NOT_COMPLETED", "งานนี้ยังประมวลผลไม่เสร็จ")
 
-    token = generate_download_token(job_id, current_user.id, expires_in_seconds=300)
+    token_subject = user_id or f"guest:{guest_session_id}"
+    token = generate_download_token(job_id, token_subject, expires_in_seconds=300)
     return success_response(
         data={
             "job_id": job_id,
@@ -75,18 +92,32 @@ async def download_file(
     job_id: str,
     token: str | None = Query(default=None),
     authorization: str | None = Header(default=None),
+    guest_session_id: str | None = Header(default=None, alias="x-guest-session-id"),
 ) -> Response:
-    """Download a completed file from local temp storage via direct streaming or bearer auth."""
-    user_id: str
+    """Download a completed file from local temp storage via direct streaming, guest session or bearer auth."""
+    user_id: str | None = None
+    guest_id: str | None = None
+
     if token:
-        user_id = verify_download_token(token, job_id)
+        subject = verify_download_token(token, job_id)
+        if subject.startswith("guest:"):
+            guest_id = subject[len("guest:") :]
+        else:
+            user_id = subject
     elif authorization:
         current_user = await get_current_user(authorization)
         user_id = current_user.id
+    elif guest_session_id:
+        guest_id = guest_session_id
     else:
         raise AppError(401, "AUTH_REQUIRED", "กรุณาระบุ token หรือเข้าสู่ระบบ")
 
-    job = get_job(job_id, user_id=user_id, include_internal=True)
+    job = get_job(
+        job_id,
+        user_id=user_id,
+        guest_session_id=guest_id,
+        include_internal=True,
+    )
     if not job:
         raise AppError(404, "JOB_NOT_FOUND", "ไม่พบงานนี้")
 
@@ -103,12 +134,16 @@ async def download_file(
 
     file_path = resolve_local_output(output_path, settings.resolved_temp_dir)
     if not file_path.exists() or not file_path.is_file():
-        clear_job_output(job_id, user_id=user_id)
+        clear_job_output(job_id, user_id=user_id, guest_session_id=guest_id)
         raise AppError(410, "FILE_NO_LONGER_AVAILABLE", "ไม่พบไฟล์ชั่วคราวนี้แล้ว")
 
     output_filename = build_download_filename(job, file_path)
 
-    logger.info("Serving direct local output for job %s to user %s", job_id, user_id)
+    logger.info(
+        "Serving direct local output for job %s to %s",
+        job_id,
+        f"user {user_id}" if user_id else f"guest {guest_id}",
+    )
 
     return FileResponse(
         path=file_path,
@@ -120,20 +155,20 @@ async def download_file(
 @router.delete("/delete/{job_id}")
 async def delete_file(
     job_id: str,
-    current_user: CurrentUser = Depends(get_current_user),
+    current_user: CurrentUser | None = Depends(get_current_user_optional),
+    guest_session_id: str | None = Header(default=None, alias="x-guest-session-id"),
 ) -> dict:
-    """Delete a completed file from local temp storage.
+    """Delete a completed file from local temp storage."""
+    user_id = current_user.id if current_user else None
+    if not user_id and not guest_session_id:
+        raise AppError(401, "AUTH_REQUIRED", "จำเป็นต้องระบุข้อมูลผู้ใช้หรือเซสชัน")
 
-    Args:
-        job_id: The job ID to delete the file for
-
-    Returns:
-        Success message
-
-    Raises:
-        HTTPException: If file not found or deletion fails
-    """
-    job = get_job(job_id, user_id=current_user.id, include_internal=True)
+    job = get_job(
+        job_id,
+        user_id=user_id,
+        guest_session_id=guest_session_id,
+        include_internal=True,
+    )
     if not job:
         raise AppError(404, "JOB_NOT_FOUND", "ไม่พบงานนี้")
 
@@ -143,10 +178,10 @@ async def delete_file(
 
     try:
         delete_local_output(output_path, settings.resolved_temp_dir)
-        clear_job_output(job_id, user_id=current_user.id)
-        return success_response(data={"deleted": True})
+        clear_job_output(job_id, user_id=user_id, guest_session_id=guest_session_id)
+        return success_response(data={"deleted": True, "job_id": job_id})
     except AppError:
         raise
     except Exception as error:
         logger.error("Failed to delete job output: %s", type(error).__name__)
-        raise AppError(500, "FILE_DELETE_FAILED", "ไม่สามารถลบไฟล์ชั่วคราวได้")
+        raise AppError(500, "FILE_DELETE_FAILED", "ไม่สามารถลบไฟล์ชั่วคราวได้") from error

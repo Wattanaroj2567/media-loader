@@ -44,15 +44,15 @@ export function ConfirmDialog({
     variant === "danger"
       ? "text-rose-400 border-rose-500/20 bg-rose-500/10"
       : variant === "warning"
-      ? "text-amber-400 border-amber-500/20 bg-amber-500/10"
-      : "text-primary border-primary/20 bg-primary/10";
+        ? "text-amber-400 border-amber-500/20 bg-amber-500/10"
+        : "text-primary border-primary/20 bg-primary/10";
 
   const confirmBtnClass =
     variant === "danger"
       ? "bg-rose-600 hover:bg-rose-500 text-white cursor-pointer"
       : variant === "warning"
-      ? "bg-amber-600 hover:bg-amber-500 text-slate-950 font-semibold cursor-pointer"
-      : "bg-primary hover:bg-primary/90 text-slate-950 font-semibold cursor-pointer";
+        ? "bg-amber-600 hover:bg-amber-500 text-slate-950 font-semibold cursor-pointer"
+        : "bg-primary hover:bg-primary/90 text-slate-950 font-semibold cursor-pointer";
 
   return createPortal(
     <div
@@ -70,14 +70,22 @@ export function ConfirmDialog({
         aria-describedby="dialog-desc"
       >
         <div className="flex items-start gap-3.5">
-          <div className={`grid size-11 shrink-0 place-items-center rounded-2xl border ${accentColor}`}>
+          <div
+            className={`grid size-11 shrink-0 place-items-center rounded-2xl border ${accentColor}`}
+          >
             <AlertTriangle className="size-5" />
           </div>
           <div className="min-w-0 flex-1">
-            <h2 id="dialog-title" className="text-lg font-semibold text-text leading-snug">
+            <h2
+              id="dialog-title"
+              className="text-lg font-semibold text-text leading-snug"
+            >
               {title}
             </h2>
-            <p id="dialog-desc" className="mt-2 text-sm leading-relaxed text-text-muted">
+            <p
+              id="dialog-desc"
+              className="mt-2 text-sm leading-relaxed text-text-muted"
+            >
               {description}
             </p>
           </div>

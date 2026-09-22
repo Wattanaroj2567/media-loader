@@ -1,12 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { ApiClient, jobFileDownloadUrl } from "./api-client.ts";
+import { ApiClient, ApiError, jobFileDownloadUrl } from "./api-client.ts";
 
 test("browser download URL safely targets the same-origin streaming route", () => {
   assert.equal(
     jobFileDownloadUrl("job/with spaces"),
-    "/api/files/download/job%2Fwith%20spaces",
+    "/api/files/download/job%2Fwith%20spaces"
   );
 });
 
@@ -17,11 +17,11 @@ test("ApiClient attaches the current Supabase access token", async () => {
     async () => "access-token",
     async (url, init) => {
       request = { url: String(url), init };
-      return new Response(
-        JSON.stringify({ ok: true, data: { jobs: [], total: 0 } }),
-        { status: 200, headers: { "Content-Type": "application/json" } },
-      );
-    },
+      return new Response(JSON.stringify({ ok: true, data: { jobs: [], total: 0 } }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
   );
 
   await client.listJobs({ limit: 25 });
@@ -29,7 +29,7 @@ test("ApiClient attaches the current Supabase access token", async () => {
   assert.equal(request?.url, "http://api.test/downloads?limit=25&offset=0");
   assert.equal(
     new Headers(request?.init?.headers).get("Authorization"),
-    "Bearer access-token",
+    "Bearer access-token"
   );
 });
 
@@ -45,9 +45,9 @@ test("ApiClient sends the confirmed rights flag and selected format", async () =
           ok: true,
           data: { job_id: "job-1", status: "QUEUED" },
         }),
-        { status: 200, headers: { "Content-Type": "application/json" } },
+        { status: 200, headers: { "Content-Type": "application/json" } }
       );
-    },
+    }
   );
 
   await client.createJob({
@@ -74,7 +74,7 @@ test("ApiClient streams a completed job into the preselected destination", async
     async (url, init) => {
       request = { url: String(url), init };
       return new Response("finished media", { status: 200 });
-    },
+    }
   );
 
   const result = await client.downloadJobFile("job-1", "clip.mp4", {
@@ -91,7 +91,7 @@ test("ApiClient streams a completed job into the preselected destination", async
   assert.equal(request?.url, "http://api.test/files/download/job-1");
   assert.equal(
     new Headers(request?.init?.headers).get("Authorization"),
-    "Bearer access-token",
+    "Bearer access-token"
   );
   assert.equal(new TextDecoder().decode(Buffer.concat(chunks)), "finished media");
 });
@@ -112,17 +112,17 @@ test("ApiClient fetches direct download token and builds direct URL", async () =
               expires_in: 300,
             },
           }),
-          { status: 200, headers: { "Content-Type": "application/json" } },
+          { status: 200, headers: { "Content-Type": "application/json" } }
         );
       }
       return new Response("not found", { status: 404 });
-    },
+    }
   );
 
   const directUrl = await client.getDirectDownloadUrl("job-1");
   assert.equal(
     directUrl,
-    "http://api.test/files/download/job-1?token=signed-token-xyz",
+    "http://api.test/files/download/job-1?token=signed-token-xyz"
   );
 });
 
@@ -142,9 +142,9 @@ test("ApiClient analyzes before rights confirmation", async () => {
             formats: [],
           },
         }),
-        { status: 200, headers: { "Content-Type": "application/json" } },
+        { status: 200, headers: { "Content-Type": "application/json" } }
       );
-    },
+    }
   );
 
   await client.analyzeMedia("https://example.com/watch/1");
@@ -165,13 +165,52 @@ test("ApiClient exposes the wrapped API error message", async () => {
           data: null,
           error: { code: "POLICY_BLOCKED", message: "Blocked by policy" },
         }),
-        { status: 403, headers: { "Content-Type": "application/json" } },
-      ),
+        { status: 403, headers: { "Content-Type": "application/json" } }
+      )
   );
 
   await assert.rejects(
     () => client.analyzeMedia("https://example.com/watch/1"),
-    /Blocked by policy/,
+    /Blocked by policy/
+  );
+});
+
+test("ApiClient preserves rate-limit metadata for localized UI messages", async () => {
+  const client = new ApiClient(
+    "http://api.test",
+    async () => "token",
+    async () =>
+      new Response(
+        JSON.stringify({
+          ok: false,
+          data: null,
+          error: {
+            code: "TOO_MANY_REQUESTS",
+            message: "Rate limit exceeded. Maximum 60 requests per 60s.",
+          },
+        }),
+        {
+          status: 429,
+          headers: { "Content-Type": "application/json", "Retry-After": "60" },
+        }
+      )
+  );
+
+  await assert.rejects(
+    () =>
+      client.createJob({
+        url: "https://example.com/watch/1",
+        selected_format_id: "137",
+        output_format: "mp4",
+        rights_confirmed: true,
+      }),
+    (error: unknown) => {
+      assert.ok(error instanceof ApiError);
+      assert.equal(error.code, "TOO_MANY_REQUESTS");
+      assert.equal(error.status, 429);
+      assert.equal(error.retryAfterSeconds, 60);
+      return true;
+    }
   );
 });
 
@@ -181,12 +220,12 @@ test("ApiClient gives a user-friendly message when history deletion cannot reach
     async () => "token",
     async () => {
       throw new TypeError("Failed to fetch");
-    },
+    }
   );
 
   await assert.rejects(
     () => client.deleteJob("job-1"),
-    /ไม่สามารถดำเนินการได้ในขณะนี้ กรุณาลองใหม่อีกครั้ง/,
+    /ไม่สามารถดำเนินการได้ในขณะนี้ กรุณาลองใหม่อีกครั้ง/
   );
 });
 
@@ -200,12 +239,41 @@ test("ApiClient does not misreport a session read failure as an API network erro
     async () => {
       fetchCalled = true;
       return new Response();
-    },
+    }
   );
 
   await assert.rejects(
     () => client.deleteJob("job-1"),
-    /ไม่สามารถตรวจสอบการเข้าสู่ระบบได้ กรุณาโหลดหน้าใหม่แล้วลองอีกครั้ง/,
+    /ไม่สามารถตรวจสอบการเข้าสู่ระบบได้ กรุณาโหลดหน้าใหม่แล้วลองอีกครั้ง/
   );
   assert.equal(fetchCalled, false);
+});
+
+test("ApiClient attaches X-Guest-Session-ID when user is not authenticated", async () => {
+  const captured = { headers: null as Headers | null };
+  const client = new ApiClient(
+    "http://api.test",
+    async () => null,
+    async (_url, init) => {
+      captured.headers = new Headers(init?.headers);
+      return Response.json({
+        ok: true,
+        data: { job_id: "guest-job-1", status: "QUEUED" },
+        error: null,
+      });
+    }
+  );
+
+  const result = await client.createJob({
+    url: "https://example.com/watch?v=1",
+    selected_format_id: "137",
+    output_format: "mp4",
+    rights_confirmed: true,
+  });
+
+  assert.equal(result.job_id, "guest-job-1");
+  const headers = captured.headers;
+  assert.ok(headers);
+  assert.equal(headers.has("Authorization"), false);
+  assert.ok(headers.has("X-Guest-Session-ID"));
 });

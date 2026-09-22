@@ -19,7 +19,10 @@ export function LoadingIndicator({
       aria-live="polite"
       className={cn("inline-flex items-center justify-center gap-2", className)}
     >
-      <Loader2 aria-hidden="true" className={cn("size-4 shrink-0 animate-spin", iconClassName)} />
+      <Loader2
+        aria-hidden="true"
+        className={cn("size-4 shrink-0 animate-spin", iconClassName)}
+      />
       <span>{label}</span>
     </span>
   );
