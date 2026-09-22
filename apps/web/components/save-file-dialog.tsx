@@ -12,6 +12,10 @@ interface SaveFileDialogProps {
   title: string;
   busy?: boolean;
   busyAction?: "share" | "download" | null;
+  /** True when the dialog is shown on an iOS device (iPhone / iPad).
+   *  On iOS the Share sheet can save directly into Photos, so Share becomes
+   *  the primary action and Download to Files is secondary. */
+  isIos?: boolean;
   onShare: () => void;
   onDownload: () => void;
   onDismiss: () => void;
@@ -19,16 +23,19 @@ interface SaveFileDialogProps {
 
 /**
  * Bottom-sheet style chooser shown on mobile when a download completes.
- * Lets the user decide between the native share sheet (iOS: "Save Video" /
- * "Save Image" straight into Photos; Android: pick Photos/Files/Drive) or a
- * regular browser download. The file stays available until retention cleanup,
- * but the user picks first to avoid opening multiple save actions at once.
+ *
+ * iOS — primary: Share (→ "Save Video / Save Image" into Photos app)
+ *        secondary: Download to Files
+ *
+ * Android / Desktop — primary: Download to Files / browser download
+ *                     secondary: Share sheet
  */
 export function SaveFileDialog({
   open,
   title,
   busy = false,
   busyAction = null,
+  isIos = false,
   onShare,
   onDownload,
   onDismiss,
@@ -36,6 +43,54 @@ export function SaveFileDialog({
   const { t } = useT();
 
   if (!open || typeof window === "undefined") return null;
+
+  const shareBtn = (primary: boolean) => (
+    <Button
+      type="button"
+      variant={primary ? "default" : "outline"}
+      onClick={onShare}
+      disabled={busy}
+      className="h-12 w-full gap-2 rounded-xl text-sm font-semibold cursor-pointer"
+    >
+      {busy && busyAction === "share" ? (
+        <LoadingIndicator
+          label={t("download.preparing", {}, "กำลังเตรียมไฟล์...")}
+          iconClassName="size-4"
+        />
+      ) : (
+        <>
+          <Share2 aria-hidden="true" className="size-4 shrink-0" />
+          <span>
+            {isIos
+              ? t("file.shareActionIos", {}, "บันทึกลงรูปภาพ / แชร์")
+              : t("file.shareAction", {}, "แชร์ / บันทึกลงแอปรูปภาพ")}
+          </span>
+        </>
+      )}
+    </Button>
+  );
+
+  const downloadBtn = (primary: boolean) => (
+    <Button
+      type="button"
+      variant={primary ? "default" : "outline"}
+      onClick={onDownload}
+      disabled={busy}
+      className="h-12 w-full gap-2 rounded-xl text-sm font-semibold cursor-pointer"
+    >
+      {busy && busyAction === "download" ? (
+        <LoadingIndicator
+          label={t("download.preparing", {}, "กำลังเตรียมดาวน์โหลด...")}
+          iconClassName="size-4"
+        />
+      ) : (
+        <>
+          <Download aria-hidden="true" className="size-4 shrink-0" />
+          <span>{t("file.downloadAction", {}, "ดาวน์โหลดไฟล์")}</span>
+        </>
+      )}
+    </Button>
+  );
 
   return createPortal(
     <div
@@ -55,7 +110,13 @@ export function SaveFileDialog({
               {t("file.saveTitle", {}, "ไฟล์พร้อมแล้ว")}
             </p>
             <p className="mt-1 text-xs leading-5 text-text-muted">
-              {t("file.saveDesc", {}, "เลือกวิธีบันทึกไฟล์ลงเครื่องของคุณ")}
+              {isIos
+                ? t(
+                    "file.saveDescIos",
+                    {},
+                    "กดบันทึกลงรูปภาพเพื่อเซฟลง Photos หรือดาวน์โหลดลง Files"
+                  )
+                : t("file.saveDesc", {}, "เลือกวิธีบันทึกไฟล์ลงเครื่องของคุณ")}
             </p>
           </div>
           <button
@@ -77,46 +138,20 @@ export function SaveFileDialog({
         </p>
 
         <div className="mt-4 grid gap-2.5">
-          <Button
-            type="button"
-            onClick={onDownload}
-            disabled={busy}
-            className="h-12 w-full gap-2 rounded-xl text-sm font-semibold cursor-pointer"
-          >
-            {busy && busyAction === "download" ? (
-              <LoadingIndicator
-                label={t("download.preparing", {}, "กำลังเตรียมดาวน์โหลด...")}
-                iconClassName="size-4"
-              />
-            ) : (
-              <>
-                <Download aria-hidden="true" className="size-4 shrink-0" />
-                <span>{t("file.downloadAction", {}, "ดาวน์โหลดไฟล์")}</span>
-              </>
-            )}
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onShare}
-            disabled={busy}
-            className="h-12 w-full gap-2 rounded-xl text-sm font-semibold cursor-pointer"
-          >
-            {busy && busyAction === "share" ? (
-              <LoadingIndicator
-                label={t("download.preparing", {}, "กำลังเตรียมดาวน์โหลด...")}
-                iconClassName="size-4"
-              />
-            ) : (
-              <>
-                <Share2 aria-hidden="true" className="size-4 shrink-0 text-primary" />
-                <span>{t("file.shareAction", {}, "แชร์ / บันทึกลงแอปรูปภาพ")}</span>
-              </>
-            )}
-          </Button>
+          {isIos ? (
+            <>
+              {shareBtn(true)}
+              {downloadBtn(false)}
+            </>
+          ) : (
+            <>
+              {downloadBtn(true)}
+              {shareBtn(false)}
+            </>
+          )}
         </div>
       </div>
     </div>,
-    document.body,
+    document.body
   );
 }

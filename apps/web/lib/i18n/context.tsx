@@ -1,6 +1,13 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  ReactNode,
+} from "react";
 import { Locale, defaultLocale } from "./config";
 import thMessages from "./messages/th.json";
 import enMessages from "./messages/en.json";
@@ -16,7 +23,7 @@ function translate(
   messages: Messages,
   key: string,
   vars?: Record<string, string | number>,
-  fallback?: string,
+  fallback?: string
 ) {
   const message = messages[key];
   if (message === undefined) return fallback ?? key;
@@ -39,7 +46,8 @@ interface I18nContextValue {
 const I18nContext = createContext<I18nContextValue>({
   locale: defaultLocale,
   setLocale: () => {},
-  t: (key, vars, fallback) => translate(staticMessages[defaultLocale], key, vars, fallback),
+  t: (key, vars, fallback) =>
+    translate(staticMessages[defaultLocale], key, vars, fallback),
   loaded: true,
 });
 
@@ -58,17 +66,26 @@ export function I18nProvider({
 
   const setLocale = useCallback((l: Locale) => {
     setLocaleState(l);
-    localStorage.setItem('media-loader-locale', l);
+    localStorage.setItem("media-loader-locale", l);
     // Write cookie so the server knows the locale on next page loads / refreshes
     document.cookie = `media-loader-locale=${l}; path=/; max-age=31536000; SameSite=Lax`;
     document.documentElement.lang = l;
   }, []);
 
   const t = useCallback(
-    (key: string, vars?: Record<string, string | number>, fallback?: string): string => {
-      return translate(staticMessages[locale] || staticMessages[defaultLocale], key, vars, fallback);
+    (
+      key: string,
+      vars?: Record<string, string | number>,
+      fallback?: string
+    ): string => {
+      return translate(
+        staticMessages[locale] || staticMessages[defaultLocale],
+        key,
+        vars,
+        fallback
+      );
     },
-    [locale],
+    [locale]
   );
 
   return (
