@@ -13,7 +13,10 @@ if (fs.existsSync(rootEnvPath)) {
     const firstEquals = trimmed.indexOf("=");
     if (firstEquals === -1) continue;
     const key = trimmed.slice(0, firstEquals).trim();
-    const value = trimmed.slice(firstEquals + 1).trim().replace(/^['"]|['"]$/g, "");
+    const value = trimmed
+      .slice(firstEquals + 1)
+      .trim()
+      .replace(/^['"]|['"]$/g, "");
     // Only fill missing values — explicit environment variables (e.g. from
     // the e2e mock harness) must win over the .env.local file.
     if (key && process.env[key] === undefined) {

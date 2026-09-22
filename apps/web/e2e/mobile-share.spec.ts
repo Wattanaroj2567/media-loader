@@ -57,7 +57,9 @@ const iphoneLike = {
 
 /** Seed a fake Supabase session cookie so the server layout sees a user. */
 async function seedAuth(context: {
-  addCookies: (cookies: { name: string; value: string; url: string }[]) => Promise<void>;
+  addCookies: (
+    cookies: { name: string; value: string; url: string }[]
+  ) => Promise<void>;
 }) {
   const session = {
     access_token: fakeJwt(),
@@ -68,11 +70,8 @@ async function seedAuth(context: {
     user: fakeUser,
   };
   // @supabase/ssr stores cookie values as "base64-" + base64url(JSON).
-  const value =
-    "base64-" + Buffer.from(JSON.stringify(session)).toString("base64url");
-  await context.addCookies([
-    { name: SESSION_COOKIE, value, url: APP_ORIGIN },
-  ]);
+  const value = "base64-" + Buffer.from(JSON.stringify(session)).toString("base64url");
+  await context.addCookies([{ name: SESSION_COOKIE, value, url: APP_ORIGIN }]);
 }
 
 /**
@@ -200,7 +199,7 @@ async function mockApi(
     jobs: () => unknown[];
     onJobsRequest?: () => void;
     failJobsRequest?: (requestNumber: number) => boolean;
-  },
+  }
 ) {
   let jobsRequestNumber = 0;
   // NOTE: glob patterns must end with `*` so query strings are matched too
@@ -227,8 +226,8 @@ async function mockApi(
               data: null,
               error: { code: "TEMPORARY_FAILURE", message: "Temporary failure" },
             },
-            503,
-          ),
+            503
+          )
         );
       }
       return route.fulfill(
@@ -236,7 +235,7 @@ async function mockApi(
           ok: true,
           data: { jobs: options.jobs(), total: 1, limit: 100, offset: 0 },
           error: null,
-        }),
+        })
       );
     }
     return route.fulfill(
@@ -244,7 +243,7 @@ async function mockApi(
         ok: true,
         data: { job_id: JOB_ID, status: "QUEUED" },
         error: null,
-      }),
+      })
     );
   });
   await page.route("**/files/download/**", (route) => {
@@ -281,7 +280,10 @@ test("dashboard has one shared jobs polling loop", async ({ page, context }) => 
   expect(jobsRequests).toBeLessThanOrEqual(2);
 });
 
-test("dashboard ignores one transient jobs polling failure", async ({ page, context }) => {
+test("dashboard ignores one transient jobs polling failure", async ({
+  page,
+  context,
+}) => {
   await seedAuth(context);
   let jobsRequests = 0;
   await mockApi(page, {
@@ -294,17 +296,16 @@ test("dashboard ignores one transient jobs polling failure", async ({ page, cont
 
   await page.goto("/dashboard");
   await expect.poll(() => jobsRequests, { timeout: 10000 }).toBeGreaterThanOrEqual(2);
-  await expect(
-    page.getByText(/Could not connect|เชื่อมต่อระบบไม่ได้/),
-  ).toHaveCount(0);
+  await expect(page.getByText(/Could not connect|เชื่อมต่อระบบไม่ได้/)).toHaveCount(0);
 
   await expect.poll(() => jobsRequests, { timeout: 10000 }).toBeGreaterThanOrEqual(3);
-  await expect(
-    page.getByText(/Could not connect|เชื่อมต่อระบบไม่ได้/),
-  ).toHaveCount(0);
+  await expect(page.getByText(/Could not connect|เชื่อมต่อระบบไม่ได้/)).toHaveCount(0);
 });
 
-test("dashboard pauses jobs polling while its tab is hidden", async ({ page, context }) => {
+test("dashboard pauses jobs polling while its tab is hidden", async ({
+  page,
+  context,
+}) => {
   await seedAuth(context);
   let jobsRequests = 0;
   await mockApi(page, {
@@ -334,9 +335,9 @@ test("dashboard pauses jobs polling while its tab is hidden", async ({ page, con
     });
     document.dispatchEvent(new Event("visibilitychange"));
   });
-  await expect.poll(() => jobsRequests, { timeout: 5000 }).toBeGreaterThan(
-    requestsBeforeHidden,
-  );
+  await expect
+    .poll(() => jobsRequests, { timeout: 5000 })
+    .toBeGreaterThan(requestsBeforeHidden);
 });
 
 test("history prioritizes only the first thumbnail", async ({ page, context }) => {
@@ -361,7 +362,7 @@ test("history prioritizes only the first thumbnail", async ({ page, context }) =
       status: 200,
       contentType: "image/svg+xml",
       body: '<svg xmlns="http://www.w3.org/2000/svg" width="320" height="180"/>',
-    }),
+    })
   );
   await mockApi(page, { jobs: () => [firstJob, secondJob] });
 
@@ -375,17 +376,21 @@ test("history prioritizes only the first thumbnail", async ({ page, context }) =
   await expect(secondImage).toHaveAttribute("fetchpriority", "auto");
 });
 
-test("history selection controls remain visible on mobile", async ({ page, context }) => {
+test("history selection controls remain visible on mobile", async ({
+  page,
+  context,
+}) => {
   await seedAuth(context);
   await page.setViewportSize({ width: 390, height: 844 });
   await mockApi(page, { jobs: () => [completedJob()] });
 
   await page.goto("/history");
   await expect(page.getByRole("button", { name: /ทั้งหมด|all/i }).first()).toHaveClass(
-    /bg-primary\/10/,
+    /bg-primary\/10/
   );
-  await expect(page.getByText(/เสร็จแล้ว|completed/i).first()).toHaveClass(
-    /text-emerald-700/,
+  const historyCard = page.getByRole("article").filter({ hasText: TITLE });
+  await expect(historyCard.getByText(/สำเร็จ|completed/i)).toHaveClass(
+    /text-emerald-700/
   );
   await page.getByRole("button", { name: /ล้างประวัติ|clear history/i }).click();
 
@@ -397,19 +402,17 @@ test("history selection controls remain visible on mobile", async ({ page, conte
   await expect(cancel).toBeVisible();
 
   const itemCheckbox = page.getByRole("checkbox", {
-    name: /เลือกรายการ|select item/i,
+    name: new RegExp(TITLE),
   });
   const itemCard = itemCheckbox.locator("xpath=ancestor::article");
   const unselectedBackground = await itemCard.evaluate(
-    (card) => getComputedStyle(card).backgroundColor,
+    (card) => getComputedStyle(card).backgroundColor
   );
   await itemCard.click();
   await page.mouse.move(0, 0);
   await expect(itemCheckbox).toBeChecked();
   await expect
-    .poll(() =>
-      itemCard.evaluate((card) => getComputedStyle(card).backgroundColor),
-    )
+    .poll(() => itemCard.evaluate((card) => getComputedStyle(card).backgroundColor))
     .toBe(unselectedBackground);
 
   const checkboxPlacement = await itemCheckbox.evaluate((checkbox) => {
@@ -433,16 +436,16 @@ test("history selection controls remain visible on mobile", async ({ page, conte
   });
   expect(checkboxPlacement.thumbnail).not.toBeNull();
   expect(checkboxPlacement.checkboxCenterX).toBeGreaterThanOrEqual(
-    checkboxPlacement.thumbnail!.left,
+    checkboxPlacement.thumbnail!.left
   );
   expect(checkboxPlacement.checkboxCenterX).toBeLessThanOrEqual(
-    checkboxPlacement.thumbnail!.right,
+    checkboxPlacement.thumbnail!.right
   );
   expect(checkboxPlacement.checkboxCenterY).toBeGreaterThanOrEqual(
-    checkboxPlacement.thumbnail!.top,
+    checkboxPlacement.thumbnail!.top
   );
   expect(checkboxPlacement.checkboxCenterY).toBeLessThanOrEqual(
-    checkboxPlacement.thumbnail!.bottom,
+    checkboxPlacement.thumbnail!.bottom
   );
 
   const layout = await page.locator("main").evaluate((main) => ({
@@ -454,7 +457,10 @@ test("history selection controls remain visible on mobile", async ({ page, conte
   expect(layout.mainWidth).toBeLessThanOrEqual(layout.viewportWidth);
 });
 
-test("history selection remains correct from the third mobile card onward", async ({ page, context }) => {
+test("history selection remains correct from the third mobile card onward", async ({
+  page,
+  context,
+}) => {
   await seedAuth(context);
   await page.setViewportSize({ width: 390, height: 844 });
   const jobs = [1, 2, 3, 4].map((number) => ({
@@ -475,16 +481,19 @@ test("history selection remains correct from the third mobile card onward", asyn
 
   await expect(page.getByText(/เลือกแล้ว 4 รายการ|Selected 4 items/i)).toBeVisible();
   await expect(
-    page.getByRole("checkbox", { name: /เลือกทั้งหมด|select all/i }),
+    page.getByRole("checkbox", { name: /เลือกทั้งหมด|select all/i })
   ).toBeChecked();
   for (const job of jobs) {
     await expect(
-      page.getByRole("checkbox", { name: new RegExp(job.title) }),
+      page.getByRole("checkbox", { name: new RegExp(job.title) })
     ).toBeChecked();
   }
 });
 
-test("first selecting the third mobile card does not shift the page", async ({ page, context }) => {
+test("first selecting the third mobile card does not shift the page", async ({
+  page,
+  context,
+}) => {
   await seedAuth(context);
   await page.setViewportSize({ width: 390, height: 844 });
   const jobs = [1, 2, 3, 4].map((number) => ({
@@ -513,11 +522,14 @@ test("first selecting the third mobile card does not shift the page", async ({ p
   expect(after.pageHeight).toBe(before.pageHeight);
   expect(Math.abs(after.cardTop - before.cardTop)).toBeLessThanOrEqual(1);
   await expect(
-    page.getByRole("checkbox", { name: new RegExp(jobs[2].title) }),
+    page.getByRole("checkbox", { name: new RegExp(jobs[2].title) })
   ).toBeChecked();
 });
 
-test("history secondary text meets the readable contrast token", async ({ page, context }) => {
+test("history secondary text meets the readable contrast token", async ({
+  page,
+  context,
+}) => {
   await seedAuth(context);
   await page.setViewportSize({ width: 390, height: 844 });
   await mockApi(page, {
@@ -526,7 +538,7 @@ test("history secondary text meets the readable contrast token", async ({ page, 
 
   await page.goto("/history");
 
-  await expect(page.getByText("2 รายการ", { exact: true })).toHaveClass(/text-text-muted/);
+  await expect(page.getByText(/^(2 รายการ|2 items)$/i)).toHaveClass(/text-text-muted/);
   await expect(page.locator("article .text-text-dim")).toHaveCount(0);
 });
 
@@ -542,15 +554,15 @@ test("dashboard prioritizes the analyzed thumbnail", async ({ page, context }) =
           ...analyzeResponse.data,
           media: { ...analyzeResponse.data.media, thumbnail_url: thumbnailUrl },
         },
-      }),
-    ),
+      })
+    )
   );
   await page.route("**/test-assets/dashboard-thumbnail.svg", (route) =>
     route.fulfill({
       status: 200,
       contentType: "image/svg+xml",
       body: '<svg xmlns="http://www.w3.org/2000/svg" width="320" height="180"/>',
-    }),
+    })
   );
 
   await page.goto("/dashboard");
@@ -585,7 +597,10 @@ async function analyzeAndStartDownload(page: import("@playwright/test").Page) {
   await page.getByPlaceholder("https://...").fill(SOURCE_URL);
   await page.keyboard.press("Enter");
   await expect(page.getByText(TITLE)).toBeVisible({ timeout: 20000 });
-  await page.getByRole("button", { name: /ดาวน์โหลด|download/i }).first().click();
+  await page
+    .getByRole("button", { name: /ดาวน์โหลด|download/i })
+    .first()
+    .click();
 }
 
 test.describe("Mobile share / save flow (simulated iPhone)", () => {
@@ -631,9 +646,14 @@ test.describe("Mobile share / save flow (simulated iPhone)", () => {
     await analyzeAndStartDownload(page);
 
     await expect(page.locator('[role="dialog"]')).toBeVisible({ timeout: 20000 });
-    await page.locator('[role="dialog"]').getByRole("button", { name: /ปิด|close/i }).click();
+    await page
+      .locator('[role="dialog"]')
+      .getByRole("button", { name: /ปิด|close/i })
+      .click();
 
-    await expect(page.getByText(/เก็บไฟล์ไว้ให้แล้ว|saved/i)).toBeVisible();
+    await expect(
+      page.getByText(/เก็บไฟล์ไว้ให้แล้ว|file kept for later/i)
+    ).toBeVisible();
     // No file was consumed (nothing was shared).
     expect(await page.evaluate(() => window.__sharedPayload)).toBeNull();
   });

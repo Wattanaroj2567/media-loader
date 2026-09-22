@@ -1,15 +1,11 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/utils/supabase/server";
+import { createClient } from "@/lib/supabase/server";
 import { AppShell } from "@/components/app-shell";
 import { AppUserProvider } from "@/components/app-user-context";
 import { GlobalJobNotifier } from "@/components/global-job-notifier";
 import { JobPollingProvider } from "@/components/job-polling-provider";
 
-export default async function AppLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
   const {
     data: { user },

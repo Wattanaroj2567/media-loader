@@ -1,0 +1,17 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "project": ["app/**/*.{ts,tsx}", "components/**/*.{ts,tsx}", "lib/**/*.{ts,tsx}"],
+  "ignore": ["components/ui/**"],
+  "ignoreDependencies": [
+    "tw-animate-css",
+    "postcss",
+    "tailwindcss",
+    "drizzle-orm",
+    "postgres",
+    "shadcn"
+  ],
+  "rules": {
+    "exports": "warn",
+    "types": "warn"
+  }
+}

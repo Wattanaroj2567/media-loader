@@ -3,14 +3,15 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
 function apiBaseUrl() {
-  return (
-    process.env.NEXT_PUBLIC_FASTAPI_BASE_URL || "http://localhost:8000"
-  ).replace(/\/$/, "");
+  return (process.env.NEXT_PUBLIC_FASTAPI_BASE_URL || "http://localhost:8000").replace(
+    /\/$/,
+    ""
+  );
 }
 
 export async function GET(
   _request: Request,
-  context: { params: Promise<{ jobId: string }> },
+  context: { params: Promise<{ jobId: string }> }
 ) {
   const supabase = await createClient();
   const {
@@ -18,10 +19,7 @@ export async function GET(
   } = await supabase.auth.getSession();
 
   if (!session?.access_token) {
-    return NextResponse.json(
-      { error: "กรุณาเข้าสู่ระบบอีกครั้ง" },
-      { status: 401 },
-    );
+    return NextResponse.json({ error: "กรุณาเข้าสู่ระบบอีกครั้ง" }, { status: 401 });
   }
 
   const { jobId } = await context.params;
@@ -30,20 +28,19 @@ export async function GET(
     {
       headers: { Authorization: `Bearer ${session.access_token}` },
       cache: "no-store",
-    },
+    }
   );
 
   if (!upstream.ok || !upstream.body) {
     return NextResponse.json(
       { error: "ไม่สามารถดาวน์โหลดไฟล์นี้ได้" },
-      { status: upstream.status || 502 },
+      { status: upstream.status || 502 }
     );
   }
 
   const headers = new Headers({
     "Cache-Control": "no-store",
-    "Content-Type":
-      upstream.headers.get("Content-Type") || "application/octet-stream",
+    "Content-Type": upstream.headers.get("Content-Type") || "application/octet-stream",
     "X-Content-Type-Options": "nosniff",
   });
   for (const name of ["Content-Disposition", "Content-Length", "Accept-Ranges"]) {

@@ -5,7 +5,9 @@ import { useRouter } from "next/navigation";
 import {
   AlertCircle,
   Ban,
+  CalendarDays,
   Clock3,
+  Copy,
   Download,
   Film,
   Globe2,
@@ -27,43 +29,52 @@ import { LoadingIndicator } from "@/components/loading-indicator";
 import { BorderBeam } from "@/components/ui/border-beam";
 import { useToast } from "@/components/toast";
 import { apiClient, type Job } from "@/lib/api-client";
-import { isActiveStatus } from "@/lib/media-presenters.ts";
+import {
+  formatCalendarDate,
+  formatMediaDuration,
+  isActiveStatus,
+} from "@/lib/media-presenters.ts";
+import { queueDisplayStatus } from "@/lib/job-sync";
 import { useT } from "@/lib/i18n/context";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { requestMediaAnalysis } from "@/lib/analyzer-session";
 import { useJobPolling } from "@/components/job-polling-provider";
+import { removeGuestJobId } from "@/lib/guest-session.ts";
 
 type JobListMode = "queue" | "history";
 
-const queuedDeletableStatuses = new Set(["PENDING", "READY", "QUEUED"]);
-
 /* ─── Status colours ─────────────────────────────────────────────────── */
 const statusDot: Record<string, string> = {
-  PENDING:     "bg-slate-500",
-  ANALYZING:   "bg-cyan-400",
-  READY:       "bg-sky-400",
-  QUEUED:      "bg-sky-400",
+  PENDING: "bg-slate-500",
+  ANALYZING: "bg-cyan-400",
+  READY: "bg-sky-400",
+  QUEUED: "bg-sky-400",
+  RESUMING: "bg-primary animate-pulse",
   DOWNLOADING: "bg-primary animate-pulse",
-  CONVERTING:  "bg-amber-400 animate-pulse",
-  UPLOADING:   "bg-cyan-400",
-  COMPLETED:   "bg-emerald-400",
-  FAILED:      "bg-rose-400",
-  BLOCKED:     "bg-rose-400",
-  CANCELLED:   "bg-slate-600",
+  PAUSED: "bg-amber-400",
+  CONVERTING: "bg-amber-400 animate-pulse",
+  UPLOADING: "bg-cyan-400",
+  COMPLETED: "bg-emerald-400",
+  FAILED: "bg-rose-400",
+  BLOCKED: "bg-rose-400",
+  CANCELLED: "bg-slate-600",
 };
 
 const statusBadge: Record<string, string> = {
-  PENDING:     "border-slate-500/20 bg-slate-500/10 text-slate-600 dark:text-slate-300",
-  ANALYZING:   "border-cyan-500/20 bg-cyan-500/10 text-cyan-600 dark:text-cyan-300",
-  READY:       "border-sky-500/20 bg-sky-500/10 text-sky-600 dark:text-sky-300",
-  QUEUED:      "border-sky-500/20 bg-sky-500/10 text-sky-600 dark:text-sky-300",
+  PENDING: "border-slate-500/20 bg-slate-500/10 text-slate-600 dark:text-slate-300",
+  ANALYZING: "border-cyan-500/20 bg-cyan-500/10 text-cyan-600 dark:text-cyan-300",
+  READY: "border-sky-500/20 bg-sky-500/10 text-sky-600 dark:text-sky-300",
+  QUEUED: "border-sky-500/20 bg-sky-500/10 text-sky-600 dark:text-sky-300",
+  RESUMING: "border-primary/25 bg-primary/10 text-primary",
   DOWNLOADING: "border-primary/25 bg-primary/10 text-primary",
-  CONVERTING:  "border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-300",
-  UPLOADING:   "border-cyan-500/20 bg-cyan-500/10 text-cyan-600 dark:text-cyan-300",
-  COMPLETED:   "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
-  FAILED:      "border-rose-500/20 bg-rose-500/10 text-rose-600 dark:text-rose-300",
-  BLOCKED:     "border-rose-500/20 bg-rose-500/10 text-rose-600 dark:text-rose-300",
-  CANCELLED:   "border-slate-600/20 bg-slate-600/10 text-slate-600 dark:text-slate-300",
+  PAUSED: "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300",
+  CONVERTING: "border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-300",
+  UPLOADING: "border-cyan-500/20 bg-cyan-500/10 text-cyan-600 dark:text-cyan-300",
+  COMPLETED:
+    "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+  FAILED: "border-rose-500/20 bg-rose-500/10 text-rose-600 dark:text-rose-300",
+  BLOCKED: "border-rose-500/20 bg-rose-500/10 text-rose-600 dark:text-rose-300",
+  CANCELLED: "border-slate-600/20 bg-slate-600/10 text-slate-600 dark:text-slate-300",
 };
 
 /* ─── Utilities ──────────────────────────────────────────────────────── */
@@ -72,9 +83,12 @@ function formatTime(iso: string | undefined, locale: "en" | "th") {
   try {
     const d = new Date(iso);
     const mins = Math.floor((Date.now() - d.getTime()) / 60000);
-    const relativeTime = new Intl.RelativeTimeFormat(locale === "th" ? "th-TH" : "en-US", {
-      numeric: "auto",
-    });
+    const relativeTime = new Intl.RelativeTimeFormat(
+      locale === "th" ? "th-TH" : "en-US",
+      {
+        numeric: "auto",
+      }
+    );
     if (mins < 1) return relativeTime.format(0, "minute");
     if (mins < 60) return relativeTime.format(-mins, "minute");
     const hrs = Math.floor(mins / 60);
@@ -83,16 +97,23 @@ function formatTime(iso: string | undefined, locale: "en" | "th") {
       day: "numeric",
       month: "short",
     }).format(d);
-  } catch { return ""; }
+  } catch {
+    return "";
+  }
 }
 
 function outputLabel(job: Job) {
-  const parts = [job.output_format?.toUpperCase(), job.selected_quality || job.selected_format];
-  if (job.file_size_mb) {
-    if (job.file_size_mb >= 1000) {
-      parts.push(`${(job.file_size_mb / 1000).toFixed(2)} GB`);
+  const parts = [
+    job.output_format?.toUpperCase(),
+    job.selected_quality || job.selected_format,
+  ];
+  // Completed size first, live source estimate while still processing.
+  const sizeMb = job.file_size_mb ?? job.total_size_mb;
+  if (sizeMb) {
+    if (sizeMb >= 1000) {
+      parts.push(`${(sizeMb / 1000).toFixed(2)} GB`);
     } else {
-      parts.push(`${job.file_size_mb.toFixed(1)} MB`);
+      parts.push(`${sizeMb.toFixed(1)} MB`);
     }
   }
   return parts.filter(Boolean).join(" · ");
@@ -142,7 +163,9 @@ function StatusChip({ status, label }: { status: string; label: string }) {
   const dot = statusDot[status] || "bg-slate-500";
   const badge = statusBadge[status] || statusBadge.PENDING;
   return (
-    <span className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-[11px] font-medium ${badge}`}>
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-[11px] font-medium ${badge}`}
+    >
       <span className={`size-1.5 rounded-full ${dot}`} />
       {label}
     </span>
@@ -171,12 +194,14 @@ function formatETA(etaSeconds: number): string {
 }
 
 function getJobETA(job: Job): string {
+  // ETA is estimated from the live source total, not the completed size.
+  const sizeMb = job.total_size_mb ?? job.file_size_mb;
   if (
     job.status !== "DOWNLOADING" ||
     !job.download_speed ||
     job.download_speed <= 0 ||
-    !job.file_size_mb ||
-    job.file_size_mb <= 0 ||
+    !sizeMb ||
+    sizeMb <= 0 ||
     job.progress === undefined ||
     job.progress === null ||
     job.progress >= 100
@@ -184,7 +209,7 @@ function getJobETA(job: Job): string {
     return "";
   }
 
-  const totalBytes = job.file_size_mb * 1024 * 1024;
+  const totalBytes = sizeMb * 1024 * 1024;
   const downloadedBytes = totalBytes * (job.progress / 100);
   const remainingBytes = totalBytes - downloadedBytes;
 
@@ -203,12 +228,13 @@ function JobCard({
   selected,
   onToggleSelection,
   onCancel,
-  onDelete,
+  onCopyLink,
   onDownloadAgain,
   onShareFile,
   onPause,
   onResume,
   priority = false,
+  locallyResuming = false,
 }: {
   job: Job;
   mode: JobListMode;
@@ -218,34 +244,59 @@ function JobCard({
   selected: boolean;
   onToggleSelection: () => void;
   onCancel: () => void;
-  onDelete: () => void;
+  onCopyLink: () => void;
   onDownloadAgain: () => void;
   onShareFile: () => void;
   onPause: () => void;
   onResume: () => void;
   priority?: boolean;
+  locallyResuming?: boolean;
 }) {
   const { t, locale } = useT();
-  const canCancel     = mode === "queue" && (job.status === "DOWNLOADING" || job.status === "CONVERTING" || job.status === "PAUSED");
-  const canPause      = mode === "queue" && (job.status === "DOWNLOADING" || job.status === "CONVERTING");
-  const canResume     = mode === "queue" && job.status === "PAUSED";
-  const canDeleteQ    = mode === "queue" && queuedDeletableStatuses.has(job.status);
-  const canDownloadAgain = mode === "history" && job.status === "COMPLETED" && !selectionMode;
+  // Mirrors backend CANCELLABLE_STATUSES: every active queue status can be
+  // cancelled, so the queue needs no separate delete button.
+  const canCancel =
+    mode === "queue" &&
+    (job.status === "PENDING" ||
+      job.status === "ANALYZING" ||
+      job.status === "READY" ||
+      job.status === "QUEUED" ||
+      job.status === "DOWNLOADING" ||
+      job.status === "CONVERTING" ||
+      job.status === "UPLOADING" ||
+      job.status === "PAUSED");
+  const canPause =
+    mode === "queue" && (job.status === "DOWNLOADING" || job.status === "CONVERTING");
+  const canResume = mode === "queue" && job.status === "PAUSED";
+  const canDownloadAgain =
+    mode === "history" && job.status === "COMPLETED" && !selectionMode;
   const canShareFile =
     mode === "history" &&
     job.status === "COMPLETED" &&
     !!job.file_available &&
     !selectionMode;
-  const title         = job.title || job.output_filename || job.original_url;
-  const time          = formatTime(job.completed_at || job.updated_at || job.created_at, locale);
-  const label         = outputLabel(job);
+  const title = job.title || job.output_filename || job.original_url;
+  const time = formatTime(job.completed_at || job.updated_at || job.created_at, locale);
+  const downloadDate = formatCalendarDate(job.completed_at || job.created_at, locale);
+  const duration = formatMediaDuration(job.duration_seconds);
+  const label = outputLabel(job);
+  const displayStatus = queueDisplayStatus(job.status, job.progress, locallyResuming);
+  const statusLabel = t(`status.${displayStatus}`, {}, displayStatus);
   const isDownloading = job.status === "DOWNLOADING" || job.status === "CONVERTING";
-  const showProgress  = job.status === "DOWNLOADING" || job.status === "CONVERTING" || job.status === "UPLOADING" || job.status === "PAUSED";
+  const showProgress =
+    job.status === "DOWNLOADING" ||
+    job.status === "CONVERTING" ||
+    job.status === "UPLOADING" ||
+    job.status === "PAUSED" ||
+    displayStatus === "RESUMING";
 
-  const isDomainRedundant = job.source_domain && job.platform
-    ? job.source_domain.toLowerCase().includes(job.platform.toLowerCase()) ||
-      job.platform.toLowerCase().includes(job.source_domain.toLowerCase().split(".")[0])
-    : false;
+  const isDomainRedundant =
+    job.source_domain && job.platform
+      ? job.source_domain.toLowerCase().includes(job.platform.toLowerCase()) ||
+        job.platform
+          .toLowerCase()
+          .includes(job.source_domain.toLowerCase().split(".")[0])
+      : false;
 
   const clockTime = useMemo(() => {
     const iso = job.created_at;
@@ -303,56 +354,83 @@ function JobCard({
 
           {/* Status + meta */}
           <div className="mt-1.5 flex flex-wrap items-center gap-2">
-            <StatusChip status={job.status} label={t(`status.${job.status}`, {}, job.status)} />
+            <StatusChip status={displayStatus} label={statusLabel} />
             {job.platform && (
-            <span className="text-[11px] text-text-muted">{job.platform}</span>
-          )}
-          {job.source_domain && !isDomainRedundant && (
-            <span className="flex items-center gap-1 text-[11px] text-text-muted">
-              <Globe2 className="size-3" />{job.source_domain}
-            </span>
-          )}
-          {label && <span className="text-[11px] text-text-muted">{label}</span>}
-          {time && (
-            <span className="flex items-center gap-1 text-[11px] text-text-muted">
-              <Clock3 className="size-3" />
-              {clockTime ? `${clockTime} · ${time}` : time}
-            </span>
-          )}
-        </div>
+              <span className="text-[11px] text-text-muted">{job.platform}</span>
+            )}
+            {job.source_domain && !isDomainRedundant && (
+              <span className="flex items-center gap-1 text-[11px] text-text-muted">
+                <Globe2 className="size-3" />
+                {job.source_domain}
+              </span>
+            )}
+            {mode === "history" && duration && (
+              <span
+                className="flex items-center gap-1 text-[11px] text-text-muted"
+                title={t("history.duration", {}, "ความยาวคลิป")}
+              >
+                <Clock3 className="size-3" />
+                {t("history.durationValue", { duration }, `ความยาว ${duration}`)}
+              </span>
+            )}
+            {label && <span className="text-[11px] text-text-muted">{label}</span>}
+            {mode === "queue" && time && (
+              <span className="flex items-center gap-1 text-[11px] text-text-muted">
+                <Clock3 className="size-3" />
+                {clockTime ? `${clockTime} · ${time}` : time}
+              </span>
+            )}
+          </div>
 
-        {/* Progress */}
-        {mode === "queue" && showProgress && (
-          <div className="mt-2">
-            <div className="mb-1 flex justify-between text-[11px] text-text-muted">
-              <span className="font-medium text-text-dim tabular-nums flex items-center gap-1.5">
-                {job.status === "DOWNLOADING" && job.download_speed ? (
-                  <>
-                    <span>{formatSpeed(job.download_speed)}</span>
-                    {getJobETA(job) && (
-                      <>
-                        <span className="text-text-muted/40">·</span>
-                        <span>{t("queue.eta", { time: getJobETA(job) })}</span>
-                      </>
-                    )}
-                  </>
-                ) : (
-                  ""
+          {mode === "history" && downloadDate && (
+            <div
+              className="mt-1.5 flex items-center gap-1 text-[11px] text-text-muted"
+              title={t("history.downloadDate", {}, "วันที่ดาวน์โหลด")}
+            >
+              <CalendarDays className="size-3" />
+              <span>
+                {t(
+                  "history.downloadDateValue",
+                  { date: downloadDate },
+                  `วันที่ดาวน์โหลด ${downloadDate}`
                 )}
               </span>
-              <span className={`tabular-nums ${isDownloading ? "text-text-muted" : ""}`}>
-                {Math.round(job.progress || 0)}%
-              </span>
             </div>
-            <ProgressBar value={job.progress} status={job.status} />
-          </div>
-        )}
+          )}
 
+          {/* Progress */}
+          {mode === "queue" && showProgress && (
+            <div className="mt-2">
+              <div className="mb-1 flex justify-between text-[11px] text-text-muted">
+                <span className="font-medium text-text-dim tabular-nums flex items-center gap-1.5">
+                  {job.status === "DOWNLOADING" && job.download_speed ? (
+                    <>
+                      <span>{formatSpeed(job.download_speed)}</span>
+                      {getJobETA(job) && (
+                        <>
+                          <span className="text-text-muted/40">·</span>
+                          <span>{t("queue.eta", { time: getJobETA(job) })}</span>
+                        </>
+                      )}
+                    </>
+                  ) : (
+                    ""
+                  )}
+                </span>
+                <span
+                  className={`tabular-nums ${isDownloading ? "text-text-muted" : ""}`}
+                >
+                  {Math.round(job.progress || 0)}%
+                </span>
+              </div>
+              <ProgressBar value={job.progress} status={job.status} />
+            </div>
+          )}
         </div>
       </div>
 
       {/* Actions */}
-      <div className="flex shrink-0 items-center justify-end gap-2 border-t border-border/60 pt-2.5 sm:items-start sm:border-t-0 sm:pt-0.5">
+      <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-border/60 pt-2.5 sm:items-start sm:border-t-0 sm:pt-0.5">
         {busyAction ? (
           <LoadingIndicator
             label={t("common.loading", {}, "กำลังโหลด...")}
@@ -361,56 +439,78 @@ function JobCard({
           />
         ) : (
           <>
-        {canShareFile && (
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={onShareFile}
-            disabled={busy}
-            aria-label={t("file.shareButton", {}, "แชร์")}
-            className="h-10 flex-1 gap-1.5 rounded-xl border-border bg-bg-surface/60 px-3.5 text-xs font-semibold text-text transition-all duration-150 hover:border-primary/40 hover:bg-primary/10 hover:text-primary active:scale-95 sm:h-8.5 sm:flex-none cursor-pointer"
-          >
-            <Share2 className="size-3.5 text-primary" />
-            <span>{t("file.shareButton", {}, "แชร์")}</span>
-          </Button>
-        )}
-        {canDownloadAgain && (
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={onDownloadAgain}
-            disabled={busy}
-            aria-label={t("history.downloadAgain", {}, "ดาวน์โหลดอีกครั้ง")}
-            className="h-10 flex-1 gap-1.5 rounded-xl border-border bg-bg-surface/60 px-3.5 text-xs font-semibold text-text transition-all duration-150 hover:border-primary/40 hover:bg-primary/10 hover:text-primary active:scale-95 sm:h-8.5 sm:flex-none cursor-pointer"
-          >
-            <RefreshCw className="size-3.5 text-primary" />
-            <span>{t("history.downloadAgain", {}, "ดาวน์โหลดอีกครั้ง")}</span>
-          </Button>
-        )}
-        {canResume && (
-          <button type="button" onClick={onResume} disabled={busy} title={t("queue.resume", {}, "ดาวน์โหลดต่อ")}
-            className="grid size-11 place-items-center rounded-lg border border-border bg-bg-surface/50 text-emerald-600 transition-colors hover:border-emerald-500/20 hover:bg-emerald-500/10 hover:text-emerald-500 sm:size-8 dark:text-emerald-400 dark:hover:text-emerald-300 cursor-pointer">
-            <Play className="size-3.5" />
-          </button>
-        )}
-        {canPause && (
-          <button type="button" onClick={onPause} disabled={busy} title={t("queue.pause", {}, "หยุดชั่วคราว")}
-            className="grid size-11 place-items-center rounded-lg border border-border bg-bg-surface/50 text-text-muted transition-colors hover:border-amber-500/20 hover:bg-amber-500/10 hover:text-amber-600 sm:size-8 dark:hover:text-amber-400 cursor-pointer">
-            <Pause className="size-3.5" />
-          </button>
-        )}
-        {canCancel && (
-          <button type="button" onClick={onCancel} disabled={busy} title={t("queue.cancel", {}, "ยกเลิก")}
-            className="grid size-11 place-items-center rounded-lg border border-border bg-bg-surface/50 text-text-muted transition-colors hover:border-rose-500/20 hover:bg-rose-500/10 hover:text-rose-600 sm:size-8 dark:hover:text-rose-400 cursor-pointer">
-            <Ban className="size-3.5" />
-          </button>
-        )}
-        {canDeleteQ && (
-          <button type="button" onClick={onDelete} disabled={busy} title={t("queue.delete", {}, "ลบ")}
-            className="grid size-11 place-items-center rounded-lg border border-border text-text-muted transition-colors hover:border-rose-500/20 hover:bg-rose-500/10 hover:text-rose-600 sm:size-8 dark:hover:text-rose-400 cursor-pointer">
-            <Trash2 className="size-4.5" />
-          </button>
-        )}
+            {canDownloadAgain && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={onCopyLink}
+                disabled={busy}
+                aria-label={t("history.copyLink", {}, "คัดลอกลิงก์")}
+                className="h-10 flex-1 gap-1.5 rounded-xl border-border bg-bg-surface/60 px-3.5 text-xs font-semibold text-text transition-all duration-150 hover:border-primary/40 hover:bg-primary/10 hover:text-primary active:scale-95 sm:h-8.5 sm:flex-none cursor-pointer"
+              >
+                <Copy className="size-3.5 text-primary" />
+                <span>{t("history.copyLink", {}, "คัดลอกลิงก์")}</span>
+              </Button>
+            )}
+            {canShareFile && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={onShareFile}
+                disabled={busy}
+                aria-label={t("file.shareButton", {}, "แชร์")}
+                className="h-10 flex-1 gap-1.5 rounded-xl border-border bg-bg-surface/60 px-3.5 text-xs font-semibold text-text transition-all duration-150 hover:border-primary/40 hover:bg-primary/10 hover:text-primary active:scale-95 sm:h-8.5 sm:flex-none cursor-pointer"
+              >
+                <Share2 className="size-3.5 text-primary" />
+                <span>{t("file.shareButton", {}, "แชร์")}</span>
+              </Button>
+            )}
+            {canDownloadAgain && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={onDownloadAgain}
+                disabled={busy}
+                aria-label={t("history.downloadAgain", {}, "ดาวน์โหลดอีกครั้ง")}
+                className="h-10 flex-1 gap-1.5 rounded-xl border-border bg-bg-surface/60 px-3.5 text-xs font-semibold text-text transition-all duration-150 hover:border-primary/40 hover:bg-primary/10 hover:text-primary active:scale-95 sm:h-8.5 sm:flex-none cursor-pointer"
+              >
+                <RefreshCw className="size-3.5 text-primary" />
+                <span>{t("history.downloadAgain", {}, "ดาวน์โหลดอีกครั้ง")}</span>
+              </Button>
+            )}
+            {canResume && (
+              <button
+                type="button"
+                onClick={onResume}
+                disabled={busy}
+                title={t("queue.resume", {}, "ดาวน์โหลดต่อ")}
+                className="grid size-11 place-items-center rounded-lg border border-border bg-bg-surface/50 text-emerald-600 transition-colors hover:border-emerald-500/20 hover:bg-emerald-500/10 hover:text-emerald-500 sm:size-8 dark:text-emerald-400 dark:hover:text-emerald-300 cursor-pointer"
+              >
+                <Play className="size-3.5" />
+              </button>
+            )}
+            {canPause && (
+              <button
+                type="button"
+                onClick={onPause}
+                disabled={busy}
+                title={t("queue.pause", {}, "หยุดชั่วคราว")}
+                className="grid size-11 place-items-center rounded-lg border border-border bg-bg-surface/50 text-text-muted transition-colors hover:border-amber-500/20 hover:bg-amber-500/10 hover:text-amber-600 sm:size-8 dark:hover:text-amber-400 cursor-pointer"
+              >
+                <Pause className="size-3.5" />
+              </button>
+            )}
+            {canCancel && (
+              <button
+                type="button"
+                onClick={onCancel}
+                disabled={busy}
+                title={t("queue.cancel", {}, "ยกเลิก")}
+                className="grid size-11 place-items-center rounded-lg border border-border bg-bg-surface/50 text-text-muted transition-colors hover:border-rose-500/20 hover:bg-rose-500/10 hover:text-rose-600 sm:size-8 dark:hover:text-rose-400 cursor-pointer"
+              >
+                <Ban className="size-3.5" />
+              </button>
+            )}
           </>
         )}
       </div>
@@ -474,11 +574,11 @@ function HistoryHeader({
     <div className="mb-6 space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="ui-kicker mb-2">{t("history.kicker", {}, "รายการดาวน์โหลดของคุณ")}</p>
+          <p className="ui-kicker mb-2">
+            {t("history.kicker", {}, "รายการดาวน์โหลดของคุณ")}
+          </p>
           <div className="flex flex-wrap items-baseline gap-2.5">
-            <h1 className="ui-page-title">
-              {t("history.title", {}, "ประวัติ")}
-            </h1>
+            <h1 className="ui-page-title">{t("history.title", {}, "ประวัติ")}</h1>
             {totalCount > 0 && (
               <span className="text-sm text-text-muted">
                 {count < totalCount
@@ -487,7 +587,9 @@ function HistoryHeader({
               </span>
             )}
           </div>
-          <p className="mt-2 max-w-xl text-sm leading-6 text-text-muted">{t("history.subtitle")}</p>
+          <p className="mt-2 max-w-xl text-sm leading-6 text-text-muted">
+            {t("history.subtitle")}
+          </p>
         </div>
         {totalCount > 0 && !selectionMode && (
           <Button
@@ -536,6 +638,7 @@ function HistoryHeader({
             <input
               type="text"
               value={searchQuery}
+              suppressHydrationWarning
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={t("history.searchPlaceholder", {}, "ค้นหาชื่อหรือไฟล์...")}
               className="h-9 w-full rounded-xl border border-border bg-bg-surface/60 pl-8 pr-8 text-xs font-medium text-text placeholder:text-text-dim outline-none transition-colors focus:border-primary/50 focus:bg-bg-elevated focus:ring-2 focus:ring-primary/10"
@@ -561,15 +664,23 @@ function HistoryHeader({
                 checked={allSelected}
                 disabled={deleting}
                 onCheckedChange={onToggleAll}
-                aria-label={allSelected ? t("history.deselectAll") : t("history.selectAll")}
+                aria-label={
+                  allSelected ? t("history.deselectAll") : t("history.selectAll")
+                }
                 className="size-5 rounded-md border-2 border-border/90 bg-bg-surface dark:bg-bg-elevated hover:border-primary data-checked:bg-primary shadow-xs"
               />
               <span className="text-xs font-semibold text-text">
-                {allSelected ? t("history.deselectAll", {}, "ยกเลิกเลือกทั้งหมด") : t("history.selectAll", {}, "เลือกทั้งหมด")}
+                {allSelected
+                  ? t("history.deselectAll", {}, "ยกเลิกเลือกทั้งหมด")
+                  : t("history.selectAll", {}, "เลือกทั้งหมด")}
               </span>
             </label>
             <span className="text-xs font-medium text-text-muted" aria-live="polite">
-              {t("history.selectedCount", { n: selectedCount }, `(เลือก ${selectedCount}/${count} รายการ)`)}
+              {t(
+                "history.selectedCount",
+                { n: selectedCount },
+                `(เลือก ${selectedCount}/${count} รายการ)`
+              )}
             </span>
           </div>
 
@@ -594,7 +705,10 @@ function HistoryHeader({
               className="h-8.5 gap-1.5 px-3.5 text-xs font-semibold shadow-xs rounded-xl cursor-pointer"
             >
               {deleting ? (
-                <LoadingIndicator label={t("common.loading", {}, "กำลังโหลด...")} iconClassName="size-3.5" />
+                <LoadingIndicator
+                  label={t("common.loading", {}, "กำลังโหลด...")}
+                  iconClassName="size-3.5"
+                />
               ) : (
                 <>
                   <Trash2 className="size-3.5" />
@@ -636,28 +750,40 @@ function EmptyState({
   if (isFiltered) {
     return (
       <div className="flex flex-col items-center justify-center gap-3 rounded-3xl border border-dashed border-border bg-bg-surface/30 px-5 py-14 text-center animate-in fade-in-50 duration-200">
-        <div className={`grid size-12 place-items-center rounded-2xl border shadow-xs ${
-          hasQuery
-            ? "border-amber-500/20 bg-amber-500/10 text-amber-500"
-            : "border-primary/20 bg-primary/10 text-primary"
-        }`}>
+        <div
+          className={`grid size-12 place-items-center rounded-2xl border shadow-xs ${
+            hasQuery
+              ? "border-amber-500/20 bg-amber-500/10 text-amber-500"
+              : "border-primary/20 bg-primary/10 text-primary"
+          }`}
+        >
           {hasQuery ? <SearchX className="size-5" /> : <Film className="size-5" />}
         </div>
         <div className="max-w-md">
           <p className="text-sm font-semibold text-text">
             {hasQuery
               ? t("history.noSearchResults", {}, "ไม่พบผลการค้นหา")
-              : t("history.noPlatformItemsTitle", { platform: platformLabel }, `ไม่มีประวัติจาก ${platformLabel}`)}
+              : t(
+                  "history.noPlatformItemsTitle",
+                  { platform: platformLabel },
+                  `ไม่มีประวัติจาก ${platformLabel}`
+                )}
           </p>
           <p className="mt-1 text-xs text-text-muted">
             {hasQuery ? (
               <span>
                 {t("history.noResultsForQuery", {}, "ไม่พบรายการที่ตรงกับ")}{" "}
-                <span className="font-semibold text-text">&ldquo;{searchQuery}&rdquo;</span>
+                <span className="font-semibold text-text">
+                  &ldquo;{searchQuery}&rdquo;
+                </span>
               </span>
             ) : (
               <span>
-                {t("history.noPlatformItemsDesc", { platform: platformLabel }, `ยังไม่มีรายการดาวน์โหลดจาก ${platformLabel}`)}
+                {t(
+                  "history.noPlatformItemsDesc",
+                  { platform: platformLabel },
+                  `ยังไม่มีรายการดาวน์โหลดจาก ${platformLabel}`
+                )}
               </span>
             )}
           </p>
@@ -669,18 +795,18 @@ function EmptyState({
   return (
     <div className="flex flex-col items-center justify-center gap-3.5 rounded-3xl border border-dashed border-border bg-bg-surface/25 px-5 py-16 text-center">
       <div className="grid size-12 place-items-center rounded-2xl border border-primary/20 bg-primary/10">
-        {isQueue
-          ? <Download className="size-5 text-text-dim" />
-          : <History className="size-5 text-text-dim" />}
+        {isQueue ? (
+          <Download className="size-5 text-text-dim" />
+        ) : (
+          <History className="size-5 text-text-dim" />
+        )}
       </div>
       <div>
         <p className="text-sm font-semibold text-text">
           {isQueue ? t("downloads.title") : t("history.title")}
         </p>
         <p className="mt-1 text-xs text-text-muted max-w-xs">
-          {isQueue
-            ? t("downloads.empty")
-            : t("history.empty")}
+          {isQueue ? t("downloads.empty") : t("history.empty")}
         </p>
       </div>
     </div>
@@ -688,7 +814,13 @@ function EmptyState({
 }
 
 /* ─── Offline notice ─────────────────────────────────────────────────── */
-function OfflineBanner({ message, onRetry }: { message: string; onRetry: () => Promise<void> | void }) {
+function OfflineBanner({
+  message,
+  onRetry,
+}: {
+  message: string;
+  onRetry: () => Promise<void> | void;
+}) {
   const { t } = useT();
   const [retrying, setRetrying] = useState(false);
 
@@ -729,7 +861,10 @@ function OfflineBanner({ message, onRetry }: { message: string; onRetry: () => P
         className="flex shrink-0 items-center gap-1.5 rounded-lg bg-rose-100 dark:bg-rose-500/10 px-3 py-1.5 text-xs font-semibold text-rose-800 dark:text-rose-300 transition-colors hover:bg-rose-200 dark:hover:bg-rose-500/20 disabled:opacity-60 cursor-pointer disabled:cursor-not-allowed"
       >
         {retrying ? (
-          <LoadingIndicator label={t("common.loading", {}, "กำลังโหลด...")} iconClassName="size-3" />
+          <LoadingIndicator
+            label={t("common.loading", {}, "กำลังโหลด...")}
+            iconClassName="size-3"
+          />
         ) : (
           <>
             <RefreshCw className="size-3" />
@@ -748,11 +883,7 @@ interface JobListProps {
   onQueueClosed?: () => void;
 }
 
-export function JobList({
-  mode,
-  compact = false,
-  onQueueClosed,
-}: JobListProps) {
+export function JobList({ mode, compact = false, onQueueClosed }: JobListProps) {
   const { t } = useT();
   const { toast } = useToast();
   const router = useRouter();
@@ -761,14 +892,19 @@ export function JobList({
     loading,
     error: loadError,
     refreshJobs: fetchJobs,
+    updateJob,
   } = useJobPolling();
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedJobIds, setSelectedJobIds] = useState<Set<string>>(new Set());
   const [deletingSelection, setDeletingSelection] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [platformFilter, setPlatformFilter] = useState("ALL");
-  const [busyState, setBusyState] = useState<{ id: string; action: "cancel" | "delete" | "pause" | "resume" | "share" } | null>(null);
+  const [busyState, setBusyState] = useState<{
+    id: string;
+    action: "cancel" | "delete" | "pause" | "resume" | "share";
+  } | null>(null);
   const [confirmState, setConfirmState] = useState<{
+    jobId?: string;
     title: string;
     description: string;
     confirmText?: string;
@@ -777,31 +913,37 @@ export function JobList({
     variant?: "danger" | "warning" | "info";
   } | null>(null);
 
-  const showConfirm = useCallback((
-    title: string,
-    description: string,
-    onConfirm: () => void,
-    options: { confirmText?: string; cancelText?: string; variant?: "danger" | "warning" | "info" } = {}
-  ) => {
-    setConfirmState({
-      title,
-      description,
-      onConfirm,
-      ...options,
-    });
-  }, []);
+  const showConfirm = useCallback(
+    (
+      title: string,
+      description: string,
+      onConfirm: () => void,
+      options: {
+        jobId?: string;
+        confirmText?: string;
+        cancelText?: string;
+        variant?: "danger" | "warning" | "info";
+      } = {}
+    ) => {
+      setConfirmState({
+        title,
+        description,
+        onConfirm,
+        ...options,
+      });
+    },
+    []
+  );
 
   const totalCompletedCount = useMemo(
     () => jobs.filter((j) => j.status === "COMPLETED").length,
-    [jobs],
+    [jobs]
   );
 
   const visibleJobs = useMemo(() => {
     return jobs
       .filter((job) =>
-        mode === "queue"
-          ? isActiveStatus(job.status)
-          : job.status === "COMPLETED",
+        mode === "queue" ? isActiveStatus(job.status) : job.status === "COMPLETED"
       )
       .filter((job) => {
         if (mode !== "history") return true;
@@ -818,15 +960,26 @@ export function JobList({
           const title = (job.title || "").toLowerCase();
           const filename = (job.output_filename || "").toLowerCase();
           const uploader = (job.uploader || "").toLowerCase();
-          return (
-            title.includes(q) || filename.includes(q) || uploader.includes(q)
-          );
+          return title.includes(q) || filename.includes(q) || uploader.includes(q);
         }
         return true;
       });
   }, [jobs, mode, platformFilter, searchQuery]);
 
-  const activeCount = useMemo(() => jobs.filter(j => isActiveStatus(j.status)).length, [jobs]);
+  const confirmJobId = confirmState?.jobId;
+  useEffect(() => {
+    if (
+      confirmJobId &&
+      !visibleJobs.some((visibleJob) => visibleJob.id === confirmJobId)
+    ) {
+      setConfirmState(null);
+    }
+  }, [confirmJobId, visibleJobs]);
+
+  const activeCount = useMemo(
+    () => jobs.filter((j) => isActiveStatus(j.status)).length,
+    [jobs]
+  );
   const allHistorySelected =
     visibleJobs.length > 0 && visibleJobs.every((job) => selectedJobIds.has(job.id));
 
@@ -865,64 +1018,102 @@ export function JobList({
     }
   }, [compact, mode, onQueueClosed, visibleJobs]);
 
-  const cancelJob = useCallback((job: Job) => {
-    showConfirm(
-      t("queue.confirmCancelTitle", {}, "ยกเลิกงานดาวน์โหลด"),
-      t("queue.confirmCancelDesc", {}, "คุณแน่ใจหรือไม่ว่าต้องการยกเลิกดาวน์โหลดรายการนี้? ไฟล์ชั่วคราวที่กำลังโหลดจะถูกลบทันที"),
-      async () => {
-        setBusyState({ id: job.id, action: "cancel" });
-        try {
-          if (mode === "queue") {
-            wasCancellingRef.current = true;
+  const cancelJob = useCallback(
+    (job: Job) => {
+      showConfirm(
+        t("queue.confirmCancelTitle", {}, "ยกเลิกงานดาวน์โหลด"),
+        t(
+          "queue.confirmCancelDesc",
+          {},
+          "คุณแน่ใจหรือไม่ว่าต้องการยกเลิกดาวน์โหลดรายการนี้? ไฟล์ชั่วคราวที่กำลังโหลดจะถูกลบทันที"
+        ),
+        async () => {
+          setBusyState({ id: job.id, action: "cancel" });
+          try {
+            if (mode === "queue") {
+              wasCancellingRef.current = true;
+            }
+            await apiClient.cancelJob(job.id);
+            removeGuestJobId(job.id);
+            toast("success", t("queue.cancelled"));
+            if (typeof window !== "undefined") {
+              window.dispatchEvent(
+                new CustomEvent("media-loader:job-cancelled", {
+                  detail: { jobId: job.id },
+                })
+              );
+            }
+            await fetchJobs(true);
+          } catch (e) {
+            wasCancellingRef.current = false;
+            console.warn("[Cancel Job Error]:", e);
+            toast("error", t("queue.actionError"), t("error.genericDesc"));
+          } finally {
+            setBusyState(null);
           }
-          await apiClient.cancelJob(job.id);
-          toast("success", t("queue.cancelled"));
-          if (typeof window !== "undefined") {
-            window.dispatchEvent(
-              new CustomEvent("media-loader:job-cancelled", { detail: { jobId: job.id } })
-            );
+        },
+        {
+          jobId: job.id,
+          variant: "danger",
+          confirmText: t("common.confirm", {}, "ตกลง"),
+        }
+      );
+    },
+    [fetchJobs, mode, showConfirm, t, toast]
+  );
+
+  const pauseJob = useCallback(
+    (job: Job) => {
+      showConfirm(
+        t("queue.confirmPauseTitle", {}, "หยุดดาวน์โหลดชั่วคราว"),
+        t(
+          "queue.confirmPauseDesc",
+          {},
+          "คุณต้องการหยุดดาวน์โหลดรายการนี้ชั่วคราวใช่หรือไม่?"
+        ),
+        async () => {
+          setBusyState({ id: job.id, action: "pause" });
+          try {
+            const pausedJob = await apiClient.pauseJob(job.id);
+            updateJob(pausedJob);
+            toast("success", t("queue.paused", {}, "หยุดดาวน์โหลดชั่วคราวแล้ว"));
+          } catch (e) {
+            console.warn("[Pause Job Error]:", e);
+            toast("error", t("queue.actionError"), t("error.genericDesc"));
+          } finally {
+            setBusyState(null);
           }
-          await fetchJobs(true);
-        } catch (e) {
-          wasCancellingRef.current = false;
-          console.warn("[Cancel Job Error]:", e);
-          toast("error", t("queue.actionError"), t("error.genericDesc"));
-        } finally { setBusyState(null); }
-      },
-      { variant: "danger", confirmText: t("common.confirm", {}, "ตกลง") }
-    );
-  }, [fetchJobs, mode, showConfirm, t, toast]);
+        },
+        {
+          jobId: job.id,
+          variant: "warning",
+          confirmText: t("common.confirm", {}, "ตกลง"),
+        }
+      );
+    },
+    [showConfirm, t, toast, updateJob]
+  );
 
-  const pauseJob = useCallback((job: Job) => {
-    showConfirm(
-      t("queue.confirmPauseTitle", {}, "หยุดดาวน์โหลดชั่วคราว"),
-      t("queue.confirmPauseDesc", {}, "คุณต้องการหยุดดาวน์โหลดรายการนี้ชั่วคราวใช่หรือไม่?"),
-      async () => {
-        setBusyState({ id: job.id, action: "pause" });
-        try {
-          await apiClient.pauseJob(job.id);
-          toast("success", t("queue.paused", {}, "หยุดดาวน์โหลดชั่วคราวแล้ว"));
-          await fetchJobs(true);
-        } catch (e) {
-          console.warn("[Pause Job Error]:", e);
-          toast("error", t("queue.actionError"), t("error.genericDesc"));
-        } finally { setBusyState(null); }
-      },
-      { variant: "warning", confirmText: t("common.confirm", {}, "ตกลง") }
-    );
-  }, [fetchJobs, showConfirm, t, toast]);
-
-  const resumeJob = useCallback(async (job: Job) => {
-    setBusyState({ id: job.id, action: "resume" });
-    try {
-      await apiClient.resumeJob(job.id);
-      toast("success", t("queue.resumed", {}, "เริ่มดาวน์โหลดต่อแล้ว"));
-      await fetchJobs(true);
-    } catch (e) {
-      console.warn("[Resume Job Error]:", e);
-      toast("error", t("queue.actionError"), t("error.genericDesc"));
-    } finally { setBusyState(null); }
-  }, [fetchJobs, t, toast]);
+  const resumeJob = useCallback(
+    async (job: Job) => {
+      setBusyState({ id: job.id, action: "resume" });
+      try {
+        const resumedJob = await apiClient.resumeJob(job.id);
+        updateJob(resumedJob);
+        toast(
+          "success",
+          t("queue.resumed", {}, "กำลังกลับมาทำงาน"),
+          t("queue.resumedDesc", {}, "ระบบจะเตรียมไฟล์ต่อทันทีเมื่อ worker พร้อม")
+        );
+      } catch (e) {
+        console.warn("[Resume Job Error]:", e);
+        toast("error", t("queue.actionError"), t("error.genericDesc"));
+      } finally {
+        setBusyState(null);
+      }
+    },
+    [t, toast, updateJob]
+  );
 
   const shareFile = useCallback(
     async (job: Job) => {
@@ -939,7 +1130,7 @@ export function JobList({
           result === "shared"
             ? t("file.sharedSuccess", {}, "แชร์ไฟล์แล้ว")
             : t("queue.completedToastTitle", {}, "ดาวน์โหลดสำเร็จแล้ว"),
-          filename,
+          filename
         );
         // Refresh availability in case retention cleanup changed the file state.
         await fetchJobs(true);
@@ -948,48 +1139,40 @@ export function JobList({
         toast(
           "error",
           t("file.shareError", {}, "แชร์ไฟล์ไม่สำเร็จ"),
-          t("error.genericDesc"),
+          t("error.genericDesc")
         );
         await fetchJobs(true);
       } finally {
         setBusyState(null);
       }
     },
-    [fetchJobs, t, toast],
+    [fetchJobs, t, toast]
   );
 
-  const deleteJob = useCallback((job: Job) => {
-    showConfirm(
-      t("queue.confirmDeleteTitle", {}, "ลบงานออกจากคิว"),
-      t("queue.confirmDeleteDesc", {}, "คุณแน่ใจหรือไม่ว่าต้องการลบรายการนี้ออกจากคิว?"),
-      async () => {
-        setBusyState({ id: job.id, action: "delete" });
-        try {
-          if (mode === "queue") {
-            wasCancellingRef.current = true;
-          }
-          await apiClient.deleteJob(job.id);
-          toast("success", t("queue.deleted"));
-          if (typeof window !== "undefined" && mode === "queue") {
-            window.dispatchEvent(
-              new CustomEvent("media-loader:job-cancelled", { detail: { jobId: job.id } })
-            );
-          }
-          await fetchJobs(true);
-        } catch (e) {
-          wasCancellingRef.current = false;
-          console.warn("[Delete Job Error]:", e);
-          toast("error", t("queue.actionError"), e instanceof Error ? e.message : t("error.genericDesc"));
-        } finally { setBusyState(null); }
-      },
-      { variant: "danger", confirmText: t("common.delete", {}, "ลบ") }
-    );
-  }, [fetchJobs, mode, showConfirm, t, toast]);
+  const downloadAgain = useCallback(
+    (job: Job) => {
+      requestMediaAnalysis(job.original_url);
+      router.push("/dashboard");
+    },
+    [router]
+  );
 
-  const downloadAgain = useCallback((job: Job) => {
-    requestMediaAnalysis(job.original_url);
-    router.push("/dashboard");
-  }, [router]);
+  const copyLink = useCallback(
+    async (job: Job) => {
+      try {
+        await navigator.clipboard.writeText(job.original_url);
+        toast("success", t("history.linkCopied", {}, "คัดลอกลิงก์แล้ว"));
+      } catch (error) {
+        console.warn("[Copy Link Error]:", error);
+        toast(
+          "error",
+          t("history.copyLinkError", {}, "คัดลอกลิงก์ไม่สำเร็จ"),
+          t("error.genericDesc")
+        );
+      }
+    },
+    [t, toast]
+  );
 
   const startHistorySelection = useCallback(() => {
     setSelectedJobIds(new Set());
@@ -1014,9 +1197,7 @@ export function JobList({
     setSelectedJobIds((current) => {
       const everySelected =
         visibleJobs.length > 0 && visibleJobs.every((job) => current.has(job.id));
-      return everySelected
-        ? new Set()
-        : new Set(visibleJobs.map((job) => job.id));
+      return everySelected ? new Set() : new Set(visibleJobs.map((job) => job.id));
     });
   }, [visibleJobs]);
 
@@ -1028,7 +1209,7 @@ export function JobList({
       t(
         "history.confirmBulkDeleteDesc",
         { n: idsToDelete.length },
-        `คุณแน่ใจหรือไม่ว่าต้องการลบ ${idsToDelete.length} รายการที่เลือกไว้?`,
+        `คุณแน่ใจหรือไม่ว่าต้องการลบ ${idsToDelete.length} รายการที่เลือกไว้?`
       ),
       async () => {
         setDeletingSelection(true);
@@ -1048,7 +1229,7 @@ export function JobList({
                 }
                 throw err;
               }
-            }),
+            })
           );
 
           const succeededIds = new Set<string>();
@@ -1058,6 +1239,7 @@ export function JobList({
             const jobId = idsToDelete[index];
             if (res.status === "fulfilled") {
               succeededIds.add(jobId);
+              removeGuestJobId(jobId);
             } else {
               failedIds.add(jobId);
             }
@@ -1072,7 +1254,10 @@ export function JobList({
           }
 
           if (failedIds.size === 0) {
-            toast("success", t("history.bulkDeletedSuccess", {}, "ลบประวัติแบบกลุ่มสำเร็จ"));
+            toast(
+              "success",
+              t("history.bulkDeletedSuccess", {}, "ลบประวัติแบบกลุ่มสำเร็จ")
+            );
             setSelectionMode(false);
             setSelectedJobIds(new Set());
           } else if (succeededIds.size > 0) {
@@ -1081,26 +1266,30 @@ export function JobList({
               t(
                 "history.bulkDeletedPartial",
                 { s: succeededIds.size, f: failedIds.size },
-                `ลบสำเร็จ ${succeededIds.size} รายการ (ล้มเหลว ${failedIds.size} รายการ)`,
-              ),
+                `ลบสำเร็จ ${succeededIds.size} รายการ (ล้มเหลว ${failedIds.size} รายการ)`
+              )
             );
           } else {
             toast(
               "error",
               t("history.bulkDeletedError", {}, "ไม่สามารถลบประวัติที่เลือกได้"),
-              t("error.genericDesc"),
+              t("error.genericDesc")
             );
           }
 
           await fetchJobs(true);
         } catch (error) {
           console.warn("[Delete Selected History Error]:", error);
-          toast("error", t("history.bulkDeletedError", {}, "ไม่สามารถลบประวัติที่เลือกได้"), t("error.genericDesc"));
+          toast(
+            "error",
+            t("history.bulkDeletedError", {}, "ไม่สามารถลบประวัติที่เลือกได้"),
+            t("error.genericDesc")
+          );
         } finally {
           setDeletingSelection(false);
         }
       },
-      { variant: "danger", confirmText: t("history.deleteSelected", {}, "ลบที่เลือก") },
+      { variant: "danger", confirmText: t("history.deleteSelected", {}, "ลบที่เลือก") }
     );
   }, [fetchJobs, selectedJobIds, showConfirm, t, toast]);
 
@@ -1109,7 +1298,13 @@ export function JobList({
   }
 
   const content = (
-    <section className={compact ? "w-full" : "mx-auto w-full max-w-6xl px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-9"}>
+    <section
+      className={
+        compact
+          ? "w-full"
+          : "mx-auto w-full max-w-6xl px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-9"
+      }
+    >
       {/* Header */}
       {compact ? (
         mode === "queue" && (
@@ -1124,25 +1319,25 @@ export function JobList({
             </h2>
           </div>
         )
+      ) : mode === "queue" ? (
+        <QueueHeader activeCount={activeCount} />
       ) : (
-        mode === "queue"
-          ? <QueueHeader activeCount={activeCount} />
-          : <HistoryHeader
-              count={visibleJobs.length}
-              totalCount={totalCompletedCount}
-              selectionMode={selectionMode}
-              selectedCount={selectedJobIds.size}
-              allSelected={allHistorySelected}
-              deleting={deletingSelection}
-              searchQuery={searchQuery}
-              setSearchQuery={setSearchQuery}
-              platformFilter={platformFilter}
-              setPlatformFilter={setPlatformFilter}
-              onStartSelection={startHistorySelection}
-              onCancelSelection={cancelHistorySelection}
-              onToggleAll={toggleAllHistory}
-              onDeleteSelected={deleteSelectedHistory}
-            />
+        <HistoryHeader
+          count={visibleJobs.length}
+          totalCount={totalCompletedCount}
+          selectionMode={selectionMode}
+          selectedCount={selectedJobIds.size}
+          allSelected={allHistorySelected}
+          deleting={deletingSelection}
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          platformFilter={platformFilter}
+          setPlatformFilter={setPlatformFilter}
+          onStartSelection={startHistorySelection}
+          onCancelSelection={cancelHistorySelection}
+          onToggleAll={toggleAllHistory}
+          onDeleteSelected={deleteSelectedHistory}
+        />
       )}
 
       {/* Offline notice */}
@@ -1161,7 +1356,10 @@ export function JobList({
       ) : visibleJobs.length > 0 ? (
         <div className="space-y-2.5">
           {visibleJobs.map((job, index) => (
-            <JobCard key={job.id} job={job} mode={mode}
+            <JobCard
+              key={job.id}
+              job={job}
+              mode={mode}
               priority={index === 0}
               busy={deletingSelection || busyState?.id === job.id}
               busyAction={busyState?.id === job.id ? busyState.action : null}
@@ -1169,17 +1367,22 @@ export function JobList({
               selected={selectedJobIds.has(job.id)}
               onToggleSelection={() => toggleHistorySelection(job.id)}
               onCancel={() => void cancelJob(job)}
-              onDelete={() => void deleteJob(job)}
+              onCopyLink={() => void copyLink(job)}
               onDownloadAgain={() => void downloadAgain(job)}
               onShareFile={() => void shareFile(job)}
               onPause={() => void pauseJob(job)}
-              onResume={() => void resumeJob(job)} />
+              onResume={() => void resumeJob(job)}
+            />
           ))}
         </div>
       ) : !loadError ? (
         <EmptyState
           mode={mode}
-          isFiltered={mode === "history" && jobs.length > 0 && (searchQuery.trim() !== "" || platformFilter !== "ALL")}
+          isFiltered={
+            mode === "history" &&
+            jobs.length > 0 &&
+            (searchQuery.trim() !== "" || platformFilter !== "ALL")
+          }
           searchQuery={searchQuery.trim()}
           platformFilter={platformFilter}
         />
