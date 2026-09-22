@@ -51,7 +51,7 @@
     "dotenv": "^17.4.2",
     "drizzle-kit": "^0.31.10",
     "drizzle-orm": "^0.45.2",
-    "eslint": "^10",
+    "eslint": "^9.39.4",
     "eslint-config-next": "16.2.10",
     "eslint-plugin-tailwindcss": "^4.4.0",
     "knip": "^6.37.0",
