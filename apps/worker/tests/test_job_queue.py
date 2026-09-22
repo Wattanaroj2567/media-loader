@@ -1,5 +1,5 @@
 from worker.config import Settings
-from worker.job_queue import poll_queued_job
+from worker.job_queue import poll_queued_job, update_job_progress
 
 
 class FakeResult:
@@ -48,7 +48,7 @@ class FakeDownloadJobsQuery:
                 {
                     "id": "job-1",
                     "status": self.update_data["status"],
-                    "locked_by": self.update_data["locked_by"],
+                    "locked_by": self.update_data.get("locked_by"),
                 }
             ]
         )
@@ -79,3 +79,20 @@ def test_worker_only_claims_jobs_routed_to_its_pool(monkeypatch):
     assert ("locked_by", "pool:local") in database.query.select_filters
     assert ("locked_by", "pool:local") in database.query.update_filters
     assert database.query.update_data["locked_by"] == "local-worker-test"
+
+
+def test_progress_update_only_applies_to_an_active_download(monkeypatch):
+    database = FakeSupabase()
+    monkeypatch.setattr("worker.job_queue.get_supabase_client", lambda: database)
+    monkeypatch.setattr("worker.job_queue.is_job_cancelled", lambda _job_id: False)
+
+    updated = update_job_progress(
+        "job-1", 42, download_speed=1024, total_bytes=10485760
+    )
+
+    assert updated is True
+    assert ("status", "DOWNLOADING") in database.query.update_filters
+    assert database.query.update_data["status"] == "DOWNLOADING"
+    assert database.query.update_data["progress"] == 42
+    assert database.query.update_data["total_bytes_estimate"] == 10485760
+    assert "file_size" not in database.query.update_data

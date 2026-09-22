@@ -7,7 +7,7 @@ Never expose the service role key to frontend or logs.
 
 from functools import lru_cache
 
-from supabase import create_client, Client
+from supabase import Client, create_client
 
 from worker.config import get_settings
 
