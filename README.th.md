@@ -1,11 +1,5 @@
 # Media Loader
 
-[![Next.js](https://img.shields.io/badge/Frontend-Next.js%2016-black?style=flat-square&logo=next.dot.js)](https://nextjs.org)
-[![FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688?style=flat-square&logo=fastapi)](https://fastapi.tiangolo.com)
-[![Supabase](https://img.shields.io/badge/Database-Supabase-3ECF8E?style=flat-square&logo=supabase)](https://supabase.com)
-[![Docker](https://img.shields.io/badge/Runtime-Docker%20Compose-2496ED?style=flat-square&logo=docker)](https://www.docker.com)
-[![License](https://img.shields.io/badge/License-Private-red?style=flat-square)](#)
-
 > **ภาษา:** [English](./README.md) · **ภาษาไทย**
 
 เว็บแอปพลิเคชันดาวน์โหลดและแปลงไฟล์วิดีโอ/เสียงส่วนตัวระดับพรีเมียม (Private Media Downloader & Converter) ที่เคารพสิทธิ์และออกแบบมาสำหรับการใช้งานประจำวัน วิเคราะห์ URL สื่อ, เลือกความละเอียดและฟอร์แมตวิดีโอ/เสียง, คิวงานดาวน์โหลดและแปลงไฟล์, และจัดการไฟล์ย้อนหลังได้อย่างปลอดภัยผ่านอินเทอร์เฟซโทนเข้มสไตล์ Command-Center ที่ทันสมัย
