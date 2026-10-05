@@ -35,6 +35,9 @@ updates:
       # TypeScript 7.x breaks @typescript-eslint until eslint ecosystem updates
       - dependency-name: "typescript"
         update-types: ["version-update:semver-major"]
+      # ESLint 10.x breaks eslint-plugin-react until plugin ecosystem catches up
+      - dependency-name: "eslint"
+        update-types: ["version-update:semver-major"]
 
   # 2. Backend API (FastAPI dependencies in apps/api)
   - package-ecosystem: "pip"
