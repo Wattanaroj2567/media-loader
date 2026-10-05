@@ -1,97 +1,145 @@
 # Media Loader
 
-> **ภาษา:** [English](./README.md) · **ภาษาไทย**
+<p align="center">
+  <img src="apps/web/public/brand/media-loader-mark.svg" alt="โลโก้ Media Loader" width="112">
+</p>
 
-เว็บแอปพลิเคชันสำหรับใช้ส่วนบุคคลที่เคารพสิทธิ์และออกแบบมาสำหรับการใช้งานประจำวัน วิเคราะห์ URL สื่อ เลือกความละเอียดและฟอร์แมต คิวงานประมวลผลที่ได้รับอนุญาต และจัดการไฟล์ผ่านเว็บอินเทอร์เฟซ
+<p align="center"><strong>ประมวลผลสื่อสำหรับใช้งานส่วนบุคคลโดยเคารพสิทธิ์</strong></p>
+
+<p align="center">
+  วิเคราะห์ URL สื่อที่รองรับ ตรวจสอบรูปแบบไฟล์ คิวงานที่ได้รับอนุญาต
+  และจัดการไฟล์ที่ประมวลผลเสร็จแล้วผ่านเว็บแอปเดียว
+</p>
+
+<p align="center">
+  <a href="docs/th/DEVELOPER_GUIDE.md">คู่มือนักพัฒนา</a> ·
+  <a href="docs/th/ARCHITECTURE.md">สถาปัตยกรรม</a> ·
+  <a href="docs/th/VERCEL_SETUP.md">การติดตั้ง</a> ·
+  <a href="SECURITY.md">ความปลอดภัย</a>
+</p>
+
+<p align="center"><a href="README.md">English</a> · <strong>ภาษาไทย</strong></p>
 
 ---
 
-## การเริ่มต้นใช้งานด่วน (Quick Start)
+## ภาพรวม
 
-เริ่มต้นรันระบบทั้ง Monorepo บนเครื่อง Local ได้ง่ายๆ ในไม่กี่ขั้นตอน:
+Media Loader เป็นเว็บแอปสำหรับวิเคราะห์ URL สื่อที่เข้าเงื่อนไขและจัดการงาน
+ประมวลผลที่ผู้ใช้มีสิทธิ์ดำเนินการ เว็บแอปส่งคำขอไปยัง API ที่ตรวจสอบนโยบาย
+ส่วน Worker แยกต่างหากรับผิดชอบงานประมวลผลสื่อ โดยใช้ Supabase สำหรับการยืนยันตัวตน
+และจัดเก็บข้อมูลใน PostgreSQL
 
-### 1. สิ่งที่ต้องเตรียม (Prerequisites)
+ระบบทำงานตามลำดับที่คำนึงถึงสิทธิ์:
 
-ตรวจสอบให้แน่ใจว่าติดตั้ง Node.js 22.13+, pnpm 11+, Python 3.12+, `uv` และ FFmpeg บนเครื่องแล้ว
+```text
+กรอก URL → ตรวจสอบความถูกต้อง → ตรวจสอบนโยบาย → วิเคราะห์ → ยืนยันสิทธิ์ → เข้าคิว → Worker
+```
 
-### 2. ตั้งค่าไฟล์ Environment & ติดตั้ง Dependencies
+## หลักการ
+
+- **เคารพสิทธิ์และมาตรการควบคุมการเข้าถึง** ประมวลผลเฉพาะสื่อที่คุณมีสิทธิ์
+  และไม่ข้าม DRM, หน้าเข้าสู่ระบบ หรือมาตรการป้องกันอื่น
+- **แยกหน้าที่ของแต่ละบริการ** API ตรวจสอบ URL และนโยบาย, Worker ประมวลผลสื่อ
+  และเว็บแอปทำหน้าที่แสดงส่วนติดต่อผู้ใช้
+- **ปกป้องข้อมูลผู้ใช้** การทำงานของบัญชีที่เข้าสู่ระบบจะจำกัดขอบเขตตามผู้ใช้
+  โดยมี Row Level Security (RLS) ของ PostgreSQL ช่วยแยกข้อมูล
+
+## สถาปัตยกรรม
+
+| องค์ประกอบ | หน้าที่ | การนำไปใช้งาน |
+| --- | --- | --- |
+| `apps/web` | เว็บแอป Next.js | Vercel |
+| `apps/api` | วิเคราะห์ URL ตรวจสอบนโยบาย และสร้างงาน | โฮสต์แยกใน container |
+| `apps/worker` | ตรวจคิวและประมวลผลสื่อด้วย yt-dlp และ FFmpeg | โฮสต์ Worker ที่เข้าถึง volume สำหรับไฟล์สื่อได้ |
+| `supabase` | การยืนยันตัวตน, PostgreSQL และ Row Level Security | Supabase |
+
+Vercel ใช้โฮสต์เฉพาะ Frontend ส่วน API และ Worker ทำงานแยกต่างหาก โดย Worker
+ไม่ได้ทำงานภายใน Vercel Functions
+
+<p align="center">
+  <a href="docs/diagrams/media-loader-architecture.svg">
+    <img src="docs/diagrams/media-loader-architecture.svg" alt="แผนภาพสถาปัตยกรรม Media Loader" width="100%">
+  </a>
+</p>
+
+## เริ่มต้นใช้งาน
+
+### สิ่งที่ต้องเตรียม
+
+- Node.js 22.13 ขึ้นไป และ pnpm 11 ขึ้นไป
+- Python 3.12 และ `uv`
+- FFmpeg
+- การตั้งค่าโปรเจกต์ Supabase สำหรับบริการที่ต้องการใช้งาน
+
+### ติดตั้ง dependencies
+
+รันคำสั่งต่อไปนี้จากไดเรกทอรีหลักของ repository:
 
 ```bash
-# 1. คัดลอกแม่แบบไฟล์ Environment
-cp .env.example .env.local
-
-# 2. ติดตั้ง Dependencies ของทั้ง Node.js และ Python (รันจาก Root)
 pnpm install
 pnpm setup:py
 ```
 
-### 3. คำสั่งรันทั้ง 3 บริการพร้อมกันในคำสั่งเดียว (Single Terminal Command)
+### ตั้งค่าสภาพแวดล้อม
 
-สั่งรันทั้ง Next.js Web UI, FastAPI Backend API และ Python Media Worker พร้อมกันในหน้าต่าง Terminal เดียว:
+สร้างไฟล์สภาพแวดล้อมในเครื่องจากไฟล์ตัวอย่าง และกำหนดค่าตาม
+[คู่มือตัวแปรสภาพแวดล้อม](docs/th/ENVIRONMENT_VARIABLES.md)
 
 ```bash
-# สั่งรันทั้ง 3 บริการขนานกันใน Terminal เดียว
+# macOS และ Linux
+cp .env.example .env.local
+
+# PowerShell
+Copy-Item .env.example .env.local
+```
+
+ตรวจสอบการตั้งค่าด้วย `pnpm check-env` และเก็บไฟล์สภาพแวดล้อมในเครื่องกับข้อมูลรับรอง
+ให้พ้นจาก version control
+
+### เริ่มระบบ
+
+เริ่มเว็บแอป API และ Worker จากไดเรกทอรีหลัก:
+
+```bash
 pnpm dev
 ```
 
-> **หากต้องการสั่งรันแยก Terminal หรือตรวจแบบ production container?**
->
-> * **รันแยก Terminal**: สั่งรัน `pnpm dev:web`, `pnpm dev:api`, หรือ `pnpm dev:worker` แยกทีละตัวได้ตามสะดวก
-> * **ตรวจด้วย Docker**: หลังโค้ดนิ่งแล้วสั่ง `pnpm docker:up` เพื่อ build และเปิดเฉพาะ API กับ Worker ส่วน Web deploy บน Vercel แยกต่างหาก
+เว็บแอปจะทำงานที่ `http://localhost:3000` และ API ที่ `http://localhost:8000`
+ดูคำสั่งและรายละเอียดการตั้งค่าแยกตามบริการได้ใน
+[คู่มือนักพัฒนา](docs/th/DEVELOPER_GUIDE.md)
 
-> [!TIP]
-> สั่งรัน `pnpm check-env` ได้ตลอดเวลาเพื่อตรวจสอบความถูกต้องของค่าแปรสภาพแวดล้อมโดยไม่พิมพ์รหัสลับออกมา
+## คำสั่งสำหรับพัฒนา
 
----
+| คำสั่ง | การทำงาน |
+| --- | --- |
+| `pnpm dev` | เริ่มเว็บแอป API และ Worker สำหรับพัฒนาในเครื่อง |
+| `pnpm dev:web` | เริ่มเฉพาะเว็บแอป Next.js |
+| `pnpm dev:api` | เริ่มเฉพาะบริการ FastAPI |
+| `pnpm dev:worker` | เริ่มเฉพาะ Media Worker |
+| `pnpm lint` | ตรวจ lint ทั่วทั้ง repository |
+| `pnpm deadcode` | ตรวจหาโค้ดที่ไม่ได้ใช้งาน |
+| `pnpm build` | สร้าง build ของเว็บแอป Next.js |
+| `pnpm test:web` | รันทดสอบเว็บแอป |
+| `pnpm test:api` | รันทดสอบ API |
+| `pnpm test:worker` | รันทดสอบ Worker |
 
-## ฟีเจอร์หลัก (Key Features)
+## เอกสาร
 
-* **ศูนย์ควบคุมผู้ใช้ (Command Center UI)**: อินเทอร์เฟซ Dashboard โทนเข้มที่สะอาด มินิมอล พร้อมระบบล็อกอิน Google OAuth ผ่าน Supabase Auth
-* **ระบบวิเคราะห์ URL อัจฉริยะ (Smart URL Analyzer)**: ป้องกัน SSRF, ดึงข้อมูลเมตาสด, ประเมินขนาดไฟล์ และแสดงตัวอย่างความละเอียด
-* **ระบบประมวลผลแยกอิสระ (Decoupled Processing)**: Worker Daemon สำหรับงานดาวน์โหลดและแปลงไฟล์ด้วย FFmpeg พร้อมติดตามความเร็วแบบเรียลไทม์
-* **ความเป็นส่วนตัวและการเคารพสิทธิ์ (Privacy & Rights Guard)**: นโยบายไม่ข้ามระบบป้องกัน, กำหนดสิทธิ์ระดับตารางด้วย Postgres RLS และป้องกันรหัสผ่านหลุดอย่างเข้มงวด
+- [คู่มือนักพัฒนา](docs/th/DEVELOPER_GUIDE.md)
+- [สถาปัตยกรรมระบบ](docs/th/ARCHITECTURE.md)
+- [ข้อกำหนด API](docs/th/API_SPEC.md)
+- [โครงสร้างฐานข้อมูล](docs/th/DATABASE_SCHEMA.md)
+- [นโยบายความปลอดภัยและการใช้สื่อ](docs/th/SECURITY_AND_POLICY.md)
+- [นโยบาย Row Level Security ของ Supabase](docs/th/SUPABASE_RLS_POLICY.md)
+- [ตัวแปรสภาพแวดล้อม](docs/th/ENVIRONMENT_VARIABLES.md)
+- [การติดตั้งบน Vercel](docs/th/VERCEL_SETUP.md)
+- [การตั้งค่า Cloudflare Tunnel](docs/th/CLOUDFLARE_TUNNEL_GUIDE.md)
+- [แนวทางการร่วมพัฒนา (ภาษาอังกฤษ)](CONTRIBUTING.md)
+- [นโยบายความปลอดภัย (ภาษาอังกฤษ)](SECURITY.md)
+- [MIT License](LICENSE)
 
----
+## การใช้งานอย่างรับผิดชอบ
 
-## ผังสถาปัตยกรรมระบบ (Architecture)
-
-<p align="center">
-  <a href="docs/diagrams/media-loader-architecture.svg" target="_blank">
-    <img alt="ผังสถาปัตยกรรม Media Loader" src="docs/diagrams/media-loader-architecture.svg" width="100%">
-  </a>
-</p>
-<p align="center"><sub>💡 <em>คลิกที่รูปภาพเพื่อเปิดดูผังขนาดเต็ม (Full-Resolution Vector SVG)</em></sub></p>
-
----
-
-## เทคโนโลยีที่ใช้ (Tech Stack)
-
-| เลเยอร์ (Layer) | เทคโนโลยี (Technology) | โครงสร้างใน Monorepo |
-| :--- | :--- | :--- |
-| **Frontend** | Next.js 16 (App Router), TypeScript, TailwindCSS | [`apps/web`](apps/web) |
-| **Backend API** | FastAPI, Uvicorn, Python 3.12 | [`apps/api`](apps/api) |
-| **Media Worker** | Python 3.12, yt-dlp, FFmpeg | [`apps/worker`](apps/worker) |
-| **Database & Auth**| Supabase PostgreSQL, Supabase Auth | [`supabase`](supabase) |
-| **Tooling & Quality** | `pnpm`, `uv`, ESLint, Prettier, Knip, Ruff, Vulture | Monorepo Root |
-
----
-
-## คู่มือการใช้งานและเอกสารฉบับเต็ม (Documentation & Guides)
-
-ดูรายละเอียดการตั้งค่าเชิงลึกได้ที่ไดเรกทอรี [`docs/th/`](docs/th/DEVELOPER_GUIDE.md):
-
-* **[คู่มือภาพรวมสำหรับนักพัฒนา](docs/th/DEVELOPER_GUIDE.md)** — สถาปัตยกรรมระบบ, Sequence Diagram, รวมคำสั่ง และดัชนีเอกสารทั้งหมด
-* **[คู่มือการติดตั้งสภาพแวดล้อม](docs/th/USER_SETUP_GUIDE.md)** — ขั้นตอนการขอ Supabase & Google OAuth Keys ทีละขั้นตอน
-* **[ข้อกำหนดสถาปัตยกรรมระบบ](docs/th/ARCHITECTURE.md)** — ผังระบบโดยละเอียด ขอบเขตความปลอดภัย และการไหลของข้อมูล
-* **[คู่มือการ deploy บน Vercel](docs/th/VERCEL_SETUP.md)** — การตั้งค่า Next.js Monorepo ขึ้น Vercel
-* **[คู่มือการตั้งค่า Cloudflare Tunnel](docs/th/CLOUDFLARE_TUNNEL_GUIDE.md)** — เชื่อมต่อ Backend ในเครื่องเข้ากับ Vercel ผ่าน HTTPS ปลอดภัย ไม่ต้องเปิดพอร์ต
-* **[โปรโตคอลความปลอดภัย](docs/th/SECRETS_PROTOCOL.md)** — แนวปฏิบัติการดูแลความลับและป้องกันรหัสหลุด
-
----
-
-## สิทธิ์การใช้งานและนโยบาย (License & Policy)
-
-ซอร์สโค้ดของ Media Loader เผยแพร่ภายใต้ [MIT License](LICENSE) การให้สิทธิ์ใช้ซอร์สโค้ดไม่ได้ให้สิทธิ์ในเนื้อหาจากแพลตฟอร์มอื่น ผู้ใช้ต้องประมวลผลเฉพาะสื่อที่ตนมีสิทธิ์ และปฏิบัติตามเงื่อนไขของแพลตฟอร์มที่เกี่ยวข้อง
-
-- [แนวทางการร่วมพัฒนา](CONTRIBUTING.md)
-- [นโยบายความปลอดภัยและการรายงานช่องโหว่](SECURITY.md)
+ใช้ Media Loader กับสื่อที่คุณได้รับอนุญาตให้ประมวลผลเท่านั้น และปฏิบัติตาม
+กฎหมายกับเงื่อนไขการให้บริการของแพลตฟอร์มที่เกี่ยวข้อง แอปไม่ใช้ browser cookies
+เพื่อเข้าถึงเนื้อหาที่จำกัดสิทธิ์ และไม่มีฟังก์ชันสำหรับข้ามมาตรการป้องกัน
