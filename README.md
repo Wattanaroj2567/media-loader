@@ -14,7 +14,8 @@
 <p align="center">
   <a href="docs/en/DEVELOPER_GUIDE.md">Developer guide</a> ·
   <a href="docs/en/ARCHITECTURE.md">Architecture</a> ·
-  <a href="docs/en/VERCEL_SETUP.md">Deployment</a>
+  <a href="docs/en/VERCEL_SETUP.md">Deployment</a> ·
+  <a href="SECURITY.md">Security</a>
 </p>
 
 <p align="center"><strong>English</strong> · <a href="README.th.md">ภาษาไทย</a></p>
@@ -133,6 +134,9 @@ the [developer guide](docs/en/DEVELOPER_GUIDE.md).
 - [Environment variables](docs/en/ENVIRONMENT_VARIABLES.md)
 - [Vercel deployment](docs/en/VERCEL_SETUP.md)
 - [Cloudflare Tunnel setup](docs/en/CLOUDFLARE_TUNNEL_GUIDE.md)
+- [Contributing](CONTRIBUTING.md)
+- [Security policy](SECURITY.md)
+- [MIT License](LICENSE)
 
 ## Responsible Use
 
