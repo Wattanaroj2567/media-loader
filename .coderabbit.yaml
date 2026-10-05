@@ -16,6 +16,10 @@ reviews:
       - "main"
       - "master"
       - "dev"
+    ignore_title_keywords:
+      - "chore(deps"
+      - "chore(deps-dev"
+      - "dependabot"
   path_filters:
     - "!**/pnpm-lock.yaml"
     - "!**/uv.lock"

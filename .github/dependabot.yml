@@ -1,8 +1,8 @@
 version: 2
 updates:
-  # 1. Frontend Web (Next.js & React ecosystem in apps/web)
+  # 1. Frontend Web & Monorepo (Next.js & React ecosystem)
   - package-ecosystem: "npm"
-    directory: "/apps/web"
+    directory: "/"
     schedule:
       interval: "monthly"
     open-pull-requests-limit: 5
@@ -24,13 +24,17 @@ updates:
           - "tw-animate-css"
       code-quality:
         patterns:
-          - "eslint"
+          - "eslint*"
           - "prettier"
           - "knip"
           - "@playwright/test"
+          - "typescript"
     ignore:
       # Exclude drizzle-kit to preserve compatibility with patches/drizzle-kit.patch
       - dependency-name: "drizzle-kit"
+      # TypeScript 7.x breaks @typescript-eslint until eslint ecosystem updates
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
 
   # 2. Backend API (FastAPI dependencies in apps/api)
   - package-ecosystem: "pip"
