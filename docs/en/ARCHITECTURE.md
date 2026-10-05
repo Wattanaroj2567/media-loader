@@ -33,6 +33,10 @@ Docker packages the API and worker only for production-like integration checks
 and deployment to a separate container host. Those containers use immutable
 source, run as a non-root user, and share a named media-output volume. Vercel
 hosts only the Next.js app and calls the containerized API over HTTPS.
+Compose runs a network-isolated, one-shot volume initializer before the API;
+it repairs the media output directory ownership to UID/GID `10001` so an older
+named volume remains writable after an image rebuild. The API and worker still
+run as the non-root `media-loader` user.
 
 ```text
 apps/web on Vercel       → HTTPS → containerized FastAPI

@@ -1,6 +1,24 @@
 name: media-loader
 
 services:
+  media-output-init:
+    image: media-loader-worker:latest
+    build:
+      context: .
+      dockerfile: apps/worker/Dockerfile
+    user: "0:0"
+    network_mode: none
+    restart: "no"
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >-
+        test ! -L /app/tmp/media-loader &&
+        mkdir -p /app/tmp/media-loader &&
+        test -d /app/tmp/media-loader &&
+        chown 10001:10001 /app/tmp/media-loader
+    volumes:
+      - media-output:/app/tmp
+
   api:
     image: media-loader-api:latest
     build:
@@ -13,6 +31,9 @@ services:
       - .env.local
     environment:
       TEMP_DIR: /app/tmp/media-loader
+    depends_on:
+      media-output-init:
+        condition: service_completed_successfully
     ports:
       - "8000:8000"
     volumes:

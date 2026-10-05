@@ -31,6 +31,9 @@ Worker Local Dev  → ตรวจและประมวลผลงานใ�
 Docker ใช้สำหรับตรวจระบบแบบ production-like และ deploy API/Worker บนเครื่องหรือ
 container host แยกจาก Vercel ตัว container ใช้ source แบบ immutable, ทำงานด้วย
 ผู้ใช้ non-root และแชร์ named volume สำหรับไฟล์ผลลัพธ์ ส่วน Vercel โฮสต์เฉพาะ Web
+Compose จะรันตัวช่วยตั้งสิทธิ์ volume แบบครั้งเดียวและแยกเครือข่าย เพื่อให้โฟลเดอร์
+ไฟล์ผลลัพธ์เป็นของ UID/GID `10001` และ named volume เก่ายังเขียนได้หลัง rebuild
+โดย API และ Worker ยังคงทำงานด้วยผู้ใช้ non-root `media-loader`
 
 ```text
 apps/web บน Vercel       → HTTPS → FastAPI Container
