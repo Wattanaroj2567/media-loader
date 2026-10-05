@@ -85,8 +85,8 @@ export function AppShell({ children, user }: AppShellProps) {
       {/* ─── Header Navigation ─────────────────────────────────────── */}
       {!isAccountPage && (
         <>
-          {/* ─── Floating Topbar (lg+) ──────────────────────────────────── */}
-          <header className="fixed top-4 left-1/2 z-50 hidden -translate-x-1/2 items-center gap-2.5 rounded-full border border-border/60 bg-bg-surface/80 p-2 shadow-lg shadow-black/5 backdrop-blur-xl dark:border-white/10 dark:bg-bg-surface/80 dark:shadow-black/25 lg:flex">
+          {/* ─── Floating Topbar (md+) ──────────────────────────────────── */}
+          <header className="fixed top-4 left-1/2 z-50 hidden -translate-x-1/2 items-center gap-2.5 rounded-full border border-border/60 bg-bg-surface/80 p-2 shadow-lg shadow-black/5 backdrop-blur-xl dark:border-white/10 dark:bg-bg-surface/80 dark:shadow-black/25 md:flex">
             {/* Navigation Tabs */}
             <nav aria-label={t("nav.primary")} className="flex items-center gap-1.5">
               {navigation.map(({ href, label, icon: Icon }) => {
@@ -185,7 +185,7 @@ export function AppShell({ children, user }: AppShellProps) {
           <header
             data-testid="app-mobile-header"
             data-scroll-state="visible"
-            className="sticky top-0 z-30 flex h-13.5 items-center border-b border-border/70 bg-bg-base/80 px-3.5 shadow-xs backdrop-blur-xl sm:h-14 sm:px-6 lg:hidden"
+            className="sticky top-0 z-30 flex h-13.5 items-center border-b border-border/70 bg-bg-base/80 px-3.5 shadow-xs backdrop-blur-xl sm:h-14 sm:px-6 md:hidden"
           >
             <Link
               href="/dashboard"
@@ -204,7 +204,7 @@ export function AppShell({ children, user }: AppShellProps) {
                   href="/settings"
                   prefetch={false}
                   aria-label={t("nav.account")}
-                  className="rounded-full outline-none focus-visible:ring-2 focus-visible:ring-primary/60 lg:hidden"
+                  className="rounded-full outline-none focus-visible:ring-2 focus-visible:ring-primary/60 md:hidden"
                 >
                   <UserAvatar
                     name={user.name}
@@ -231,7 +231,7 @@ export function AppShell({ children, user }: AppShellProps) {
       {/* ─── Main Content (Full Desktop Width / No Sidebar Offset) ──── */}
       <main
         id="main-content"
-        className={`min-h-[calc(100dvh-3.5rem)] ${isAccountPage ? "pt-0 pb-8 lg:pb-14" : "pt-0 lg:pt-20 pb-24 lg:pb-12"}`}
+        className={`min-h-[calc(100dvh-3.5rem)] ${isAccountPage ? "pt-0 pb-8 lg:pb-14" : "pt-0 md:pt-20 pb-24 md:pb-12"}`}
       >
         {children}
       </main>
@@ -242,7 +242,7 @@ export function AppShell({ children, user }: AppShellProps) {
           aria-label={t("nav.primary")}
           data-testid="app-mobile-navigation"
           data-scroll-state={mobileNavigationCompact ? "compact" : "expanded"}
-          className={`fixed bottom-3 left-1/2 z-40 grid -translate-x-1/2 grid-cols-2 gap-1 border border-border bg-sidebar/95 shadow-lg shadow-black/10 backdrop-blur-2xl transition-[width,padding,border-radius] duration-300 ease-out dark:shadow-black/30 lg:hidden ${
+          className={`fixed bottom-3 left-1/2 z-40 grid -translate-x-1/2 grid-cols-2 gap-1 border border-border bg-sidebar/95 shadow-lg shadow-black/10 backdrop-blur-2xl transition-[width,padding,border-radius] duration-300 ease-out dark:shadow-black/30 md:hidden ${
             mobileNavigationCompact
               ? "w-36 rounded-full p-1 pb-[max(0.25rem,env(safe-area-inset-bottom))]"
               : "w-[calc(100%-1.5rem)] rounded-full p-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))]"
