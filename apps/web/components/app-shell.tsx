@@ -6,6 +6,7 @@ import { Clock3, Home, LogOut, Settings, WifiOff } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { HeaderUtilityControls } from "@/components/header-utility-controls";
+import { BrandMark } from "@/components/brand-mark";
 import { UserAvatar } from "@/components/user-avatar";
 import type { AppUser } from "@/components/app-user-context";
 import { useT } from "@/lib/i18n/context";
@@ -87,6 +88,20 @@ export function AppShell({ children, user }: AppShellProps) {
         <>
           {/* ─── Floating Topbar (md+) ──────────────────────────────────── */}
           <header className="fixed top-4 left-1/2 z-50 hidden -translate-x-1/2 items-center gap-2.5 rounded-full border border-border/60 bg-bg-surface/80 p-2 shadow-lg shadow-black/5 backdrop-blur-xl dark:border-white/10 dark:bg-bg-surface/80 dark:shadow-black/25 md:flex">
+            <Link
+              href="/dashboard"
+              prefetch={false}
+              aria-label={t("app.name")}
+              className="flex shrink-0 items-center gap-2 rounded-full pl-1.5 text-text"
+            >
+              <BrandMark size={32} className="size-8" />
+              <span className="pr-1 font-heading text-sm font-semibold tracking-tight">
+                {t("app.name")}
+              </span>
+            </Link>
+
+            <div className="h-4 w-px bg-border/70 dark:bg-white/10 mx-0.5" />
+
             {/* Navigation Tabs */}
             <nav aria-label={t("nav.primary")} className="flex items-center gap-1.5">
               {navigation.map(({ href, label, icon: Icon }) => {
@@ -192,6 +207,7 @@ export function AppShell({ children, user }: AppShellProps) {
               prefetch={false}
               className="flex min-w-0 items-center gap-2.5"
             >
+              <BrandMark size={36} className="size-9" />
               <span className="truncate font-heading text-sm font-semibold tracking-tight min-[360px]:text-base">
                 {t("app.name")}
               </span>

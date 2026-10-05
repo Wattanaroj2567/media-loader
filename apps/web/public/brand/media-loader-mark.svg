@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <title>Media Loader</title>
+  <rect x="32" y="32" width="448" height="448" rx="96" fill="#0C2742" />
+  <path
+    d="M142 354V162c0-18 22-26 35-12l79 88 79-88c13-14 35-6 35 12v105"
+    stroke="#FFFFFF"
+    stroke-width="44"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  <path d="M318 188h48v133h60v47h-84c-13 0-24-11-24-24V188Z" fill="#13B8A8" />
+  <path d="M376 225c0-8 9-13 16-8l41 27c7 5 7 19 0 24l-41 27c-7 5-16 0-16-8v-62Z" fill="#F6A623" />
+</svg>

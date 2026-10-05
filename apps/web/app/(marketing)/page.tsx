@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useCallback, useState } from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
   ArrowRight,
@@ -15,6 +16,7 @@ import {
 
 import { Button } from "@/components/ui/button";
 
+import { BrandMark } from "@/components/brand-mark";
 import { LoadingIndicator } from "@/components/loading-indicator";
 import { Badge } from "@/components/ui/badge";
 import { HeaderUtilityControls } from "@/components/header-utility-controls";
@@ -246,9 +248,14 @@ function LandingPageContent() {
           data-testid="landing-topbar"
           className="mx-auto flex h-13.5 w-full items-center justify-between gap-2 border-b border-border/70 bg-bg-base/80 px-3.5 shadow-xs backdrop-blur-xl sm:h-14 sm:px-6 lg:h-auto lg:max-w-6xl lg:rounded-full lg:border lg:border-border/60 lg:bg-bg-surface/80 lg:p-2 lg:pl-5 lg:shadow-lg lg:shadow-black/5 dark:lg:border-white/10 dark:lg:shadow-black/25"
         >
-          <span className="font-heading text-sm font-semibold tracking-tight text-text min-[360px]:text-base">
-            {t("app.name")}
-          </span>
+          <Link
+            href="/"
+            aria-label={t("app.name")}
+            className="flex shrink-0 items-center gap-2.5 font-heading text-sm font-semibold tracking-tight text-text min-[360px]:text-base"
+          >
+            <BrandMark size={36} className="size-9" />
+            <span>{t("app.name")}</span>
+          </Link>
 
           <HeaderUtilityControls
             trailing={
