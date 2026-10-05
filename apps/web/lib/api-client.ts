@@ -37,12 +37,12 @@ export interface Job {
   download_speed?: number | null;
 }
 
-export interface PolicyResult {
+interface PolicyResult {
   decision: "allowed" | "blocked" | "needs_confirmation";
   reason: string;
 }
 
-export interface MediaMetadata {
+interface MediaMetadata {
   title: string;
   platform: string;
   thumbnail_url: string | null;
