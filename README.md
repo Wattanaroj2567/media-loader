@@ -1,96 +1,141 @@
 # Media Loader
 
-> **Language:** **English** · [ภาษาไทย](./README.th.md)
+<p align="center">
+  <img src="apps/web/public/brand/media-loader-mark.svg" alt="Media Loader logo" width="112">
+</p>
 
-A premium, private, rights-aware media downloader & converter application built for personal daily use. Analyze media URLs, select video/audio quality, queue download/conversion tasks, and manage files securely via a modern dark command-center interface.
+<p align="center"><strong>Rights-aware media processing for personal use.</strong></p>
+
+<p align="center">
+  Analyze supported media URLs, review available formats, queue authorized jobs,
+  and manage completed files through one web application.
+</p>
+
+<p align="center">
+  <a href="docs/en/DEVELOPER_GUIDE.md">Developer guide</a> ·
+  <a href="docs/en/ARCHITECTURE.md">Architecture</a> ·
+  <a href="docs/en/VERCEL_SETUP.md">Deployment</a>
+</p>
+
+<p align="center"><strong>English</strong> · <a href="README.th.md">ภาษาไทย</a></p>
 
 ---
 
-## Quick Start
+## Overview
 
-Get the entire monorepo stack running locally in simple steps:
+Media Loader is a personal-use web application for analyzing eligible media
+URLs and managing authorized media processing. The web interface sends requests
+to a policy-aware API, while a separate worker handles media processing. Supabase
+provides authentication and PostgreSQL storage.
 
-### 1. Prerequisites
+The application follows a rights-aware workflow:
 
-Ensure you have Node.js 22.13+, pnpm 11+, Python 3.12+, `uv`, and FFmpeg installed.
+```text
+URL input → Validation → Policy check → Analysis → Rights confirmation → Queue → Worker
+```
 
-### 2. Setup Environment & Dependencies
+## Principles
+
+- **Respect rights and access controls.** Process only media you are authorized
+  to use. The application does not bypass DRM, login walls, or other protections.
+- **Keep services isolated.** The API validates URLs and policy; the worker
+  handles media processing; the web app presents the user interface.
+- **Protect user data.** Authenticated operations are scoped to the user, with
+  PostgreSQL Row Level Security (RLS) supporting data isolation.
+
+## Architecture
+
+| Component | Responsibility | Deployment |
+| --- | --- | --- |
+| `apps/web` | Next.js web application | Vercel |
+| `apps/api` | FastAPI URL analysis, policy checks, and job creation | Separate container host |
+| `apps/worker` | Queue polling and media processing with yt-dlp and FFmpeg | Worker host with access to its media volume |
+| `supabase` | Authentication, PostgreSQL, and Row Level Security | Supabase |
+
+Vercel hosts the frontend only. The API and worker run separately; the worker
+does not run inside Vercel Functions.
+
+<p align="center">
+  <a href="docs/diagrams/media-loader-architecture.svg">
+    <img src="docs/diagrams/media-loader-architecture.svg" alt="Media Loader architecture diagram" width="100%">
+  </a>
+</p>
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js 22.13 or later and pnpm 11 or later
+- Python 3.12 and `uv`
+- FFmpeg
+- Supabase project configuration for the services you plan to run
+
+### Install dependencies
+
+Run these commands from the repository root:
 
 ```bash
-# 1. Copy environment template
-cp .env.example .env.local
-
-# 2. Install Node & Python dependencies (from monorepo root)
 pnpm install
 pnpm setup:py
 ```
 
-### 3. Run All Services with One Command
+### Configure the environment
 
-Run Next.js Web UI, FastAPI Backend, and Python Media Worker all together in a single terminal window:
+Create a local environment file from the example and set the values described
+in the [environment variables guide](docs/en/ENVIRONMENT_VARIABLES.md).
 
 ```bash
-# Run all 3 services concurrently in 1 terminal
+# macOS and Linux
+cp .env.example .env.local
+
+# PowerShell
+Copy-Item .env.example .env.local
+```
+
+Validate the configuration with `pnpm check-env`. Keep local environment files
+and credentials out of version control.
+
+### Run the application
+
+Start the web app, API, and worker from the repository root:
+
+```bash
 pnpm dev
 ```
 
-> **Prefer separate terminals or a production-like container check?**
->
-> * **Separate Terminals**: Run `pnpm dev:web`, `pnpm dev:api`, or `pnpm dev:worker` individually.
-> * **Docker Verification**: Run `pnpm docker:up` after changes are stable. The containers package only the API and worker; Vercel hosts the web app separately.
+The web app runs at `http://localhost:3000` and the API runs at
+`http://localhost:8000`. For service-specific commands and setup details, see
+the [developer guide](docs/en/DEVELOPER_GUIDE.md).
 
-> [!TIP]
-> Run `pnpm check-env` at any time to validate your environment configuration without leaking secret values.
+## Development Commands
 
----
+| Command | Purpose |
+| --- | --- |
+| `pnpm dev` | Start the web app, API, and worker for local development |
+| `pnpm dev:web` | Start only the Next.js web app |
+| `pnpm dev:api` | Start only the FastAPI service |
+| `pnpm dev:worker` | Start only the media worker |
+| `pnpm lint` | Run lint checks across the repository |
+| `pnpm deadcode` | Audit unused code across the repository |
+| `pnpm build` | Build the Next.js web app |
+| `pnpm test:web` | Run web unit tests |
+| `pnpm test:api` | Run API tests |
+| `pnpm test:worker` | Run worker tests |
 
-## Key Features
+## Documentation
 
-* **Command Center UI**: Modern dark dashboard with sharp typography (Inter/Outfit), responsive design, and Google OAuth login via Supabase Auth.
-* **Smart URL Analyzer**: SSRF-safe URL validation, live format extraction, size estimation, and quality previews.
-* **Decoupled Media Processing**: Isolated daemon worker handling downloads and FFmpeg audio/video transcoding with real-time speed tracking.
-* **Privacy & Rights Guard**: Strict non-bypass policy enforcing rights checks, Postgres Row Level Security (RLS), and zero-secret leakage protocols.
+- [Developer guide](docs/en/DEVELOPER_GUIDE.md)
+- [System architecture](docs/en/ARCHITECTURE.md)
+- [API specification](docs/en/API_SPEC.md)
+- [Database schema](docs/en/DATABASE_SCHEMA.md)
+- [Security and rights policy](docs/en/SECURITY_AND_POLICY.md)
+- [Supabase Row Level Security](docs/en/SUPABASE_RLS_POLICY.md)
+- [Environment variables](docs/en/ENVIRONMENT_VARIABLES.md)
+- [Vercel deployment](docs/en/VERCEL_SETUP.md)
+- [Cloudflare Tunnel setup](docs/en/CLOUDFLARE_TUNNEL_GUIDE.md)
 
----
+## Responsible Use
 
-## Architecture
-
-<p align="center">
-  <a href="docs/diagrams/media-loader-architecture.svg" target="_blank">
-    <img alt="Media Loader System Architecture" src="docs/diagrams/media-loader-architecture.svg" width="100%">
-  </a>
-</p>
-<p align="center"><sub>💡 <em>Click on the diagram to open full-resolution vector SVG</em></sub></p>
-
----
-
-## Tech Stack
-
-| Layer | Technology | Monorepo Path |
-| :--- | :--- | :--- |
-| **Frontend** | Next.js 16 (App Router), TypeScript, TailwindCSS | [`apps/web`](apps/web) |
-| **Backend API** | FastAPI, Uvicorn, Python 3.12 | [`apps/api`](apps/api) |
-| **Media Worker** | Python 3.12, yt-dlp, FFmpeg | [`apps/worker`](apps/worker) |
-| **Database & Auth**| Supabase PostgreSQL, Supabase Auth | [`supabase`](supabase) |
-| **Tooling** | `pnpm` (Node.js), `uv` (Python) | Monorepo Root |
-| **Tooling & Quality** | `pnpm`, `uv`, ESLint, Prettier, Knip, Ruff, Vulture | Monorepo Root |
-
----
-
-## Documentation & Guides
-
-Detailed guides are available in the [`docs/en/`](docs/en/DEVELOPER_GUIDE.md) directory:
-
-* **[Developer Onboarding Guide](docs/en/DEVELOPER_GUIDE.md)** — Comprehensive architecture, command reference, sequence flow, and doc index.
-* **[User Setup Guide](docs/en/USER_SETUP_GUIDE.md)** — Step-by-step Supabase & Google OAuth credentials setup.
-* **[System Architecture](docs/en/ARCHITECTURE.md)** — In-depth blueprint, security boundary, and data flows.
-* **[Vercel Deployment Guide](docs/en/VERCEL_SETUP.md)** — Host the frontend monorepo on Vercel.
-* **[Cloudflare Tunnel Setup Guide](docs/en/CLOUDFLARE_TUNNEL_GUIDE.md)** — Connect local backend securely to Vercel via HTTPS without port forwarding.
-* **[Secrets Protocol](docs/en/SECRETS_PROTOCOL.md)** — Zero-leakage protocol guidelines for developers and AI agents.
-
----
-
-## License & Policy
-
-* **Private Repository**: For personal use only.
-* **Rights Compliance**: Respects platform Terms of Service and enforces rights checking at the policy layer.
+Use Media Loader only with content you have permission to process, and follow
+the applicable platform terms and laws. The application does not use browser
+cookies to access restricted content or implement protection bypasses.
