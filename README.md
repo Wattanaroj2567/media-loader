@@ -103,11 +103,9 @@ the environment guide.
 
 ### Run the application
 
-Start the egress proxy, then the web app, API, and worker from the repository
-root:
+Start the web app, API, worker, and egress proxy from the repository root:
 
 ```bash
-docker compose up -d --build ssrf-proxy
 pnpm dev
 ```
 
@@ -119,16 +117,18 @@ the [developer guide](docs/en/DEVELOPER_GUIDE.md).
 
 | Command | Purpose |
 | --- | --- |
-| `pnpm dev` | Start the web app, API, and worker for local development |
+| `pnpm dev` | Start the web app, API, worker, and egress proxy for local development |
 | `pnpm dev:web` | Start only the Next.js web app |
 | `pnpm dev:api` | Start only the FastAPI service |
 | `pnpm dev:worker` | Start only the media worker |
+| `pnpm dev:proxy` | Start only the SSRF egress proxy on `127.0.0.1:3128` |
 | `pnpm lint` | Run lint checks across the repository |
 | `pnpm deadcode` | Audit unused code across the repository |
 | `pnpm build` | Build the Next.js web app |
 | `pnpm test:web` | Run web unit tests |
 | `pnpm test:api` | Run API tests |
 | `pnpm test:worker` | Run worker tests |
+| `pnpm test:proxy` | Run egress proxy tests |
 
 ## Documentation
 

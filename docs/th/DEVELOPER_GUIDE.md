@@ -82,18 +82,15 @@ pnpm check-env
 
 ### การสั่งรันบริการ Local Development
 
-ให้เปิด egress proxy ก่อนใช้ `pnpm dev` หรือรัน API/Worker ในเครื่อง:
-
-```bash
-docker compose up -d --build ssrf-proxy
-```
+`pnpm dev` จะเปิด SSRF egress proxy ที่ `127.0.0.1:3128` พร้อมบริการอื่น
+ถ้ารัน API หรือ Worker แยกเดี่ยว ให้เปิด proxy ก่อนด้วย `pnpm dev:proxy`
 
 กำหนด `MEDIA_URL_ENCRYPTION_KEY` เป็น Fernet key ค่าเดียวกันให้ API และ Worker
 ดูวิธีสร้าง key, ตั้ง proxy และย้าย URL แถวเดิมที่
 [Environment Variables](ENVIRONMENT_VARIABLES.md)
 
 ```bash
-# ค่าเริ่มต้น: เปิด Web, FastAPI แบบ reload และ Worker ใน Terminal เดียว
+# ค่าเริ่มต้น: เปิด Web, FastAPI แบบ reload, Worker และ egress proxy ใน Terminal เดียว
 pnpm dev
 
 # เหมือนกัน แต่เขียน log ทุกบริการลง tmp/dev.log (git-ignored)
@@ -103,6 +100,13 @@ pnpm dev
 ใช้ `pnpm dev:web`, `pnpm dev:api` หรือ `pnpm dev:worker` เมื่อต้องการแยกตรวจ
 เฉพาะบริการ หลังโค้ดนิ่งแล้วใช้ `pnpm docker:up` เพื่อตรวจ API/Worker ในสภาพ
 production-like โดย Docker ไม่ใช่วงจรแก้โค้ดหลัก
+
+ถ้าต้องการ rebuild Docker stack ทั้งหมดรวม Cloudflare tunnel ให้ใส่ profile
+`tunnel` ด้วย ไม่งั้น container tunnel เดิมจะไม่ถูกสร้างใหม่:
+
+```bash
+docker compose --profile tunnel up -d --build
+```
 
 ### การทดสอบ (Testing)
 

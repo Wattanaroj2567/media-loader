@@ -102,10 +102,9 @@ Copy-Item .env.example .env.local
 
 ### เริ่มระบบ
 
-เริ่ม egress proxy ก่อน จากนั้นเปิดเว็บแอป API และ Worker จากไดเรกทอรีหลัก:
+เปิดเว็บแอป API, Worker และ egress proxy จากไดเรกทอรีหลัก:
 
 ```bash
-docker compose up -d --build ssrf-proxy
 pnpm dev
 ```
 
@@ -117,16 +116,18 @@ pnpm dev
 
 | คำสั่ง | การทำงาน |
 | --- | --- |
-| `pnpm dev` | เริ่มเว็บแอป API และ Worker สำหรับพัฒนาในเครื่อง |
+| `pnpm dev` | เริ่มเว็บแอป API, Worker และ egress proxy สำหรับพัฒนาในเครื่อง |
 | `pnpm dev:web` | เริ่มเฉพาะเว็บแอป Next.js |
 | `pnpm dev:api` | เริ่มเฉพาะบริการ FastAPI |
 | `pnpm dev:worker` | เริ่มเฉพาะ Media Worker |
+| `pnpm dev:proxy` | เริ่มเฉพาะ SSRF egress proxy ที่ `127.0.0.1:3128` |
 | `pnpm lint` | ตรวจ lint ทั่วทั้ง repository |
 | `pnpm deadcode` | ตรวจหาโค้ดที่ไม่ได้ใช้งาน |
 | `pnpm build` | สร้าง build ของเว็บแอป Next.js |
 | `pnpm test:web` | รันทดสอบเว็บแอป |
 | `pnpm test:api` | รันทดสอบ API |
 | `pnpm test:worker` | รันทดสอบ Worker |
+| `pnpm test:proxy` | รันทดสอบ egress proxy |
 
 ## เอกสาร
 

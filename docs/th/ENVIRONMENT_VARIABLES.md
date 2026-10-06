@@ -77,8 +77,8 @@ LOG_LEVEL=info
   ตัวแปร `NEXT_PUBLIC_` หากทำ key หายหรือเปลี่ยนค่า จะถอดรหัส URL งานเก่าไม่ได้
 - `MEDIA_EGRESS_PROXY` กำหนด proxy สำหรับ request ไปยัง URL ของผู้ใช้ ค่า local
   เริ่มต้นคือ `http://127.0.0.1:3128`; Docker Compose จะตั้ง internal service
-  address ให้อัตโนมัติ หากใช้ `pnpm dev` ให้เปิด proxy ก่อนด้วยคำสั่ง
-  `docker compose up -d --build ssrf-proxy` การ deploy นอก Compose ต้องมี proxy
+  address ให้อัตโนมัติ `pnpm dev` จะเปิด proxy ในเครื่องที่ address นี้ให้
+  (`pnpm dev:proxy` เปิดเฉพาะ proxy) การ deploy นอก Compose ต้องมี proxy
   ที่ตรวจ DNS แบบเทียบเท่าและป้องกันการเชื่อมต่อออกโดยตรงที่หลบ proxy
 
 ### ย้าย URL แถวเดิม

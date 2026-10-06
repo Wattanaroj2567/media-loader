@@ -82,18 +82,16 @@ pnpm check-env
 
 ### Running Local Development Servers
 
-Start the egress proxy before using `pnpm dev` or running the API/worker locally:
-
-```bash
-docker compose up -d --build ssrf-proxy
-```
+`pnpm dev` starts the SSRF egress proxy on `127.0.0.1:3128` together with the
+other services. When running the API or worker on their own, start it first
+with `pnpm dev:proxy`.
 
 Set `MEDIA_URL_ENCRYPTION_KEY` to the same Fernet key in the API and worker
 environment. See [Environment Variables](ENVIRONMENT_VARIABLES.md) for key
 generation, proxy configuration, and migration of existing URL rows.
 
 ```bash
-# Default: Web, FastAPI with reload, and Worker in one terminal
+# Default: Web, FastAPI with reload, Worker, and egress proxy in one terminal
 pnpm dev
 
 # Same stack, but tee all service logs into tmp/dev.log (git-ignored)
@@ -103,6 +101,13 @@ pnpm dev
 Use `pnpm dev:web`, `pnpm dev:api`, or `pnpm dev:worker` only when isolating a
 service. After a change is stable, run `pnpm docker:up` for a production-like
 API/worker integration check. Docker is not the default edit loop.
+
+To rebuild the full Docker stack including the Cloudflare tunnel, include the
+`tunnel` profile; without it an existing tunnel container is not recreated:
+
+```bash
+docker compose --profile tunnel up -d --build
+```
 
 ### Testing
 

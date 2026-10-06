@@ -16,7 +16,7 @@
     "dev:proxy": "uv run --no-project python apps/proxy/server.py",
     "docker:build": "docker compose build api worker",
     "docker:up": "docker compose up -d --build api worker",
-    "docker:down": "docker compose down",
+    "docker:down": "docker compose --profile tunnel down",
     "docker:logs": "docker compose logs -f api worker",
     "docker:tunnel": "docker compose --profile tunnel up -d tunnel",
     "setup:api": "uv pip install --directory apps/api -e \".[dev]\"",

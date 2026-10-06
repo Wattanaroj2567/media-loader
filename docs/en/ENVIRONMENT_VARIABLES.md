@@ -79,8 +79,8 @@ LOG_LEVEL=info
   encrypted job URLs from being decrypted.
 - `MEDIA_EGRESS_PROXY` points API and worker URL requests to the SSRF proxy. Its
   local default is `http://127.0.0.1:3128`; Docker Compose sets the internal
-  service address automatically. For local `pnpm dev`, start the proxy first:
-  `docker compose up -d --build ssrf-proxy`. Deployments outside Compose must
+  service address automatically. `pnpm dev` starts a local proxy on that
+  address (`pnpm dev:proxy` starts it alone). Deployments outside Compose must
   provide an equivalent DNS-validating proxy and prevent direct egress around it.
 
 ### Migrate existing URL rows

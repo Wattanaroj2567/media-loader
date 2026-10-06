@@ -26,8 +26,8 @@ services:
     container_name: media-loader-ssrf-proxy
     init: true
     restart: unless-stopped
-    ports:
-      - "127.0.0.1:3128:3128"
+    # Not published on the host: containers reach it as ssrf-proxy:3128, and
+    # `pnpm dev` runs its own loopback proxy on 127.0.0.1:3128.
     networks:
       - api-egress
       - worker-egress
