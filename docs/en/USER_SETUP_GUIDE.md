@@ -2,199 +2,170 @@
 
 > **Language:** **English** · [ภาษาไทย](../th/USER_SETUP_GUIDE.md)
 
-First-time setup to run Media Loader for **real use** on your machine.
-
-Follow these steps once. Add all secret values yourself in `.env.local` — never commit or expose secret credentials in logs.
-
----
-
-## Step 1 — Create Supabase Project
-
-1. Go to [Supabase Dashboard](https://supabase.com/dashboard)
-2. Create a new project named `media-loader`
-3. Save your database password securely
-4. Wait until project provisioning is complete
-
-After this step, gather the following credentials from Supabase Project Settings:
-
-```text
-Project URL
-Anon public key
-Service role key
-Database connection string
-```
+This guide covers first-time setup for local development and deployment. Enter
+credentials directly in your local environment or provider dashboard; never
+share them in chat or commit them to Git.
 
 ---
 
-## Step 2 — Add Supabase Values Locally
+## 1. Create a Supabase Project
 
-1. Copy the example environment template:
+1. Open the [Supabase Dashboard](https://supabase.com/dashboard) and create a
+   project.
+2. Save the database password securely.
+3. From Project Settings, have these values ready for local setup:
+
+   ```text
+   Project URL
+   Anon public key
+   Service role key
+   Database connection string (for Drizzle Kit commands)
+   ```
+
+The service-role key and database connection string are private credentials.
+Keep them out of frontend variables, chat, and Git.
+
+---
+
+## 2. Configure Local Environment
+
+1. Copy the example file to the local environment file:
 
    ```bash
    cp .env.example .env.local
    ```
 
-2. Open `.env.local` and populate the required keys:
+2. Enter the values locally. Do not paste real values into chat or documentation.
+   The main Supabase and database entries are:
 
    ```env
    NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
    NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
    SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-   DATABASE_URL=postgresql://postgres:[PASSWORD]@[HOST]:5432/postgres
+   DATABASE_URL=your-postgresql-connection-string
    ```
 
-3. Validate environment configuration without exposing secret values:
+3. Run the presence check; it prints statuses and does not need to print values:
 
    ```bash
    pnpm check-env
    ```
 
----
-
-## Step 3 — Configure Google OAuth for Supabase Auth
-
-For detailed Google Cloud setup, refer to [`GOOGLE_OAUTH_SETUP.md`](GOOGLE_OAUTH_SETUP.md).
-
-1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Create or select a project
-3. Configure OAuth consent screen
-4. Create OAuth 2.0 Client ID (Web Application)
-5. Add authorized redirect URI from Supabase Auth settings (`https://<project-ref>.supabase.co/auth/v1/callback`)
-6. Copy Client ID and Client Secret
-7. Paste credentials into Supabase Dashboard: **Authentication** → **Providers** → **Google** → Toggle **Enabled**
+`DATABASE_URL` is needed when running Drizzle Kit database commands. See
+[Environment Variables](ENVIRONMENT_VARIABLES.md) for the full current list.
 
 ---
 
-## Step 4 — Configure Supabase Redirect URLs
+## 3. Configure Google OAuth for Supabase Auth
 
-In Supabase Dashboard → **Authentication** → **URL Configuration**, add authorized redirect URLs:
-
-* **Site URL**: `http://localhost:3000`
-* **Additional Redirect URLs**:
-  - `http://localhost:3000/auth/callback`
-  - `https://<your-vercel-domain>.vercel.app/auth/callback`
+Follow [Google OAuth Setup](GOOGLE_OAUTH_SETUP.md) to create a Google OAuth
+client and configure the Supabase Google provider. Enter the Google Client ID
+and Client Secret in Supabase Dashboard → **Authentication** → **Providers** →
+**Google**. Do not put the Client Secret in frontend configuration.
 
 ---
 
-## Step 5 — Apply Database Schema & Migrations
+## 4. Configure Supabase Redirect URLs
 
-For detailed Row Level Security rules, refer to [`SUPABASE_RLS_POLICY.md`](SUPABASE_RLS_POLICY.md).
+In Supabase Dashboard → **Authentication** → **URL Configuration**:
 
-Apply database schema to your Supabase PostgreSQL instance:
+- Set **Site URL** to the production frontend origin when deploying, such as
+  `https://your-domain.vercel.app`.
+- Add each allowed application callback URL to **Redirect URLs**:
+  - Local development: `http://localhost:3000/auth/callback`
+  - Production: `https://your-domain.vercel.app/auth/callback`
 
-### Apply Tables with Drizzle Kit
+For local-only development, `http://localhost:3000` may be used as Site URL.
+Use the production origin as Site URL for a deployed app.
 
-Ensure `DATABASE_URL` is set in `.env.local`, then push schema directly:
+---
+
+## 5. Create the Database Schema and Policies
+
+`apps/web/lib/db/schema.ts` is the source of truth for application tables and
+columns. With `DATABASE_URL` configured locally, run:
 
 ```bash
 pnpm --filter web db:push
 ```
 
-### Apply Supabase Policies and Trigger
-
-After Drizzle creates the tables, run these focused SQL files in the Supabase SQL Editor:
+Then run the project-specific Supabase policy and trigger scripts in the
+Supabase SQL Editor:
 
 1. [`supabase/profile_trigger.sql`](../../supabase/profile_trigger.sql)
 2. [`supabase/rls_policies.sql`](../../supabase/rls_policies.sql)
 
-Do not use historical files under `supabase/migrations/` for new table or
-column changes. `apps/web/lib/db/schema.ts` is the schema source of truth.
+These SQL files are for Supabase functions, triggers, and RLS policies. Define
+application table or column changes in Drizzle first; do not use historical
+files under `supabase/migrations/` as the source of truth.
 
-To verify database tables were created successfully, run in Supabase SQL Editor:
-
-```sql
-SELECT table_name FROM information_schema.tables WHERE table_schema = 'public';
-```
+For details, see [Database Schema](DATABASE_SCHEMA.md) and
+[Supabase RLS Policy](SUPABASE_RLS_POLICY.md).
 
 ---
 
-## Step 6 — Optional Storage Bucket
+## 6. Media File Storage
 
-Local temporary output (`local_temp`) is the default behavior. Supabase Storage is optional.
+The current application stores temporary output in a local/shared filesystem
+volume (`local_temp`). A complete Supabase cloud-output flow is not currently
+implemented. Creating a Storage bucket or setting a bucket name alone will not
+enable cloud storage.
 
-If enabling cloud storage mode, create a private bucket in Supabase Dashboard:
-
-* **Bucket Name**: `media-downloads`
-* **Access**: Private (Row Level Security enabled)
-
-Object path pattern:
-
-```text
-{user_id}/{job_id}/output.mp4
-{user_id}/{job_id}/output.mp3
-```
+For Docker deployment, ensure API and worker share the same output volume and
+use the same `TEMP_DIR`. Review the [Environment Variables](ENVIRONMENT_VARIABLES.md)
+and [Architecture](ARCHITECTURE.md) guides.
 
 ---
 
-## Step 7 — Configure Vercel Deployment
+## 7. Deploy the Frontend to Vercel
 
-1. Import repository to Vercel
-2. Configure Root Directory: `apps/web`
-3. Set Environment Variables in Vercel Dashboard:
+1. Import the repository into Vercel.
+2. Keep **Root Directory** at the repository root. The root `vercel.json`
+   configures the pnpm monorepo build.
+3. Set the public frontend variables in Vercel:
 
    ```env
-   NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-   NEXT_PUBLIC_FASTAPI_BASE_URL=https://your-backend-api-url.com
+   NEXT_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your-public-anon-key
+   NEXT_PUBLIC_FASTAPI_BASE_URL=https://your-backend-api-domain.com
    ```
 
-4. Deploy application
+4. Deploy. Deploy the API and worker separately, and set API CORS to allow the
+   Vercel production origin.
 
-For detailed Vercel hosting instructions, see [`VERCEL_SETUP.md`](VERCEL_SETUP.md).
+Use a reachable HTTPS backend URL for production; `localhost` only works for
+local development. Follow [Vercel Setup](VERCEL_SETUP.md) for deployment
+details. Never set the service-role key in the Vercel frontend project.
 
 ---
 
-## Step 8 — Run Local Development
+## 8. Run Local Development
 
-1. **Install dependencies across monorepo**:
-
-   ```bash
-   pnpm install
-   pnpm setup:py
-   ```
-
-2. **Start all local development services from the repository root**:
-
-   ```bash
-   pnpm dev
-   ```
-
-   This starts the web app, reload-enabled FastAPI service, and media worker in
-   one terminal. The individual `pnpm dev:*` commands remain available for
-   isolated debugging.
-
-To build and start only the Next.js production server for Lighthouse testing,
-make sure port `3000` is available, then run:
+From the repository root, install dependencies and start the services:
 
 ```bash
-pnpm production
+pnpm install
+pnpm setup:py
+pnpm dev
 ```
 
-This command does not start Docker, FastAPI, or the media worker. Press
-`Ctrl+C` to stop the web server.
+This starts the web app, FastAPI with reload, and the worker. The web app is at
+`http://localhost:3000`; the API is at `http://localhost:8000`.
+
+To build and run only the Next.js production server locally for Lighthouse
+checks, ensure port `3000` is available and run `pnpm production`. It does not
+start Docker, the API, or the worker. Press `Ctrl+C` to stop it.
 
 ---
 
-## Step 9 — Environment Validation
+## 9. Check Environment Configuration
 
-Run the environment validation script at any time to verify variable existence without revealing secret values:
+Run this from the repository root when you need to check required environment
+variable presence:
 
 ```bash
 pnpm check-env
 ```
 
-Expected output:
-
-```text
-Environment Check
------------------
-NEXT_PUBLIC_SUPABASE_URL: OK
-NEXT_PUBLIC_SUPABASE_ANON_KEY: OK
-NEXT_PUBLIC_FASTAPI_BASE_URL: OK
-SUPABASE_URL: OK
-SUPABASE_SERVICE_ROLE_KEY: OK
-DATABASE_URL: OK
-WORKER_SECRET: OK
------------------
-No secret values were printed.
-```
+The checker reports statuses only. Its success does not inspect the compiled
+frontend bundle; do not use it as proof that secret values cannot be exposed.

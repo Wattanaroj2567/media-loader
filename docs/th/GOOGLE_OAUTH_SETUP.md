@@ -1,102 +1,91 @@
-# คู่มือการตั้งค่า Google OAuth (Google OAuth Setup Guide)
+# คู่มือตั้งค่า Google OAuth
 
 > **ภาษา:** [English](../en/GOOGLE_OAUTH_SETUP.md) · **ภาษาไทย**
 
-คู่มืออธิบายการตั้งค่าระบบยืนยันตัวตน Google OAuth 2.0 ร่วมกับ Supabase Auth สำหรับ Media Loader
+คู่มือนี้อธิบายการใช้ Google เป็นผู้ให้บริการล็อกอินผ่าน Supabase Auth โดย Google
+จะส่ง callback มาที่ Supabase จากนั้น Supabase จึง redirect กลับมายัง Media Loader
 
 ---
 
-## เป้าหมาย (Goal)
+## เป้าหมาย
 
-เปิดใช้งานระบบล็อกอินด้วย Google ผ่าน Supabase Auth เพื่อให้เว็บแอปพลิเคชัน Next.js สามารถยืนยันตัวตนผู้ใช้ได้อย่างปลอดภัย โดยไม่ต้องสร้างระบบ Auth ขึ้นเองตั้งแต่ต้น
-
----
-
-## ขั้นตอนที่ 1 — เปิด Google Cloud Console
-
-1. ไปที่ [Google Cloud Console](https://console.cloud.google.com/)
-2. สร้างโปรเจกต์ใหม่ หรือเลือกโปรเจกต์ที่มีอยู่แล้ว
-3. เปิดเมนู **APIs & Services**
-4. เปิดเมนู **OAuth consent screen**
+ให้ผู้ใช้ล็อกอินเข้า Next.js App ด้วย Google ผ่าน Supabase Auth โดยไม่ใส่
+Google credentials ไว้ในโค้ดเบราว์เซอร์
 
 ---
 
-## ขั้นตอนที่ 2 — ตั้งค่าหน้าจอ OAuth Consent Screen
+## ขั้นตอนที่ 1 — เปิด Google Auth Platform
 
-การตั้งค่าที่แนะนำสำหรับการใช้งานส่วนบุคคล:
+1. เปิด [Google Cloud Console](https://console.cloud.google.com/)
+2. สร้างหรือเลือก Google Cloud Project สำหรับ Media Loader
+3. เปิดเมนู **Google Auth Platform** ใน Console
 
-- **App name**: `Media Loader`
-- **User support email**: อีเมลของนักพัฒนา
-- **Developer contact email**: อีเมลของนักพัฒนา
-- **Publishing status**: เลือกสถานะเป็น Testing สำหรับการพัฒนาแบบ Local
-
-หากแอปอยู่ในสถานะ Testing ให้เพิ่มบัญชี Google ของคุณลงในรายชื่อ **Test Users**
+การตั้งค่าปัจจุบันของ Google อยู่ในส่วน Branding, Audience, Data Access และ
+Clients ดู [คู่มือ Sign in with Google ของ Google](https://developers.google.com/identity/gsi/web/guides/get-google-api-clientid)
 
 ---
 
-## ขั้นตอนที่ 3 — สร้าง OAuth Client Credentials
+## ขั้นตอนที่ 2 — ตั้งค่า Audience และหน้าจอ Consent
 
-1. ไปที่เมนู **Credentials**
-2. คลิก **Create Credentials** → เลือก **OAuth client ID**
-3. เลือกประเภทแอปพลิเคชัน (Application Type): **Web application**
-4. กำหนดชื่อ: `Media Loader Web Client`
+- ในส่วน **Branding** ให้ใส่ชื่อแอปและอีเมลติดต่อที่ระบุโปรเจกต์ได้ชัดเจน
+  รวมถึงข้อมูลอื่นที่ Google ขอ
+- ในส่วน **Audience** ให้เลือกกลุ่มผู้ใช้ให้ตรงกับการใช้งาน หากแอปอยู่ในสถานะ
+  Testing ให้เพิ่มบัญชี Google ที่อนุญาตเป็น test users
+- ในส่วน **Data Access** ขอเฉพาะ scope โปรไฟล์ที่ต้องใช้ล็อกอิน ได้แก่
+  `openid`, `email` และ `profile`
 
----
-
-## ขั้นตอนที่ 4 — เพิ่ม Authorized Redirect URI
-
-ใน Supabase Dashboard ให้เปิดหน้าต่าง:
-
-```text
-Authentication → Providers → Google
-```
-
-คัดลอก Callback URL ที่แสดงบน Supabase (รูปแบบ: `https://<your-project-ref>.supabase.co/auth/v1/callback`) แล้วนำไปวางในช่อง **Authorized redirect URIs** บน Google Cloud Console
+โหมด Testing เหมาะสำหรับพัฒนาและจำกัดการล็อกอินไว้เฉพาะบัญชีทดสอบ
+ก่อนเปิดให้ผู้ใช้กลุ่มกว้างขึ้น ให้ทำตามข้อกำหนดการเผยแพร่และการยืนยันแอป
+ล่าสุดของ Google
 
 ---
 
-## ขั้นตอนที่ 5 — นำค่า Google Credentials ไปใส่ใน Supabase
+## ขั้นตอนที่ 3 — สร้าง Web OAuth Client
 
-Google Cloud Console จะสร้างรหัสคู่มาให้:
+1. เปิดส่วน **Clients** แล้วสร้าง OAuth Client
+2. เลือกประเภทแอปเป็น **Web application**
+3. ตั้งชื่อที่จำได้ เช่น `Media Loader Web`
+4. ในช่อง **Authorized redirect URIs** ให้เพิ่ม Callback URL ที่แสดงในหน้า
+   Google Provider ของ Supabase ซึ่งมีรูปแบบดังนี้:
 
-```text
-Client ID
-Client Secret
-```
+   ```text
+   https://<your-project-ref>.supabase.co/auth/v1/callback
+   ```
 
-คัดลอกทั้งสองค่าไปใส่ที่:
-
-```text
-Supabase Dashboard → Authentication → Providers → Google → กด Enable Provider
-```
-
-*หมายเหตุ: ห้าม commit รหัส Client Secret ลงใน Repository หรือเปิดเผยใน Log เด็ดขาด*
+URL นี้เป็นปลายทางของ Google ในขั้นตอน Provider ส่วน URL `/auth/callback`
+ของแอปจะตั้งแยกใน Supabase ตามขั้นตอนที่ 5
 
 ---
 
-## ขั้นตอนที่ 6 — ตั้งค่า Redirect URLs สำหรับแอปพลิเคชันใน Supabase
+## ขั้นตอนที่ 4 — เพิ่ม Client Credentials ใน Supabase
+
+Google จะแสดง **Client ID** และ **Client Secret** ใน Supabase Dashboard
+เปิด **Authentication** → **Providers** → **Google** เปิดใช้ Provider แล้วกรอก
+ทั้งสองค่า ดู [คู่มือ Google Sign-in ของ Supabase](https://supabase.com/docs/guides/auth/social-login/auth-google)
+
+ห้ามใส่ Google Client Secret ในตัวแปร Frontend, ไฟล์ Repository หรือ public log
+
+---
+
+## ขั้นตอนที่ 5 — ตั้งค่า Redirect URLs ของแอป
 
 ใน Supabase Dashboard → **Authentication** → **URL Configuration**:
 
-เพิ่ม URL Callback สำหรับ Local:
+- ตั้ง **Site URL** เป็น Frontend Origin ที่ deploy แล้วสำหรับ Production เช่น
+  `https://your-domain.vercel.app`
+- เพิ่ม callback สำหรับพัฒนาในเครื่องใน **Redirect URLs**:
+  `http://localhost:3000/auth/callback`
+- เพิ่ม callback สำหรับ Production ใน **Redirect URLs**:
+  `https://your-domain.vercel.app/auth/callback`
 
-```text
-http://localhost:3000/auth/callback
-```
-
-เพิ่ม URL Callback สำหรับ Production หลังจาก deploy บน Vercel:
-
-```text
-https://<your-vercel-domain>.vercel.app/auth/callback
-```
+ใช้โดเมนและ callback path ที่ตรงกับแอป ดูรายละเอียดใน
+[คู่มือ Redirect URLs ของ Supabase](https://supabase.com/docs/guides/auth/redirect-urls)
 
 ---
 
-## ขั้นตอนที่ 7 — การทดสอบและการตรวจสอบ (Verification)
+## ขั้นตอนที่ 6 — ทดสอบการล็อกอิน
 
-ทดสอบขั้นตอนการล็อกอินด้วย Google บน Frontend:
-
-1. สั่งรัน Frontend Server: `pnpm dev:web`
-2. เปิดเบราว์เซอร์ไปที่ `http://localhost:3000`
-3. คลิกปุ่ม **Sign in with Google**
-4. ตรวจสอบว่าหน้าต่างยืนยันตัวตนของ Google แสดงผลถูกต้อง และสามารถเปลี่ยนหน้าไปยัง `/dashboard` ได้อย่างสมบูรณ์หลังล็อกอินสำเร็จ
+1. เริ่ม Frontend ด้วย `pnpm dev:web`
+2. เปิด `http://localhost:3000` แล้วเลือก **Sign in with Google**
+3. ตรวจว่า Google ส่งกลับผ่าน Supabase มาที่ `/auth/callback` และแอปเปิดหน้า Dashboard
+4. เมื่อตั้ง Production URLs แล้ว ให้ทดสอบซ้ำบน Frontend ที่ deploy แล้ว

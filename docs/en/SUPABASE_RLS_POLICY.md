@@ -2,7 +2,7 @@
 
 > **Language:** **English** · [ภาษาไทย](../th/SUPABASE_RLS_POLICY.md)
 
-This guide explains how Row Level Security should be used in Media Loader.
+This guide describes the current Supabase Row Level Security model.
 
 Database ownership is split deliberately:
 
@@ -12,27 +12,25 @@ supabase/profile_trigger.sql → Auth profile function and trigger
 supabase/rls_policies.sql    → Row Level Security policies
 ```
 
-The schema and mixed SQL files retained under `supabase/migrations/` are
-historical bootstrap artifacts. Do not extend them for new table or column
-changes; make those changes in the Drizzle schema.
+The SQL files retained under `supabase/migrations/` are historical bootstrap
+artifacts. Do not extend them for new application table or column changes;
+make those changes in the Drizzle schema.
 
----
+## Main rule
 
-## Main Rule
+Signed-in users may read only rows that belong to their account. Policies use
+`auth.uid() = user_id` for user-owned rows or `auth.uid() = id` for profiles.
 
-All user-owned data must be protected by `user_id` or `id = auth.uid()`.
+Guest jobs have no Supabase user ID. The API scopes those jobs by
+`guest_session_id`; browser clients do not query guest jobs directly through
+Supabase.
 
-Users should only access their own:
+The current application schema has three public tables: `profiles`,
+`download_jobs`, and `policy_logs`. Analyzed formats are API response data.
+The selected format and related metadata are stored on `download_jobs`; there
+is no separate `media_formats` table.
 
-- profile
-- download jobs
-- media formats
-- policy logs
-- optional storage files if cloud mode is enabled
-
----
-
-## Tables That Require RLS
+## Tables that require RLS
 
 ```text
 profiles
@@ -40,74 +38,57 @@ download_jobs
 policy_logs
 ```
 
-RLS must be enabled on every table above.
+Enable RLS on each table.
 
----
+## Policy patterns
 
-## Policy Pattern
-
-For user-readable tables with `user_id`:
+For user-readable rows with `user_id`:
 
 ```sql
 using (auth.uid() = user_id)
 ```
 
-For `profiles` where `id` references `auth.users(id)`:
+For `profiles`, where `id` references `auth.users(id)`:
 
 ```sql
 using (auth.uid() = id)
 with check (auth.uid() = id)
 ```
 
-`download_jobs` and `policy_logs` are server-managed. Browser clients may read
-only their own rows and have no direct `INSERT`, `UPDATE`, or `DELETE` policies. FastAPI and the worker mutate these tables with the
-server-only service role after authentication and policy checks. This prevents
-direct Supabase inserts from bypassing the required queue flow.
+Browser clients may read only their own `download_jobs` and `policy_logs` rows.
+They have no direct insert, update, or delete policies for these server-managed
+tables. FastAPI and the worker perform trusted writes after policy and ownership
+checks.
 
----
+## Service-role key
 
-## Service Role Rule
+The Supabase service-role key can bypass RLS. Therefore:
 
-The Supabase service role key can bypass RLS.
+- Keep it only in trusted API or worker environments.
+- Never expose it to browser code or variables prefixed with `NEXT_PUBLIC_`.
+- Never print it in logs.
 
-Therefore:
+## Storage
 
-- It must only exist in FastAPI or Worker environments
-- It must never be exposed to the browser
-- It must never be placed in `NEXT_PUBLIC_*`
-- It must never be printed in logs
+Local temporary output is the default. FastAPI checks job ownership before
+streaming a local file.
 
----
-
-## Storage Rule
-
-Local temporary output is the default path, so normal file delivery is protected by FastAPI session validation and user-scoped job lookups.
-
-If optional cloud storage mode is enabled later, the storage bucket should be private.
-
-Recommended bucket:
-
-```text
-media-downloads
-```
-
-Recommended path pattern:
+If a future deployment enables Supabase Storage, keep the bucket private. A
+suggested object path is:
 
 ```text
 {user_id}/{job_id}/{filename}
 ```
 
-Cloud file access should use short-lived signed URLs and must not be logged. Default local file access uses authenticated FastAPI streaming instead.
+Use short-lived signed URLs for cloud files and do not log or share those URLs.
 
----
+## Review checklist
 
-## Agent Review Checklist
-
-- [ ] RLS is enabled on all user-owned tables
-- [ ] Select policies are user-scoped
-- [ ] Server-managed tables expose no browser mutation policies
-- [ ] Profile mutations remain user-scoped where needed
-- [ ] Service role key is server/worker-only
-- [ ] Optional Storage bucket is private when enabled
-- [ ] Signed URLs are not logged if optional cloud mode is enabled
-- [ ] Default local file endpoint verifies the owner before streaming
+- [ ] RLS is enabled on every user-owned table.
+- [ ] Select policies restrict rows to the signed-in owner.
+- [ ] Browser clients cannot mutate server-managed queue or policy-log rows.
+- [ ] Profile mutations remain scoped to the signed-in user.
+- [ ] Service-role keys exist only on trusted server-side services.
+- [ ] Optional Storage buckets are private.
+- [ ] Signed URLs are not logged.
+- [ ] File streaming verifies the owner or guest session before delivery.
