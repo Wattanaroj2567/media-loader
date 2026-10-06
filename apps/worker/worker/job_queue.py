@@ -32,7 +32,7 @@ def poll_queued_job() -> dict | None:
 
     try:
         # Only claim jobs explicitly routed to this runtime. This prevents a
-        # Railway worker and a local worker sharing Supabase from racing for
+        # remote worker and a local worker sharing Supabase from racing for
         # a file that only one machine can later serve.
         result = (
             supabase.table("download_jobs")

@@ -11,19 +11,9 @@ def test_relative_temp_dir_is_resolved_from_the_repository_root():
     )
 
 
-def test_worker_pool_defaults_local_and_detects_railway():
-    assert (
-        Settings(worker_pool="", railway_environment_id="").resolved_worker_pool
-        == "local"
-    )
-    assert (
-        Settings(worker_pool="", railway_environment_id="env-id").resolved_worker_pool
-        == "railway"
-    )
-    assert (
-        Settings(worker_pool="My PC", railway_environment_id="").queue_target_marker
-        == "pool:my-pc"
-    )
+def test_worker_pool_defaults_local_and_normalizes_configured_names():
+    assert Settings(worker_pool="").resolved_worker_pool == "local"
+    assert Settings(worker_pool="My PC").queue_target_marker == "pool:my-pc"
 
 
 def test_worker_resolves_managed_media_runtimes():

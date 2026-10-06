@@ -68,7 +68,6 @@ def test_worker_only_claims_jobs_routed_to_its_pool(monkeypatch):
     settings = Settings(
         worker_id="local-worker-test",
         worker_pool="local",
-        railway_environment_id="",
     )
     monkeypatch.setattr("worker.job_queue.get_supabase_client", lambda: database)
     monkeypatch.setattr("worker.job_queue.get_settings", lambda: settings)

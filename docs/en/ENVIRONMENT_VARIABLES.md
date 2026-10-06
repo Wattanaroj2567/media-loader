@@ -60,7 +60,6 @@ TEMP_DIR=tmp/media-loader
 MAX_FILE_SIZE_MB=500
 TEMP_FILE_RETENTION_MINUTES=60
 WORKER_POOL=
-RAILWAY_ENVIRONMENT_ID=
 LOG_LEVEL=info
 ```
 
@@ -71,8 +70,7 @@ LOG_LEVEL=info
 - `MEDIA_OUTPUT_MODE` defaults to `local_temp`; changing it does not enable
   cloud-file storage.
 - `WORKER_POOL` should match between the API and workers that share a queue.
-  It defaults to `local` unless `RAILWAY_ENVIRONMENT_ID` selects the Railway
-  pool.
+  It defaults to `local`.
 - `LOG_LEVEL` defaults to `info`.
 - `MEDIA_URL_ENCRYPTION_KEY` is required to create jobs. Generate one with
   `uv run --directory apps/api python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`.

@@ -59,7 +59,6 @@ TEMP_DIR=tmp/media-loader
 MAX_FILE_SIZE_MB=500
 TEMP_FILE_RETENTION_MINUTES=60
 WORKER_POOL=
-RAILWAY_ENVIRONMENT_ID=
 LOG_LEVEL=info
 ```
 
@@ -70,7 +69,7 @@ LOG_LEVEL=info
 - `MEDIA_OUTPUT_MODE` มีค่าเริ่มต้นเป็น `local_temp`; การเปลี่ยนค่านี้ไม่ได้เปิดใช้
   การจัดเก็บไฟล์บน Cloud
 - `WORKER_POOL` ต้องตรงกันระหว่าง API กับ Worker ที่ใช้คิวเดียวกัน
-  ค่าเริ่มต้นคือ `local` เว้นแต่ `RAILWAY_ENVIRONMENT_ID` จะเลือก pool ของ Railway
+  ค่าเริ่มต้นคือ `local`
 - `LOG_LEVEL` มีค่าเริ่มต้นเป็น `info`
 - `MEDIA_URL_ENCRYPTION_KEY` จำเป็นสำหรับสร้างงาน สร้าง key ด้วยคำสั่ง
   `uv run --directory apps/api python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`

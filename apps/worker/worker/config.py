@@ -30,7 +30,6 @@ class Settings(BaseSettings):
     # Worker identity
     worker_id: str = "local-worker-1"
     worker_pool: str = ""
-    railway_environment_id: str = ""
     worker_secret: str = ""
     node_path: str = ""
     deno_path: str = ""
@@ -67,9 +66,7 @@ class Settings(BaseSettings):
     def resolved_worker_pool(self) -> str:
         """Return a safe queue pool name for the current runtime."""
         configured = self.worker_pool.strip().lower()
-        candidate = configured or (
-            "railway" if self.railway_environment_id.strip() else "local"
-        )
+        candidate = configured or "local"
         normalized = re.sub(r"[^a-z0-9_-]+", "-", candidate).strip("-")
         return normalized or "local"
 
