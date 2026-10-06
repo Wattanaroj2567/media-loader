@@ -307,13 +307,27 @@ def _normalize_audio_bitrate(
     return None
 
 
+_STANDARD_HEIGHTS = (144, 240, 360, 480, 720, 1080, 1440, 2160, 4320)
+
+
 def _normalize_height(height: int) -> int:
     """Normalize non-standard video heights to standard video resolution heights."""
-    standards = [144, 240, 360, 480, 720, 1080, 1440, 2160, 4320]
-    nearest = min(standards, key=lambda x: abs(x - height))
+    nearest = min(_STANDARD_HEIGHTS, key=lambda x: abs(x - height))
     if abs(nearest - height) / nearest <= 0.10:
         return nearest
     return height
+
+
+def _quality_tier(height: int, width: int | None) -> int:
+    """Return the display tier for a frame, following YouTube's labels.
+
+    Frames wider than 16:9 (e.g. 1920x960) sit below the standard heights, so
+    their tier comes from the 16:9-equivalent height of their width.
+    """
+    if width and width * 9 > height * 16:
+        equivalent = width * 9 / 16
+        return min(_STANDARD_HEIGHTS, key=lambda x: abs(x - equivalent))
+    return _normalize_height(height)
 
 
 def _codec_label(codec: str | None) -> str | None:
@@ -421,9 +435,11 @@ def normalize_extractor_result(
                 else:
                     raw_height = 720
 
-            height = _normalize_height(raw_height) if raw_height is not None else None
             width = _as_positive_int(raw_format.get("width")) or _as_positive_int(
                 raw_info.get("width")
+            )
+            height = (
+                _quality_tier(raw_height, width) if raw_height is not None else None
             )
             fps = _as_positive_int(raw_format.get("fps"))
             bitrate = _as_positive_int(raw_format.get("tbr"))
@@ -435,7 +451,7 @@ def normalize_extractor_result(
                 format_id=format_id,
                 type="video",
                 extension=extension,
-                resolution=f"{width}x{height}" if width else f"{height}p",
+                resolution=f"{width}x{raw_height}" if width else f"{height}p",
                 quality_label=quality_label,
                 width=width,
                 height=height,

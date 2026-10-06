@@ -204,6 +204,39 @@ def test_normalize_extractor_result_preserves_nonstandard_height_when_real():
     assert video.quality_label == "2460p · 60 FPS"
 
 
+def test_normalize_extractor_result_labels_wide_frames_by_youtube_tier():
+    # A 2:1 YouTube video: heights fall below the 16:9 ladder (1920x960 is
+    # YouTube's "1080p"), and 2160x1080 lands in the same tier.
+    sizes = [
+        ("400", 2160, 1080, "av01.0.08M.08"),
+        ("137", 1920, 960, "avc1.640028"),
+        ("136", 1280, 640, "avc1.4D401F"),
+        ("135", 854, 428, "avc1.4D401F"),
+        ("134", 640, 320, "avc1.4D401E"),
+        ("133", 426, 214, "avc1.4D400D"),
+        ("160", 256, 128, "avc1.4D400C"),
+    ]
+    _, formats = normalize_extractor_result(
+        {
+            "title": "Wide source",
+            "formats": [
+                _video_format(height, format_id, width=width, vcodec=vcodec)
+                for format_id, width, height, vcodec in sizes
+            ],
+        }
+    )
+
+    videos = [item for item in formats if item.type == "video"]
+    assert [item.height for item in videos] == [1080, 720, 480, 360, 240, 144]
+    assert [item.quality_label for item in videos][:2] == [
+        "1080p · 30 FPS",
+        "720p · 30 FPS",
+    ]
+    top = videos[0]
+    assert top.format_id == "137"
+    assert top.resolution == "1920x960"
+
+
 def test_normalize_extractor_result_ignores_implausible_audio_bitrate_without_duration():
     _, formats = normalize_extractor_result(
         {
