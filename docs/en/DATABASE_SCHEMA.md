@@ -32,7 +32,7 @@ Stores each media job.
 | id | uuid | Primary key |
 | user_id | uuid | Owner (nullable for anonymous guest downloads) |
 | guest_session_id | text | Ephemeral guest session ID for progress tracking without login |
-| original_url | text | Submitted URL |
+| original_url | text | Fernet-encrypted submitted URL while needed for job processing; API and worker share `MEDIA_URL_ENCRYPTION_KEY` |
 | platform | text | direct, youtube, tiktok, etc. |
 | title | text | Media title |
 | uploader | text | Creator/uploader name returned by analysis |
@@ -59,6 +59,16 @@ Stores each media job.
 | completed_at | timestamptz | Completed timestamp |
 | download_speed | bigint | Average download speed (Bytes/sec) |
 
+New `original_url` values are encrypted before they are written. Existing
+plaintext rows must be migrated with the one-time command in
+[Environment Variables](ENVIRONMENT_VARIABLES.md). The API decrypts the URL for
+the authorized owner, and the worker decrypts it to process the job.
+
+The default output mode is `local_temp`. The database includes fields reserved
+for a future/cloud storage path, but complete Supabase Storage output and
+delivery are not implemented; setting these fields or creating a bucket does
+not enable cloud storage.
+
 ---
 
 ## `policy_logs`
@@ -69,7 +79,7 @@ Stores policy decisions for audit and debugging.
 |---|---|---|
 | id | uuid | Primary key |
 | user_id | uuid | Owner (nullable for guest downloads) |
-| url | text | Original URL |
+| url | text | Redacted source origin; path, query, fragment, and embedded credentials are removed |
 | platform | text | Detected platform |
 | decision | text | allowed, blocked, needs_confirmation |
 | reason | text | Human readable reason |

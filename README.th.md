@@ -42,7 +42,8 @@ Media Loader เป็นเว็บแอปสำหรับวิเคร�
 - **แยกหน้าที่ของแต่ละบริการ** API ตรวจสอบ URL และนโยบาย, Worker ประมวลผลสื่อ
   และเว็บแอปทำหน้าที่แสดงส่วนติดต่อผู้ใช้
 - **ปกป้องข้อมูลผู้ใช้** การทำงานของบัญชีที่เข้าสู่ระบบจะจำกัดขอบเขตตามผู้ใช้
-  โดยมี Row Level Security (RLS) ของ PostgreSQL ช่วยแยกข้อมูล
+  โดยมี Row Level Security (RLS) ของ PostgreSQL ช่วยแยกข้อมูล URL งานจะถูกเข้ารหัส
+  ในฐานข้อมูล และ request ต้นทางจะส่งผ่าน egress proxy ที่ตรวจสอบปลายทาง
 
 ## สถาปัตยกรรม
 
@@ -50,11 +51,13 @@ Media Loader เป็นเว็บแอปสำหรับวิเคร�
 | --- | --- | --- |
 | `apps/web` | เว็บแอป Next.js | Vercel |
 | `apps/api` | วิเคราะห์ URL ตรวจสอบนโยบาย และสร้างงาน | โฮสต์แยกใน container |
-| `apps/worker` | ตรวจคิวและประมวลผลสื่อด้วย yt-dlp และ FFmpeg | โฮสต์ Worker ที่เข้าถึง volume สำหรับไฟล์สื่อได้ |
+| `apps/worker` | ตรวจคิวและประมวลผลสื่อด้วย yt-dlp และ FFmpeg | โฮสต์ Worker ที่ใช้ output volume ร่วมกับ API |
+| `apps/proxy` | Public-IP egress proxy สำหรับ request ต้นทาง | เครือข่าย Backend แบบ private |
 | `supabase` | การยืนยันตัวตน, PostgreSQL และ Row Level Security | Supabase |
 
 Vercel ใช้โฮสต์เฉพาะ Frontend ส่วน API และ Worker ทำงานแยกต่างหาก โดย Worker
-ไม่ได้ทำงานภายใน Vercel Functions
+ไม่ได้ทำงานภายใน Vercel Functions ในโหมด `local_temp` ค่าเริ่มต้น API และ Worker
+ต้องใช้ output volume เดียวกัน
 
 <p align="center">
   <a href="docs/diagrams/media-loader-architecture.svg">
@@ -94,13 +97,15 @@ Copy-Item .env.example .env.local
 ```
 
 ตรวจสอบการตั้งค่าด้วย `pnpm check-env` และเก็บไฟล์สภาพแวดล้อมในเครื่องกับข้อมูลรับรอง
-ให้พ้นจาก version control
+ให้พ้นจาก version control ตั้ง `MEDIA_URL_ENCRYPTION_KEY` เป็น Fernet key
+ค่าเดียวกันให้ API และ Worker และกำหนด `MEDIA_EGRESS_PROXY` ตามคู่มือ environment
 
 ### เริ่มระบบ
 
-เริ่มเว็บแอป API และ Worker จากไดเรกทอรีหลัก:
+เริ่ม egress proxy ก่อน จากนั้นเปิดเว็บแอป API และ Worker จากไดเรกทอรีหลัก:
 
 ```bash
+docker compose up -d --build ssrf-proxy
 pnpm dev
 ```
 
@@ -125,6 +130,7 @@ pnpm dev
 
 ## เอกสาร
 
+- [คู่มือเริ่มต้นใช้งาน](docs/th/USER_SETUP_GUIDE.md)
 - [คู่มือนักพัฒนา](docs/th/DEVELOPER_GUIDE.md)
 - [สถาปัตยกรรมระบบ](docs/th/ARCHITECTURE.md)
 - [ข้อกำหนด API](docs/th/API_SPEC.md)
@@ -132,6 +138,8 @@ pnpm dev
 - [นโยบายความปลอดภัยและการใช้สื่อ](docs/th/SECURITY_AND_POLICY.md)
 - [นโยบาย Row Level Security ของ Supabase](docs/th/SUPABASE_RLS_POLICY.md)
 - [ตัวแปรสภาพแวดล้อม](docs/th/ENVIRONMENT_VARIABLES.md)
+- [คู่มือตั้งค่า Google OAuth](docs/th/GOOGLE_OAUTH_SETUP.md)
+- [แนวทางจัดการข้อมูลลับ](docs/th/SECRETS_PROTOCOL.md)
 - [การติดตั้งบน Vercel](docs/th/VERCEL_SETUP.md)
 - [การตั้งค่า Cloudflare Tunnel](docs/th/CLOUDFLARE_TUNNEL_GUIDE.md)
 - [แนวทางการร่วมพัฒนา (ภาษาอังกฤษ)](CONTRIBUTING.md)

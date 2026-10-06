@@ -11,7 +11,7 @@ import re
 import time
 from typing import Any
 from urllib.parse import urlsplit
-from urllib.request import Request, urlopen
+from urllib.request import ProxyHandler, Request, build_opener
 
 import yt_dlp
 from yt_dlp.networking.impersonate import ImpersonateTarget
@@ -146,6 +146,15 @@ def _source_domain(raw_info: dict[str, Any]) -> str | None:
     return raw_info.get("webpage_url_domain") or raw_info.get("extractor")
 
 
+def urlopen(request: Request, *, timeout: int):
+    """Open a user-derived URL only through the public-IP egress proxy."""
+    proxy = get_settings().media_egress_proxy.strip()
+    if not proxy:
+        raise RuntimeError("MEDIA_EGRESS_PROXY is not configured")
+    opener = build_opener(ProxyHandler({"http": proxy, "https": proxy}))
+    return opener.open(request, timeout=timeout)
+
+
 def _instagram_embed_view_count(url: str) -> int | None:
     """Read the real public Reel view count exposed by Instagram's embed page."""
     parsed = urlsplit(url)
@@ -192,11 +201,16 @@ def _run_yt_dlp_sync(url: str) -> dict[str, Any]:
     attempts to handle transient rate-limiting from platforms like TikTok.
     """
 
+    egress_proxy = get_settings().media_egress_proxy.strip()
+    if not egress_proxy:
+        raise RuntimeError("MEDIA_EGRESS_PROXY is not configured")
+
     base_opts: dict[str, Any] = {
         "quiet": True,
         "no_warnings": True,
         "extract_flat": False,  # We need format details
         "noplaylist": True,
+        "proxy": egress_proxy,
         # Keep analysis formats aligned with the client used by the worker.
         "extractor_args": {
             "youtube": {"player_client": ["web_embedded"]},

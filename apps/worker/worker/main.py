@@ -46,6 +46,8 @@ signal.signal(signal.SIGTERM, handle_shutdown)
 
 async def worker_loop():
     """Main worker loop that polls and processes jobs."""
+    if settings.has_supabase() and not settings.media_url_encryption_key.strip():
+        raise RuntimeError("MEDIA_URL_ENCRYPTION_KEY must be configured for the worker")
     logger.info(f"Worker {settings.worker_id} starting...")
     logger.info(f"Worker pool: {settings.resolved_worker_pool}")
     js_runtime = settings.resolved_js_runtime
@@ -100,8 +102,10 @@ async def worker_loop():
                                 job_id, "FAILED", error_message="Processing failed"
                             )
 
-                except Exception as e:
-                    logger.error(f"Error processing job {job_id}: {e}")
+                except Exception as error:
+                    logger.error(
+                        "Error processing job %s: %s", job_id, type(error).__name__
+                    )
                     status = get_job_status(job_id)
                     if status not in {
                         "FAILED",
@@ -124,8 +128,8 @@ async def worker_loop():
                 # No job available, wait before next poll
                 await asyncio.sleep(settings.poll_interval_seconds)
 
-        except Exception as e:
-            logger.error(f"Error in worker loop: {e}")
+        except Exception as error:
+            logger.error("Error in worker loop: %s", type(error).__name__)
             await asyncio.sleep(settings.poll_interval_seconds)
 
     logger.info("Worker shutdown complete")
@@ -138,8 +142,8 @@ def main():
     except KeyboardInterrupt:
         logger.info("Worker interrupted by user")
         sys.exit(0)
-    except Exception as e:
-        logger.error(f"Worker crashed: {e}")
+    except Exception as error:
+        logger.error("Worker crashed: %s", type(error).__name__)
         sys.exit(1)
 
 

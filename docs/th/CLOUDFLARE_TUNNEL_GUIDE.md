@@ -1,128 +1,89 @@
-# คู่มือการติดตั้งและใช้งาน Cloudflare Tunnel
+# คู่มือ Cloudflare Tunnel
 
 > **ภาษา:** [English](../en/CLOUDFLARE_TUNNEL_GUIDE.md) · **ภาษาไทย**
 
-คู่มือนี้แนะนำการนำ **Cloudflare Tunnel** มาใช้เชื่อมต่อหลังบ้าน Docker (`media-loader-api` & `media-loader-worker`) ที่รันอยู่บนเครื่องของคุณ เข้ากับ Next.js Frontend บน **Vercel** อย่างปลอดภัยผ่าน HTTPS โดยไม่ต้องเปิดพอร์ตเราเตอร์ (No Port Forwarding), ไม่ต้องใช้ Static IP และไม่ต้องกังวลเรื่องปัญหา Mixed Content บนเบราว์เซอร์
+คู่มือนี้อธิบายการเชื่อมต่อ API และ Worker ใน Docker กับ Frontend Next.js
+ผ่าน Cloudflare Tunnel เพื่อเรียก API ผ่าน HTTPS โดยไม่ต้องเปิดพอร์ตเราเตอร์
 
----
-
-## สถาปัตยกรรม (Architecture)
+## สถาปัตยกรรม
 
 ```text
-┌────────────────────────────────────────────────────────┐
-│               Vercel (Frontend Next.js)                │
-│             https://media-loader.vercel.app            │
-└───────────────────────────┬────────────────────────────┘
-                            │ (HTTPS API Calls)
-                            ▼
-┌────────────────────────────────────────────────────────┐
-│             Cloudflare Global Edge Network             │
-│            (HTTPS / Automatic SSL / DDoS)              │
-└───────────────────────────┬────────────────────────────┘
-                            │ (Encrypted Outbound Tunnel)
-                            ▼
-┌────────────────────────────────────────────────────────┐
-│      เครื่อง Local / Home Server (Windows / Linux)      │
-│                                                        │
-│   ┌────────────────────────────────────────────────┐   │
-│   │             cloudflared daemon                 │   │
-│   └───────────────────────┬────────────────────────┘   │
-│                           │ (HTTP localhost:8000)      │
-│                           ▼                            │
-│   ┌────────────────────────────────────────────────┐   │
-│   │     Docker Compose: media-loader-api (FastAPI) │   │
-│   │     Docker Compose: media-loader-worker        │   │
-│   └───────────────────────┬────────────────────────┘   │
-│                           │                            │
-│                           ▼                            │
-│   ┌────────────────────────────────────────────────┐   │
-│   │          Supabase (Database & Auth)            │   │
-│   └────────────────────────────────────────────────┘   │
-└────────────────────────────────────────────────────────┘
+Vercel Frontend
+    ↓ คำขอ API ผ่าน HTTPS
+Public hostname ของ Cloudflare
+    ↓ encrypted outbound tunnel
+cloudflared → Docker API พอร์ต 8000
+                  ↕ shared media-output volume
+               Docker Worker
+                  ↓
+               Supabase
 ```
 
----
+API และ Worker ใช้ output volume เดียวกัน Tunnel เปิดทางเข้าเฉพาะ API
+ไม่ได้เปิด Worker container โดยตรง
 
-## ข้อดีของการใช้ Cloudflare Tunnel
+## ข้อควรรู้ก่อนนำขึ้นใช้งานจริง
 
-1. **ปลอดภัยสูงสุด (Zero Inbound Ports)**: ไม่ต้องเปิด Port Forwarding บนเราเตอร์ ไม่ต้องเปิดเผย Public IP ของบ้าน
-2. **ข้ามขีดจำกัดเครือข่าย (NAT & CGNAT)**: ทำงานได้ทันทีแม้ใช้อินเทอร์เน็ตบ้านหรือเน็ตมือถือที่อยู่หลัง CGNAT
-3. **HTTPS ฟรีตลอดชีพ**: มี SSL Certificate ที่ถูกต้องโดยอัตโนมัติ ทำให้เบราว์เซอร์ไม่บล็อก Mixed Content จาก Vercel
-4. **ไม่เสียค่าใช้จ่าย (100% Free)**: ใช้งานได้ฟรีไม่มีค่าบริการของ Cloudflare
+Quick Tunnel มีไว้ทดสอบและพัฒนา ใช้ hostname ชั่วคราว ไม่มี uptime
+guarantee รองรับคำขอพร้อมกันได้สูงสุด 200 รายการ และไม่รองรับ
+Server-Sent Events ผู้ที่มี URL สามารถเรียกบริการในเครื่องได้
+ควรใช้ named tunnel เมื่อต้องการ hostname คงที่ และห้ามถือ Quick Tunnel
+เป็น production endpoint อ่าน[ข้อจำกัด Quick Tunnel ของ Cloudflare](https://developers.cloudflare.com/tunnel/get-started/quick-tunnels/)
 
----
+Cloudflare ระบุว่า public-hostname route บนแผน Free, Pro และ Business
+ต้องใช้บริการ Cloudflare แบบชำระเงินเฉพาะทางเพื่อให้บริการวิดีโอและไฟล์ขนาดใหญ่
+Media Loader ส่งไฟล์สื่อผ่าน API จึงควรตรวจว่าเส้นทางส่งไฟล์ที่เลือกสอดคล้องกับ
+[คำแนะนำ Cloudflare Tunnel](https://developers.cloudflare.com/tunnel/concepts/routing/)
+และ[ข้อกำหนดบริการ](https://www.cloudflare.com/service-specific-terms-application-services/)
+ฉบับปัจจุบันก่อนเปิดเว็บ หากรูปแบบนี้ไม่ตรงข้อกำหนด ให้ใช้ผู้ให้บริการ backend
+หรือ file delivery ที่อนุญาตการรับส่งข้อมูลลักษณะนี้
 
-## วิธีที่ 1: Quick Tunnel (ทดสอบใช้งานทันที ไม่ต้องมีโดเมนของตัวเอง)
+Cloudflare Tunnel เปิดให้ใช้ได้ทุกแผน แต่ไม่ได้หมายความว่าเครื่องต้นทาง
+อินเทอร์เน็ต หรือการส่งไฟล์สื่อจะไม่มีค่าใช้จ่าย
 
-Quick Tunnel เป็นวิธีที่เร็วที่สุดในการสร้าง Public HTTPS URL ชั่วคราว (เช่น `https://xxxx.trycloudflare.com`) ไปยัง FastAPI พอร์ต 8000
+## ข้อดี
 
-### 1. รัน Quick Tunnel ด้วย CLI
+1. ไม่ต้องเปิดพอร์ต inbound บนเราเตอร์
+2. เครื่องต้นทางไม่จำเป็นต้องมี public static IP
+3. named tunnel ให้ hostname คงที่พร้อม HTTPS ได้
+4. tunnel เชื่อมต่อออกจากเครื่องต้นทางไปยัง Cloudflare
 
-เปิด PowerShell หรือ Terminal แล้วรันคำสั่ง:
+## วิธีที่ 1: Quick Tunnel สำหรับทดสอบชั่วคราว
+
+Quick Tunnel สร้าง HTTPS URL ชั่วคราว เช่น
+`https://random-words.trycloudflare.com` ไปยังบริการในเครื่อง
+ห้ามใช้เป็น endpoint production ของเว็บสาธารณะ
+
+เริ่ม API ในเครื่องหรือผ่าน Docker แล้วรัน:
 
 ```powershell
 cloudflared tunnel --url http://localhost:8000
 ```
 
-*(หรือรันผ่านสคริปต์ช่วย: `.\scripts\tunnel.ps1`)*
+คัดลอก URL จาก Terminal ผู้ที่มี URL นี้จะเข้าถึง API ได้ URL จะเปลี่ยน
+เมื่อหยุดแล้วเริ่ม process ใหม่
 
-### 2. นำ URL ที่ได้ไปใช้งาน
+หากทดสอบผ่าน Vercel ให้กำหนด URL ใน `NEXT_PUBLIC_FASTAPI_BASE_URL`
+ของ Vercel project แล้ว redeploy ตัวแปร public นี้ถูกรวมใน frontend build
 
-ในหน้าจอ Terminal จะแสดงข้อความประมาณ:
+## วิธีที่ 2: Named Tunnel สำหรับ hostname คงที่
 
-```text
-+--------------------------------------------------------------------------------------------+
-|  Your quick Tunnel has been created! Visit it at (it may take some time to be reachable):  |
-|  https://random-words-1234.trycloudflare.com                                               |
-+--------------------------------------------------------------------------------------------+
-```
+ใช้โดเมนที่จัดการผ่าน Cloudflare แล้วสร้าง named tunnel สำหรับ deployment ใหม่
+Cloudflare แนะนำ remotely-managed tunnel ในปัจจุบัน โปรดตรวจขั้นตอนล่าสุด
+ใน Dashboard ก่อนตั้งค่า
 
-### 3. นำ URL ไปใส่ใน Vercel
-
-1. เข้าไปที่ [Vercel Dashboard](https://vercel.com/) → เลือกโปรเจกต์ของคุณ
-2. ไปที่ **Settings** → **Environment Variables**
-3. แก้ไขหรือเพิ่มตัวแปร:
-
-   ```env
-   NEXT_PUBLIC_FASTAPI_BASE_URL=https://random-words-1234.trycloudflare.com
-   ```
-
-4. ไปที่หน้า **Deployments** แล้วกด **Redeploy**
-
-> [!NOTE]
-> URL แบบ Quick Tunnel จะเปลี่ยนใหม่ทุกครั้งที่ปิดและเปิดคำสั่งใหม่ หากต้องการ URL ถาวร แนะนำให้ใช้วิธีที่ 2 (Named Tunnel)
-
----
-
-## วิธีที่ 2: Named Tunnel (แนะนำสำหรับการใช้งานถาวรด้วย Custom Domain)
-
-วิธีนี้จะผูกกับโดเมนที่คุณเป็นเจ้าของบน Cloudflare (เช่น `api.yourdomain.com`) ทำให้ URL ไม่เปลี่ยนตลอดไป
-
-### ขั้นตอนที่ 1: เข้าสู่ระบบ Cloudflare
+ขั้นตอน CLI พื้นฐานของ locally-managed tunnel:
 
 ```powershell
 cloudflared tunnel login
-```
-
-เบราว์เซอร์จะเปิดขึ้นมา ให้เลือกโดเมนที่คุณต้องการใช้งาน
-
-### ขั้นตอนที่ 2: สร้าง Tunnel
-
-```powershell
 cloudflared tunnel create media-loader
-```
-
-คำสั่งจะแสดง **Tunnel ID** และบันทึกไฟล์ credentials (json) ลงในเครื่องของคุณ
-
-### ขั้นตอนที่ 3: ชี้ DNS มาที่ Tunnel
-
-```powershell
 cloudflared tunnel route dns media-loader api.yourdomain.com
 ```
 
-### ขั้นตอนที่ 4: สร้างไฟล์คอนฟิก (`config.yml`)
+คำสั่งจะสร้างไฟล์ credentials ไว้ในเครื่อง เก็บไฟล์นี้เป็นข้อมูลลับ
+และห้าม commit ลง repository
 
-สร้างไฟล์คอนฟิกไว้ที่โฟลเดอร์ `~/.cloudflared/config.yml` (บน Windows: `%USERPROFILE%\.cloudflared\config.yml`):
+ตัวอย่าง config ของ locally-managed tunnel ที่ชี้ hostname ไปยัง API:
 
 ```yaml
 tunnel: <TUNNEL_ID>
@@ -134,94 +95,70 @@ ingress:
   - service: http_status:404
 ```
 
-### ขั้นตอนที่ 5: สั่งรัน Tunnel
+เริ่ม tunnel ด้วยคำสั่ง:
 
 ```powershell
 cloudflared tunnel run media-loader
 ```
 
-*(หรือติดตั้งเป็น Windows Service ให้รันอัตโนมัติเมื่อเปิดเครื่อง:)*
+สำหรับ remotely-managed tunnel ให้ทำตามขั้นตอนปัจจุบันใน Cloudflare Dashboard
+ห้ามส่ง token ลงในแชต ใส่ใน source code หรือบันทึกใน log
+
+## วิธีที่ 3: Docker Compose
+
+บริการ tunnel ใน Compose ตั้งค่าเป็น Quick Tunnel ชั่วคราว เริ่มเฉพาะตอนทดสอบ:
 
 ```powershell
-cloudflared service install
-Start-Service cloudflared
+docker compose --profile tunnel up -d tunnel
+docker compose logs tunnel
 ```
 
----
+คัดลอก HTTPS URL ที่ได้ไปกำหนดเป็น `NEXT_PUBLIC_FASTAPI_BASE_URL` ใน
+Vercel หลังเปลี่ยนค่านี้ต้อง redeploy Frontend
 
-## วิธีที่ 3: รัน Cloudflare Tunnel ผ่าน Docker Compose
+### ใช้ remotely-managed tunnel ผ่าน Compose
 
-คอนเทนเนอร์ `tunnel` ใน [docker-compose.yml](../../docker-compose.yml) ถูกตั้งค่าเริ่มต้นให้รันเป็น **Quick Tunnel (ฟรี ทันที ไม่ต้องมีบัญชีหรือ Token)**:
+บริการ tunnel อ่าน `.env.local` ผ่านการตั้งค่า Compose `env_file`
+เมื่อต้องการใช้ remotely-managed tunnel:
 
-### แบบที่ 1: Quick Tunnel (ฟรี ไม่ต้องมีบัญชี)
+1. ใส่ tunnel token ใน `TUNNEL_TOKEN` ของไฟล์ `.env.local` ในเครื่อง
+   ห้าม commit ไฟล์นี้
+2. ใน `docker-compose.yml` เปลี่ยน command ของ tunnel จาก
+   `tunnel --no-autoupdate --url http://api:8000` เป็น
+   `tunnel --no-autoupdate run` container จะอ่านค่า `TUNNEL_TOKEN`
+   จาก environment
+3. เริ่มบริการ:
 
-1. สั่งรัน Tunnel คอนเทนเนอร์:
+```powershell
+docker compose --profile tunnel up -d tunnel
+```
 
-   ```powershell
-   docker compose --profile tunnel up -d tunnel
-   ```
+ใน Compose ปัจจุบันไม่มีบรรทัด token ที่ comment ไว้ให้เปิดใช้
+เก็บ token ไว้ใน environment file ในเครื่องเท่านั้น
 
-2. ดู URL ที่ Cloudflare สร้างให้:
+## ตั้งค่า CORS
 
-   ```powershell
-   docker compose logs tunnel
-   ```
-
-   จะเห็นบรรทัด URL เช่น:
-
-   ```text
-   +--------------------------------------------------------------------------------------------+
-   |  Your quick Tunnel has been created! Visit it at (it may take some time to be reachable):  |
-   |  https://xxxxxxxx.trycloudflare.com                                                        |
-   +--------------------------------------------------------------------------------------------+
-   ```
-
-   นำ URL นั้นไปใส่ใน Vercel `NEXT_PUBLIC_FASTAPI_BASE_URL`
-
-### แบบที่ 2: Named Tunnel (เมื่อมี Cloudflare Zero Trust Token)
-
-หากคุณสร้าง Named Tunnel บน Cloudflare Dashboard ไว้แล้ว:
-
-1. นำ Token มาใส่ใน `.env.local`:
-
-   ```env
-   CLOUDFLARE_TUNNEL_TOKEN=eyJhIjoi...
-   ```
-
-2. แก้ไขใน `docker-compose.yml` ใต้ service `tunnel`:
-   - สลับ comment มาใช้ `command: tunnel --no-autoupdate run` และเปิด environment `TUNNEL_TOKEN`
-3. สั่งรัน:
-
-   ```powershell
-   docker compose --profile tunnel up -d tunnel
-   ```
-
----
-
-## การตั้งค่า CORS ใน `.env.local`
-
-เมื่อเปิดใช้งานผ่านโดเมน Tunnel อย่าลืมตรวจสอบว่าใน `.env.local` มีโดเมนของ Vercel อยู่ใน `CORS_ORIGINS`:
+เพิ่ม Vercel origin ที่ใช้งานจริงลงใน `CORS_ORIGINS` ของ environment
+ที่ API ใช้ เปลี่ยนโดเมนตัวอย่างให้เป็นโดเมน Frontend ที่ deploy แล้ว:
 
 ```env
 CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000,https://media-loader.vercel.app
 ```
 
-*(หากแก้ไข `.env.local` ให้สั่งรีสตาร์ต API คอนเทนเนอร์ด้วย `docker compose restart api`)*
+หลังแก้ CORS ให้ restart API:
 
----
+```powershell
+docker compose restart api
+```
 
-## การตรวจสอบการทำงาน (Verification)
+## ตรวจสอบการทำงาน
 
-1. ทดสอบยิง Healthcheck ผ่าน Tunnel:
+ตรวจ health endpoint ของ API ผ่าน tunnel:
 
-   ```powershell
-   curl https://<YOUR_TUNNEL_DOMAIN>/health
-   ```
+```powershell
+curl https://<YOUR_TUNNEL_HOST>/health
+```
 
-   ต้องได้รับคำตอบกลับมา:
-
-   ```json
-   {"ok":true,"data":{"status":"healthy",...}}
-   ```
-
-2. เปิดหน้าเว็บ `https://media-loader.vercel.app/history` ข้อความแจ้งเตือนสีแดง "เชื่อมต่อระบบไม่ได้" จะหายไป และสามารถดึงข้อมูลคิวงานและประวัติการดาวน์โหลดได้ทันที
+บริการที่พร้อมทำงานจะตอบ envelope ซึ่งมี `"status":"healthy"` จากนั้น
+ล็อกอินเว็บที่ deploy แล้ว ทดสอบงานที่ได้รับอนุญาต และตรวจการรับไฟล์
+ห้ามใช้สื่อจริงของผู้อื่นเป็นข้อมูลทดสอบหากไม่ได้รับอนุญาต

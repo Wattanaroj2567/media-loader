@@ -50,11 +50,11 @@ def test_check_url_ssrf():
 
     res = check_url("http://localhost:3000")
     assert res.decision == "blocked"
-    assert (
-        "private network" in res.reason
-        or "could not be resolved" in res.reason
-        or "private network address" in res.reason
-    )
+    assert "standard HTTP/HTTPS ports" in res.reason
+
+    res = check_url("http://localhost/")
+    assert res.decision == "blocked"
+    assert "Internal or invalid hostnames" in res.reason
 
 
 def test_check_url_keywords():

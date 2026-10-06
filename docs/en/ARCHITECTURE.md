@@ -4,24 +4,29 @@
 
 ## Overview
 
-Media Loader uses a split architecture so each layer does the right job.
+Media Loader separates the web app, API, worker, and checked egress proxy so
+each service has a clear responsibility.
 
 ```text
 apps/web      → Next.js frontend on Vercel
-apps/api      → FastAPI service for policy, analysis, and job creation
-apps/worker   → Python worker for heavy media processing
-supabase      → Auth, PostgreSQL, Storage, RLS
+apps/api      → FastAPI URL policy, analysis, job, and file API
+apps/worker   → Python worker for queued media processing
+apps/proxy    → Public-IP egress proxy for user-derived requests
+supabase      → Auth and PostgreSQL tables protected by RLS
 ```
 
-Full architecture diagrams available at [docs/diagrams/media-loader-architecture.html](../diagrams/media-loader-architecture.html) (or [Dark Mode](../diagrams/media-loader-architecture-dark.html)).
+The API and worker use the same local media-output volume in the default
+`local_temp` mode. In Docker Compose, both containers mount the named
+`media-output` volume. A worker on a different host must not claim jobs whose
+files it cannot share with the API.
 
----
+See the [architecture diagram](../diagrams/media-loader-architecture.html) or
+[dark-mode diagram](../diagrams/media-loader-architecture-dark.html).
 
-## Runtime Modes
+## Runtime modes
 
-Local development runs all three services directly from the repository with
-`pnpm dev`. This provides Next.js and FastAPI reload behavior without rebuilding
-container images after source edits.
+During local development, `pnpm dev` starts all three services from the
+repository. Next.js and FastAPI reload after source changes.
 
 ```text
 Next.js local dev → localhost:3000
@@ -29,40 +34,37 @@ FastAPI local dev → localhost:8000
 Worker local dev  → polls and processes queued jobs
 ```
 
-Docker packages the API and worker only for production-like integration checks
-and deployment to a separate container host. Those containers use immutable
-source, run as a non-root user, and share a named media-output volume. Vercel
-hosts only the Next.js app and calls the containerized API over HTTPS.
-Compose runs a network-isolated, one-shot volume initializer before the API;
-it repairs the media output directory ownership to UID/GID `10001` so an older
-named volume remains writable after an image rebuild. The API and worker still
-run as the non-root `media-loader` user.
+Docker Compose runs the API, worker, and egress proxy for production-like
+integration or deployment on a container host. The API and worker run as the
+non-root `media-loader` user, share a named media-output volume, and have no
+direct internet route. User-derived requests go through the proxy, which checks
+all DNS answers and connects to a validated public IP. Compose also runs a
+one-shot, network-isolated output initializer before the API so the directory
+is owned by UID/GID `10001`. Vercel hosts only the Next.js app and calls the API
+over HTTPS.
 
 ```text
 apps/web on Vercel       → HTTPS → containerized FastAPI
-containerized worker     → polls Supabase and writes shared media output
-containerized FastAPI    → serves authorized output from the shared volume
+containerized API        → checked egress proxy → public source hosts
+containerized worker     → checked egress proxy → public source hosts
+containerized worker     → polls Supabase and writes to shared media output
+containerized FastAPI    → serves authorized files from the same volume
 ```
 
----
+## Why split the worker?
 
-## Why Split the Worker?
-
-Media processing can be slow and resource-heavy.
-
+Media processing can take time and use substantial CPU, memory, and disk space.
 The worker handles:
 
-- yt-dlp calls
-- FFmpeg processing
-- Temporary files
-- Serving or preparing local temporary outputs for download
-- Progress updates
+- yt-dlp extraction and media processing
+- FFmpeg conversion and merging
+- Temporary output files
+- Job progress and status updates
+- Retention cleanup for expired local outputs
 
-This avoids putting heavy tasks inside Vercel Functions or Supabase Edge Functions.
+This keeps heavy processing out of Vercel Functions and Supabase Edge Functions.
 
----
-
-## Request Flow
+## Request flow
 
 ### Login
 
@@ -70,168 +72,146 @@ This avoids putting heavy tasks inside Vercel Functions or Supabase Edge Functio
 User → Next.js → Supabase Auth → Dashboard
 ```
 
+Signed-in API requests use the current Supabase access token.
+
 ### Analyze URL
 
 ```text
 User submits URL
   ↓
-Next.js calls FastAPI `/media/analyze`
+Next.js calls FastAPI /media/analyze
   ↓
-FastAPI validates URL
+FastAPI validates URL, resolves both IP families, and applies policy
   ↓
-FastAPI runs policy check
+FastAPI fetches source metadata through the checked egress proxy
   ↓
-FastAPI extracts safe metadata when allowed
+FastAPI extracts source metadata and available formats when allowed
   ↓
-FastAPI returns metadata and format options
+FastAPI returns the analysis result
 ```
 
-The frontend must send the current Supabase access token. FastAPI verifies it and scopes analysis logs, queue actions, file access, and account deletion to that user.
+Analysis is available to guests and signed-in users. Policy decisions are
+associated with the signed-in user when a valid session is present.
 
-### Create Job
+### Create job
 
 ```text
-User selects format
+User chooses an available format and confirms rights
   ↓
-Next.js calls FastAPI `/downloads`
+Next.js calls FastAPI /downloads
   ↓
-FastAPI validates selection
+FastAPI revalidates URL, policy, analysis, format, and rights confirmation
   ↓
-FastAPI inserts row in `download_jobs`
+FastAPI encrypts the source URL and creates a QUEUED row with the target worker pool
   ↓
-FastAPI marks the target worker pool (`pool:local` or `pool:cloud`)
-  ↓
-Only a worker in that pool picks the queued job
+A worker in that pool claims the job
 ```
 
-Once FastAPI accepts the job, the web app clears the analyzer and keeps the URL input
-ready for the next link. Queue polling and worker processing continue in the background;
-the existing delivery flow starts the browser download when the file is ready.
+Signed-in jobs are scoped to the user's ID. Guest jobs use
+`X-Guest-Session-ID`. In local-temp mode, queue affinity prevents a worker from
+claiming a job when it cannot share its filesystem with the API.
 
-Queue affinity is required in local-temp mode because different workers
-can share Supabase but cannot read each other's filesystems.
-
-### Process Job
+### Process job
 
 ```text
-Worker locks job
+Worker claims job
   ↓
-Worker downloads allowed media
+Worker decrypts the source URL and processes allowed media through the egress proxy
   ↓
-Worker converts/merges MP4, MP3, or GIF output with FFmpeg
+Worker writes output to the shared local temp volume by default
   ↓
-Worker writes output to local temp storage by default
-  ↓
-Worker updates job status to COMPLETED
+Worker updates job status and progress
 ```
 
-### Download File
+### Deliver file
 
-```text
-User clicks download
-  ↓
-Desktop opens the same-origin `/api/files/download/{job_id}` route
-  ↓
-Next.js authenticates from the session cookie and streams FastAPI's response
-  ↓
-Chrome saves automatically or shows Save As according to its own settings
-  ↓
-FastAPI deletes the temp file and clears the file path; history metadata remains
-```
+For signed-in users, the desktop download route authenticates with the
+Next.js session cookie and streams the FastAPI response. Guest flows can request
+a short-lived download token and use it to stream their own completed file.
 
-On iOS and Android, completed jobs show a mobile-only choice. Native sharing
-uses a fetched `File` object so the OS share sheet can offer Photos/Files;
-regular download uses the same streaming route as desktop. A pending delivery
-owns its completion notification, preventing overlapping polls from showing
-duplicate toasts.
+A successful download does not immediately delete the output. The worker's
+retention cleanup removes expired files after the configured period, which
+defaults to 60 minutes. The owner can also delete an output explicitly. Job
+history metadata remains after the file is removed.
 
----
+On supported mobile devices, the app can fetch a completed file for the native
+share sheet. The same-origin download route remains available to signed-in
+users.
 
-## Core Components
+## Core components
 
-### Next.js Web
+### Next.js web app
 
-Responsibilities:
-
-- Auth UI
-- Dashboard UI
-- URL form
-- Format selection
-- Job status display
-- History page
-- Settings page
+- Authentication and dashboard UI
+- URL analysis and format selection
+- Queue, history, and settings pages
+- Authenticated same-origin file streaming for signed-in users
 
 ### FastAPI
 
-Responsibilities:
-
-- Validate user session where needed
-- Validate URLs
-- Run policy decision
-- Normalize metadata
-- Create download jobs
-- Stream completed local temp files to the signed-in owner
-- Delete account data and local temporary outputs
+- URL validation and policy decisions
+- Metadata analysis and available format responses
+- User- or guest-scoped job creation and actions
+- Owner-checked streaming and cleanup of local files
+- Account deletion
+- Encrypts source URLs before storing jobs and uses the checked egress proxy
 
 ### Worker
 
-Responsibilities:
+- Claims jobs for its configured worker pool
+- Processes media and updates progress
+- Writes output to shared local temp storage by default
+- Removes expired temporary outputs
+- Decrypts queued source URLs and routes source requests through the proxy
 
-- Poll queued jobs
-- Process one job safely
-- Update progress
-- Save output file to local temp storage by default
-- Clean temporary files
+### SSRF proxy
+
+- Resolves each destination and rejects any non-public DNS answer
+- Connects to the numeric address that was checked, preventing DNS rebinding
+- Carries HTTP redirects and HTTPS CONNECT traffic through the same validation
 
 ### Supabase
 
-Responsibilities:
+- Authentication and user profiles
+- Job records and policy logs
+- RLS policies for user-owned records
 
-- Auth
-- User profile
-- Job records
-- Policy logs
-- Media format records
-- Optional Storage bucket for future/cloud mode
-- RLS policies
+Analyzed format choices are returned by the API. The selected format and
+related job metadata are stored on `download_jobs`; there is no separate
+`media_formats` table in the current schema.
 
----
+## Data ownership
 
-## Data Ownership
+Signed-in job rows are scoped to `user_id`. Guest jobs have a nullable
+`user_id` and are scoped by `guest_session_id` through the API. Browser clients
+cannot mutate server-managed queue or policy-log rows directly; FastAPI and the
+worker perform trusted writes.
 
-Every user-owned row must include `user_id`.
+RLS protects user-owned Supabase rows. The service-role key can bypass RLS and
+must remain in trusted server-side API/worker environments.
 
-RLS lets users read only their own server-managed records. Queue, format, and
-policy-log mutations are intentionally denied to browser clients so they cannot
-bypass FastAPI policy checks; trusted API/worker services perform those writes.
-
-The service role key may bypass RLS but must only exist in trusted server-side contexts.
-
----
-
-## Status Lifecycle
+## Job status lifecycle
 
 ```text
 PENDING → ANALYZING → READY → QUEUED → DOWNLOADING → CONVERTING → UPLOADING → COMPLETED
+PAUSABLE: PENDING / READY / QUEUED / DOWNLOADING / CONVERTING → PAUSED → QUEUED
+CANCELLABLE: PENDING / ANALYZING / READY / QUEUED / DOWNLOADING / CONVERTING / UPLOADING / PAUSED → CANCELLED
+ANY STATUS → FAILED
+ANY STATUS → BLOCKED
 ```
 
-Failure paths:
+The API allows pause only for the listed pausable states. A paused job resumes
+to `QUEUED` and is picked up by a worker in its target pool.
 
-```text
-ANY_STATUS → FAILED
-ANY_STATUS → BLOCKED
-QUEUED/DOWNLOADING/CONVERTING → CANCELLED
-```
+## Important constraints
 
----
-
-## Important Constraints
-
-- Frontend must not perform media processing
-- Frontend must not contain service role key
-- Worker must not run inside browser
-- URLs must be validated before network access
-- Policy decision must be stored for auditability
-- Completed files are local temporary files by default and must be owner-scoped
-- Permanent cloud media storage must not be the Free tier default
-- Local Docker backend must handle media processing and temporary files
+- Validate every URL before network access and apply policy before analysis.
+- Send every user-derived network request through the egress proxy; block direct
+  egress from API and worker deployments.
+- Set the same protected `MEDIA_URL_ENCRYPTION_KEY` on API and worker.
+- Require rights confirmation when creating a job.
+- Keep media processing in the worker, outside Vercel Functions.
+- Keep the API and worker on the same shared output volume in local-temp mode.
+- Scope every job and file operation to its signed-in owner or guest session.
+- Do not expose service-role keys to browser code.
+- Keep output in `local_temp`; complete cloud object storage and delivery are not implemented.

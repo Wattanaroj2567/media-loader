@@ -15,7 +15,8 @@ media-loader/
 ├── apps/
 │   ├── web/                 # Next.js 16 Frontend (App Router, Tailwind, Drizzle)
 │   ├── api/                 # FastAPI Backend Service (URL analysis & Policy engine)
-│   └── worker/              # Python Media Worker (Queue listener, yt-dlp, FFmpeg)
+│   ├── worker/              # Python Media Worker (Queue listener, yt-dlp, FFmpeg)
+│   └── proxy/               # Public-IP egress proxy for user-derived requests
 ├── apps/web/lib/db/
 │   └── schema.ts            # Source of truth for application tables and columns
 ├── supabase/
@@ -33,20 +34,26 @@ sequenceDiagram
     actor User
     participant Web as Web App (Next.js)
     participant API as FastAPI Backend
+    participant Proxy as SSRF Egress Proxy
     participant DB as Supabase DB (Postgres)
     participant Worker as Media Worker (Python)
     participant Storage as Supabase Storage / Local Temp
 
     User->>Web: Paste Media URL
     Web->>API: POST /media/analyze (URL)
-    API->>API: Run SSRF & Policy Checks
+    API->>API: Validate URL and run policy checks
+    API->>Proxy: Fetch metadata through checked egress
+    Proxy->>Proxy: Resolve, reject non-public answers, and pin IP
+    Proxy-->>API: Return source response
     API-->>Web: Return Media Formats & Metadata
     User->>Web: Select Format, confirm rights, and queue
     Web->>API: POST /downloads
     API->>API: Revalidate URL, policy, analysis, and format
-    API->>DB: Insert Job (Status: QUEUED, target worker pool)
+    API->>DB: Encrypt source URL and insert QUEUED job
     Worker->>DB: Claim a QUEUED Job from its pool
-    Worker->>Worker: Download & Process via yt-dlp / FFmpeg
+    Worker->>Proxy: Download through checked egress
+    Proxy->>Proxy: Validate and pin each destination
+    Worker->>Worker: Process via yt-dlp / FFmpeg
     Worker->>Storage: Store Output in Local Temp / Optional Storage
     Worker->>DB: Update Job (Status: COMPLETED)
     Web->>API: Request authenticated file delivery
@@ -74,6 +81,16 @@ pnpm check-env
 ```
 
 ### Running Local Development Servers
+
+Start the egress proxy before using `pnpm dev` or running the API/worker locally:
+
+```bash
+docker compose up -d --build ssrf-proxy
+```
+
+Set `MEDIA_URL_ENCRYPTION_KEY` to the same Fernet key in the API and worker
+environment. See [Environment Variables](ENVIRONMENT_VARIABLES.md) for key
+generation, proxy configuration, and migration of existing URL rows.
 
 ```bash
 # Default: Web, FastAPI with reload, and Worker in one terminal
@@ -167,9 +184,10 @@ Jobs in Media Loader follow a strict state transition flow:
 ```text
 PENDING ──> ANALYZING ──> READY ──> QUEUED ──> DOWNLOADING ──> CONVERTING ──> UPLOADING ──> COMPLETED
 
+PENDING / READY / QUEUED / DOWNLOADING / CONVERTING ──> PAUSED ──> QUEUED (resume)
 ANY STATUS ──> FAILED
 ANY STATUS ──> BLOCKED
-QUEUED / DOWNLOADING / CONVERTING ──> CANCELLED
+PENDING / ANALYZING / READY / QUEUED / DOWNLOADING / CONVERTING / UPLOADING / PAUSED ──> CANCELLED
 ```
 
 ---

@@ -13,7 +13,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Callable, Optional
 from urllib.parse import urlsplit
-from urllib.request import Request, urlopen
+from urllib.request import ProxyHandler, Request, build_opener
 
 import yt_dlp
 from yt_dlp.networking.impersonate import ImpersonateTarget
@@ -25,6 +25,7 @@ from worker.job_queue import (
     update_job_progress,
     update_job_status,
 )
+from worker.url_storage import UrlStorageError, decrypt_url, safe_url_reference
 
 logger = logging.getLogger("media_loader_worker.processor")
 
@@ -42,6 +43,15 @@ class JobCancelled(Exception):
 
 class MediaDownloadError(Exception):
     """Safe source-download error that can be persisted with the job."""
+
+
+def urlopen(request: Request, *, timeout: int):
+    """Open a user-derived URL only through the public-IP egress proxy."""
+    proxy = settings.media_egress_proxy.strip()
+    if not proxy:
+        raise RuntimeError("MEDIA_EGRESS_PROXY is not configured")
+    opener = build_opener(ProxyHandler({"http": proxy, "https": proxy}))
+    return opener.open(request, timeout=timeout)
 
 
 def is_terminal_status(status: str) -> bool:
@@ -278,8 +288,14 @@ async def download_media(
     Returns:
         Path to downloaded file, or None if failed
     """
+    egress_proxy = settings.media_egress_proxy.strip()
+    if not egress_proxy:
+        raise MediaDownloadError("Secure source proxy is not configured")
     logger.info(
-        f"Downloading from {url} with format {format_id} (target: {output_format})"
+        "Downloading from %s with format %s (target: %s)",
+        safe_url_reference(url),
+        format_id,
+        output_format,
     )
 
     if output_format == "gif" and is_direct_giphy_gif_url(url):
@@ -314,6 +330,7 @@ async def download_media(
         "outtmpl": str(output_path / "%(title)s.%(ext)s"),
         "restrictfilenames": True,
         "noplaylist": True,
+        "proxy": egress_proxy,
         "quiet": True,
         "no_warnings": True,
         "extract_flat": False,
@@ -334,6 +351,10 @@ async def download_media(
         "fragment_retries": 30,
         "continuedl": True,
         "ffmpeg_location": str(settings.resolved_ffmpeg_executable),
+        "external_downloader_args": {
+            "ffmpeg_i1": ["-http_proxy", egress_proxy],
+            "ffmpeg_i2": ["-http_proxy", egress_proxy],
+        },
     }
     js_runtime = settings.resolved_js_runtime
     if js_runtime:
@@ -389,11 +410,9 @@ async def download_media(
                 )
                 await asyncio.sleep(SOURCE_RETRY_DELAY_SECONDS)
                 continue
-            safe_detail = " ".join(str(error).split())[:300]
             logger.error(
-                "Download failed (%s): %s",
+                "Download failed (%s)",
                 type(error).__name__,
-                safe_detail,
             )
             raise MediaDownloadError(classify_download_error(error)) from error
 
@@ -644,13 +663,28 @@ async def process_job(job: dict) -> bool:
         True if processing succeeded, False otherwise
     """
     job_id = job.get("id")
-    url = job.get("original_url")
+    stored_url = job.get("original_url")
+    try:
+        url = decrypt_url(stored_url) if isinstance(stored_url, str) else None
+    except UrlStorageError:
+        logger.error("Job %s source URL could not be decrypted", job_id)
+        update_job_status(
+            job_id,
+            "FAILED",
+            error_message="The saved source URL could not be processed",
+        )
+        return False
     format_id = job.get("selected_format_id", "best")
     output_format = job.get("output_format", "mp4")
     selected_has_audio = bool(job.get("selected_has_audio"))
     selected_has_video = job.get("media_type") == "video"
 
-    logger.info(f"Processing job {job_id}: {url} -> {output_format}")
+    logger.info(
+        "Processing job %s from %s -> %s",
+        job_id,
+        safe_url_reference(url) if url else "unknown source",
+        output_format,
+    )
 
     temp_dir = settings.resolved_temp_dir
     job_dir = temp_dir / job_id

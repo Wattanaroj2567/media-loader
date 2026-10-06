@@ -82,6 +82,7 @@ def jobs():
     return [
         {
             "id": "job-u1-active",
+            "original_url": "https://example.com/watch/job-u1-active",
             "user_id": "user-1",
             "status": "DOWNLOADING",
             "created_at": "2026-07-05T01:00:00+00:00",
@@ -89,6 +90,7 @@ def jobs():
         },
         {
             "id": "job-u1-done",
+            "original_url": "https://example.com/watch/job-u1-done",
             "user_id": "user-1",
             "status": "COMPLETED",
             "created_at": "2026-07-05T02:00:00+00:00",
@@ -96,6 +98,7 @@ def jobs():
         },
         {
             "id": "job-u2",
+            "original_url": "https://example.com/watch/job-u2",
             "user_id": "user-2",
             "status": "COMPLETED",
             "created_at": "2026-07-05T03:00:00+00:00",
@@ -160,6 +163,7 @@ def test_cancel_job_updates_only_a_cancellable_owned_job(monkeypatch, jobs):
 
     cancelled = cancel_job("job-u1-active", user_id="user-1")
     assert cancelled["status"] == "CANCELLED"
+    assert cancelled["original_url"] == "https://example.com/[redacted]"
     assert get_job("job-u1-active", user_id="user-1")["status"] == "CANCELLED"
 
     with pytest.raises(AppError) as error:

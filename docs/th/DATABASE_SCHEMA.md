@@ -32,7 +32,7 @@ Supabase PostgreSQL เป็นฐานข้อมูลหลักของ
 | `id` | uuid | Primary key (ID งาน) |
 | `user_id` | uuid | เจ้าของคิวงาน (nullable สำหรับผู้ใช้ทั่วไปที่ไม่ได้ล็อกอิน) |
 | `guest_session_id` | text | Session ID ชั่วคราวของ Guest สำหรับติดตามความคืบหน้างานโดยไม่ต้องล็อกอิน |
-| `original_url` | text | URL ของสื่อที่ส่งเข้ามา |
+| `original_url` | text | URL ต้นทางที่เข้ารหัสด้วย Fernet ระหว่างประมวลผลงาน; API และ Worker ใช้ `MEDIA_URL_ENCRYPTION_KEY` ค่าเดียวกัน |
 | `platform` | text | แพลตฟอร์ม (direct, youtube, tiktok ฯลฯ) |
 | `title` | text | ชื่อเรื่อง/หัวข้อสื่อ |
 | `uploader` | text | ชื่อผู้สร้าง/เจ้าของช่อง |
@@ -59,6 +59,14 @@ Supabase PostgreSQL เป็นฐานข้อมูลหลักของ
 | `completed_at` | timestamptz | เวลาที่ประมวลผลเสร็จสิ้น |
 | `download_speed` | bigint | ความเร็วเฉลี่ยในการดาวน์โหลด (Bytes/sec) |
 
+`original_url` รายการใหม่จะถูกเข้ารหัสก่อนบันทึก แถว plaintext เก่าต้องย้ายด้วย
+คำสั่งครั้งเดียวใน [Environment Variables](ENVIRONMENT_VARIABLES.md) API จะถอดรหัส
+URL ให้เจ้าของงานที่มีสิทธิ์ และ Worker จะถอดรหัสเพื่อนำไปประมวลผล
+
+โหมดจัดเก็บผลลัพธ์ปัจจุบันคือ `local_temp` ฐานข้อมูลมีฟิลด์สำหรับรองรับเส้นทาง
+จัดเก็บบน Cloud ในอนาคต แต่การบันทึกและส่งไฟล์ผ่าน Supabase Storage ยังทำไม่ครบ
+การกำหนดฟิลด์เหล่านี้หรือสร้าง Bucket จึงยังไม่เปิดใช้ Cloud Storage
+
 ---
 
 ## 3. ตาราง `policy_logs`
@@ -69,7 +77,7 @@ Supabase PostgreSQL เป็นฐานข้อมูลหลักของ
 |---|---|---|
 | `id` | uuid | Primary key |
 | `user_id` | uuid | ผู้ใช้งานที่ส่งคำขอ (nullable สำหรับ guest) |
-| `url` | text | URL สื่อต้นทาง |
+| `url` | text | Source origin ที่ปกปิดแล้ว; ตัด path, query, fragment และ embedded credentials ออก |
 | `platform` | text | แพลตฟอร์มที่ตรวจพบ (direct, youtube, tiktok ฯลฯ) |
 | `decision` | text | ผลการตัดสิน (allowed, blocked, needs_confirmation) |
 | `reason` | text | เหตุผลหรือคำอธิบายผลการตรวจสอบนโยบาย |

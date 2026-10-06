@@ -42,7 +42,8 @@ URL input → Validation → Policy check → Analysis → Rights confirmation �
 - **Keep services isolated.** The API validates URLs and policy; the worker
   handles media processing; the web app presents the user interface.
 - **Protect user data.** Authenticated operations are scoped to the user, with
-  PostgreSQL Row Level Security (RLS) supporting data isolation.
+  PostgreSQL Row Level Security (RLS) supporting data isolation. Job URLs are
+  encrypted at rest, and source requests use a checked egress proxy.
 
 ## Architecture
 
@@ -50,11 +51,13 @@ URL input → Validation → Policy check → Analysis → Rights confirmation �
 | --- | --- | --- |
 | `apps/web` | Next.js web application | Vercel |
 | `apps/api` | FastAPI URL analysis, policy checks, and job creation | Separate container host |
-| `apps/worker` | Queue polling and media processing with yt-dlp and FFmpeg | Worker host with access to its media volume |
+| `apps/worker` | Queue polling and media processing with yt-dlp and FFmpeg | Worker host sharing the API's output volume |
+| `apps/proxy` | Public-IP egress proxy for source requests | Private backend network |
 | `supabase` | Authentication, PostgreSQL, and Row Level Security | Supabase |
 
 Vercel hosts the frontend only. The API and worker run separately; the worker
-does not run inside Vercel Functions.
+does not run inside Vercel Functions. In the default `local_temp` mode, the API
+and worker must share the same output volume.
 
 <p align="center">
   <a href="docs/diagrams/media-loader-architecture.svg">
@@ -94,13 +97,17 @@ Copy-Item .env.example .env.local
 ```
 
 Validate the configuration with `pnpm check-env`. Keep local environment files
-and credentials out of version control.
+and credentials out of version control. Set `MEDIA_URL_ENCRYPTION_KEY` to the
+same Fernet key for API and worker, and set `MEDIA_EGRESS_PROXY` as described in
+the environment guide.
 
 ### Run the application
 
-Start the web app, API, and worker from the repository root:
+Start the egress proxy, then the web app, API, and worker from the repository
+root:
 
 ```bash
+docker compose up -d --build ssrf-proxy
 pnpm dev
 ```
 
@@ -125,6 +132,7 @@ the [developer guide](docs/en/DEVELOPER_GUIDE.md).
 
 ## Documentation
 
+- [User setup guide](docs/en/USER_SETUP_GUIDE.md)
 - [Developer guide](docs/en/DEVELOPER_GUIDE.md)
 - [System architecture](docs/en/ARCHITECTURE.md)
 - [API specification](docs/en/API_SPEC.md)
@@ -132,6 +140,8 @@ the [developer guide](docs/en/DEVELOPER_GUIDE.md).
 - [Security and rights policy](docs/en/SECURITY_AND_POLICY.md)
 - [Supabase Row Level Security](docs/en/SUPABASE_RLS_POLICY.md)
 - [Environment variables](docs/en/ENVIRONMENT_VARIABLES.md)
+- [Google OAuth setup](docs/en/GOOGLE_OAUTH_SETUP.md)
+- [Secrets protocol](docs/en/SECRETS_PROTOCOL.md)
 - [Vercel deployment](docs/en/VERCEL_SETUP.md)
 - [Cloudflare Tunnel setup](docs/en/CLOUDFLARE_TUNNEL_GUIDE.md)
 - [Contributing](CONTRIBUTING.md)

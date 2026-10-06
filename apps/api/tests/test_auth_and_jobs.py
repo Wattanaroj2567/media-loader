@@ -1,6 +1,8 @@
 import pytest
+from cryptography.fernet import Fernet
 
 from app.auth import extract_bearer_token
+from app.config import get_settings
 from app.errors import AppError
 from app.job_service import (
     can_cancel_job,
@@ -40,6 +42,14 @@ class FakeSupabase:
         return self.download_jobs
 
 
+@pytest.fixture
+def url_encryption_key(monkeypatch):
+    monkeypatch.setenv("MEDIA_URL_ENCRYPTION_KEY", Fernet.generate_key().decode())
+    get_settings.cache_clear()
+    yield
+    get_settings.cache_clear()
+
+
 def test_extract_bearer_token_requires_a_valid_bearer_header():
     assert extract_bearer_token("Bearer abc.def.ghi") == "abc.def.ghi"
 
@@ -61,7 +71,9 @@ def test_job_transition_rules_distinguish_cancel_from_delete():
     assert can_delete_job("DOWNLOADING") is False
 
 
-def test_create_job_requires_user_and_persists_analysis_metadata(monkeypatch):
+def test_create_job_requires_user_and_persists_analysis_metadata(
+    monkeypatch, url_encryption_key
+):
     fake = FakeSupabase()
     monkeypatch.setattr("app.job_service.get_supabase_client", lambda: fake)
 
@@ -84,6 +96,9 @@ def test_create_job_requires_user_and_persists_analysis_metadata(monkeypatch):
     assert job_id
     assert fake.tables_requested == ["download_jobs"]
     assert fake.download_jobs.inserted["user_id"] == "user-123"
+    stored_url = fake.download_jobs.inserted["original_url"]
+    assert stored_url.startswith("enc:v1:")
+    assert "example.com/watch/1" not in stored_url
     assert fake.download_jobs.inserted["title"] == "A real clip"
     assert fake.download_jobs.inserted["uploader"] == "Clip Owner"
     assert fake.download_jobs.inserted["selected_quality"] == "1080p · 30 FPS"
@@ -92,7 +107,7 @@ def test_create_job_requires_user_and_persists_analysis_metadata(monkeypatch):
     assert fake.download_jobs.inserted["locked_at"] is None
 
 
-def test_create_job_supports_guest_session(monkeypatch):
+def test_create_job_supports_guest_session(monkeypatch, url_encryption_key):
     fake = FakeSupabase()
     monkeypatch.setattr("app.job_service.get_supabase_client", lambda: fake)
 

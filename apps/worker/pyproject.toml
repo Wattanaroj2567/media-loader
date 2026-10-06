@@ -12,6 +12,7 @@ dependencies = [
     "pydantic-settings>=2.0.0",
     "curl_cffi>=0.6.0,<0.16.0",
     "imageio-ffmpeg>=0.6.0",
+    "cryptography>=44.0.0",
 ]
 
 [tool.setuptools]

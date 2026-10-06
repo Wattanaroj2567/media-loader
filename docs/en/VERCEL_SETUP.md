@@ -2,174 +2,152 @@
 
 > **Language:** **English** · [ภาษาไทย](../th/VERCEL_SETUP.md)
 
-## Purpose
-
-Vercel hosts the Next.js frontend.
-
-Do not use Vercel Functions for heavy media download/conversion work.
+This guide deploys the Next.js frontend. The FastAPI API and media worker must
+run separately on infrastructure that supports the application's runtime and
+shared media-file storage.
 
 ---
 
-## Recommended Deployment
+## Deployment Layout
 
 ```text
-apps/web → Vercel (Frontend UI)
-apps/api → Separate container host (FastAPI over HTTPS)
-apps/worker → Same machine/container environment as the shared media volume
+apps/web    → Vercel (Next.js frontend)
+apps/api    → Separate HTTPS-capable container host (FastAPI)
+apps/worker → Worker host with access to the same media volume as the API
+Supabase    → Authentication and PostgreSQL
 ```
 
-Vercel does not run this project's Docker Compose stack. It builds only
-`apps/web`; deploy the API and worker containers separately, then configure the
-frontend with the public HTTPS API URL.
+Vercel does not run this repository's Docker Compose services. Do not use
+Vercel Functions for long-running media downloads, conversion, or file storage.
+The API and worker need access to the same output directory so the API can serve
+completed files produced by the worker.
 
 ---
 
-## Prerequisites
+## Before You Deploy
 
-Before deploying to Vercel, ensure you have:
+- A Vercel account connected to this Git repository.
+- A configured Supabase project and Google OAuth provider, if using Google sign-in.
+- A separately deployed API and worker with a shared media volume.
+- A public HTTPS URL for the API and the production frontend origin for API CORS.
 
-1. A Vercel account
-2. A Supabase project with Google OAuth configured
-3. Local services available through `pnpm dev` for development
-4. All environment variables set locally
-
----
-
-## Step 1: Create Vercel Project
-
-1. Go to [vercel.com](https://vercel.com) and sign in
-2. Click "Add New Project"
-3. Import your GitHub repository
-4. Configure project settings (see below)
+Do not expose backend credentials in Vercel frontend variables. See
+[Environment Variables](ENVIRONMENT_VARIABLES.md) and
+[Secrets Protocol](SECRETS_PROTOCOL.md).
 
 ---
 
-## Step 2: Configure Project Settings
+## Create the Vercel Project
 
-### Framework Preset
+1. Import the GitHub repository into Vercel.
+2. Set **Root Directory** to the repository root (leave the field at its
+   default). The root `vercel.json` and pnpm workspace configure this monorepo.
+3. Use the **Next.js** framework preset or let Vercel detect it.
+4. Do not set a custom Output Directory; let the Next.js preset handle it.
+5. Keep the build and install commands from the repository's `vercel.json`.
 
-- **Framework**: Next.js
-- **Root Directory**: Leave empty (root of repo)
-- **Build Command**: `cd apps/web && pnpm build`
-- **Output Directory**: `apps/web/.next`
+The checked-in configuration pins pnpm 12.6.0 for install and runs the root
+`build` script, which builds `apps/web`. Its `ignoreCommand` exits with status
+1 so Vercel does not skip the deployment. Vercel project-level build settings
+can be overridden by `vercel.json`; keep them aligned if you change either.
 
-### Environment Variables
+Do not set Root Directory to `apps/web`: that would exclude the root workspace
+configuration and the deployment configuration used by this project.
 
-Add these in Vercel Project Settings → Environment Variables:
+---
+
+## Configure Vercel Environment Variables
+
+Add these public values under Vercel Project Settings → Environment Variables:
 
 ```env
-NEXT_PUBLIC_SUPABASE_URL=your-supabase-project-url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
-NEXT_PUBLIC_FASTAPI_BASE_URL=http://localhost:8000
+NEXT_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-public-anon-key
+NEXT_PUBLIC_FASTAPI_BASE_URL=https://api.example.com
 ```
 
-**Important**: Do not add `SUPABASE_SERVICE_ROLE_KEY` to Vercel. This should only be used in the backend Docker containers.
+Replace the examples with values from your own services. For Production,
+`NEXT_PUBLIC_FASTAPI_BASE_URL` must be the publicly reachable HTTPS API URL; a
+`localhost` URL only works during local development. `NEXT_PUBLIC_` values are
+embedded in the frontend build, so redeploy after changing them.
+
+Never add `SUPABASE_SERVICE_ROLE_KEY`, Google OAuth Client Secret, database
+credentials, or worker credentials to the Vercel frontend project. Configure
+private credentials only on the backend host that needs them.
 
 ---
 
-## Step 3: Deploy
+## Deploy and Configure Supabase Auth
 
-1. Click "Deploy"
-2. Wait for build to complete
-3. Vercel will provide a deployment URL (e.g., `https://media-loader-xyz.vercel.app`)
-
----
-
-## Step 4: Update Supabase Auth Callback
-
-After deployment, update your Supabase Auth settings:
-
-1. Go to Supabase Dashboard → Authentication → URL Configuration
-2. Add your Vercel URL to **Site URL**:
-
-   ```text
-   https://your-vercel-domain.vercel.app
-   ```
-
-3. Add to **Redirect URLs**:
-
-   ```text
-   https://your-vercel-domain.vercel.app/auth/callback
-   ```
+1. Deploy the Vercel project and note its production domain, such as
+   `https://media-loader.example.com`.
+2. In Supabase Dashboard → **Authentication** → **URL Configuration**, set the
+   **Site URL** to the production frontend origin.
+3. Add the production callback URL to **Redirect URLs**:
+   `https://media-loader.example.com/auth/callback`.
+4. Keep the local callback URL in **Redirect URLs** for development:
+   `http://localhost:3000/auth/callback`.
+5. In the Google Cloud OAuth client, the authorized redirect URI is the
+   Supabase callback URL shown in Supabase Auth, not the app's `/auth/callback`
+   URL. See [Google OAuth Setup](GOOGLE_OAUTH_SETUP.md).
 
 ---
 
-## Step 5: Test Production Deployment
+## Configure the Backend
 
-1. Visit your Vercel URL
-2. Test Google login
-3. Verify dashboard loads after login
-4. Check that API calls work (backend must be running locally or deployed separately)
+- Set the API's `CORS_ORIGINS` to include the exact production frontend origin.
+- Configure Supabase and worker credentials on the backend host only.
+- Set the same `MEDIA_URL_ENCRYPTION_KEY` on API and worker; keep it private and
+  back it up so queued URLs remain decryptable.
+- Deploy the updated worker before the updated API. The new worker remains
+  compatible with legacy plaintext jobs during rollout. After both services are
+  updated, run the one-time legacy URL migration.
+- Route all API/worker requests derived from submitted URLs through the SSRF
+  egress proxy. The Docker Compose setup provides this proxy and blocks direct
+  internet egress; a separate backend host must provide equivalent network
+  isolation and connection-time public-IP validation.
+- Run the legacy URL migration in [Environment Variables](ENVIRONMENT_VARIABLES.md)
+  before sharing a database that contains plaintext URLs.
+- Ensure API and worker containers mount the same persistent/shared output
+  volume and agree on `TEMP_DIR`.
+- Check the hosting provider's terms and limits for media processing, bandwidth,
+  and file delivery before using it for production traffic.
 
----
-
-## Production Backend Deployment
-
-For production, you have options for the FastAPI backend and worker:
-
-### Option 1: Personal machine or VPS
-
-- Build and run the production-style API and worker with `pnpm docker:up`
-- Set `NEXT_PUBLIC_FASTAPI_BASE_URL` to your backend URL
-- Use an HTTPS reverse proxy or a secure tunnel
-
-### Option 2: Cloudflare Tunnel (Recommended)
-
-Expose your local Docker backend securely over HTTPS without port forwarding:
-
-- See [Cloudflare Tunnel Guide](CLOUDFLARE_TUNNEL_GUIDE.md)
-- Set `NEXT_PUBLIC_FASTAPI_BASE_URL` on Vercel to your assigned tunnel domain.
-
-The deployment platform must inject runtime secrets into the API and worker
-containers. Secrets are never included in either image.
+Cloudflare Quick Tunnels are for testing and development. Cloudflare also has
+service-specific terms for serving video and large files through tunnels. Read
+the [Cloudflare Tunnel guide](CLOUDFLARE_TUNNEL_GUIDE.md) before choosing a
+production backend route.
 
 ---
 
-## vercel.json Configuration
+## Production Verification
 
-The project includes `vercel.json` for monorepo configuration:
-
-```json
-{
-  "buildCommand": "cd apps/web && pnpm build",
-  "outputDirectory": "apps/web/.next",
-  "installCommand": "pnpm install",
-  "framework": "nextjs"
-}
-```
-
----
-
-## Deployment Checklist
-
-- [ ] Vercel project created
-- [ ] Build command configured for monorepo
-- [ ] Supabase env vars added to Vercel
-- [ ] Production callback URL added in Supabase
-- [ ] Landing page loads on Vercel URL
-- [ ] Google login works in production
-- [ ] Dashboard route is protected
-- [ ] API base URL is configured (local or deployed)
-- [ ] CORS origins include production URL
+- The Vercel deployment builds and the homepage loads over HTTPS.
+- Google sign-in returns to the deployed app, if enabled.
+- API requests reach the deployed HTTPS endpoint without CORS errors.
+- The API can access completed output files from the worker's shared volume.
+- An authorized completed file can be served, and unauthenticated requests do
+  not gain access to another user's job or file.
 
 ---
 
 ## Troubleshooting
 
-### Build Fails
+### Build fails
 
-- Check that `pnpm-workspace.yaml` is correct
-- Verify all dependencies are in `apps/web/package.json`
-- Check build logs for specific errors
+- Confirm **Root Directory** is the repository root.
+- Check Vercel build logs for the pnpm install or root `build` script failure.
+- Verify the Vercel project has not overridden the repository's build settings.
 
-### Auth Fails
+### Google sign-in fails
 
-- Verify Supabase callback URL matches exactly
-- Check that Google OAuth is enabled in Supabase
-- Ensure NEXT_PUBLIC_SUPABASE_URL and ANON_KEY are correct
+- Confirm the production Site URL and callback URL in Supabase.
+- Confirm the Supabase callback URI is registered in the Google OAuth client.
+- Confirm the Google provider is enabled in Supabase Auth.
 
-### API Calls Fail
+### API calls fail
 
-- Backend must be running (local or deployed)
-- Check CORS settings in FastAPI
-- Verify NEXT_PUBLIC_FASTAPI_BASE_URL is accessible
+- Confirm `NEXT_PUBLIC_FASTAPI_BASE_URL` is the reachable HTTPS API origin and
+  redeploy after changing it.
+- Add the exact Vercel frontend origin to the API's `CORS_ORIGINS`.
+- Confirm the API and worker share the output volume and agree on `TEMP_DIR`.

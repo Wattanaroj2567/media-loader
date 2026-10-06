@@ -23,6 +23,8 @@ class Settings(BaseSettings):
     # Supabase
     supabase_url: str = ""
     supabase_service_role_key: str = ""
+    media_url_encryption_key: str = ""
+    media_egress_proxy: str = "http://127.0.0.1:3128"
 
     # CORS
     cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"

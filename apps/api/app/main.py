@@ -3,7 +3,6 @@ Main FastAPI application entry point.
 """
 
 import logging
-import re
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -21,14 +20,9 @@ logging.basicConfig(
 )
 logger = logging.getLogger("media_loader_api")
 
-ACCESS_TOKEN_QUERY_PATTERN = re.compile(
-    r"([?&](?:token|download_token)=)[^&\s]*",
-    flags=re.IGNORECASE,
-)
-
 
 class AccessTokenRedactionFilter(logging.Filter):
-    """Prevent signed download tokens from appearing in Uvicorn access logs."""
+    """Remove all query values from Uvicorn access logs."""
 
     def filter(self, record: logging.LogRecord) -> bool:
         if not isinstance(record.args, tuple) or len(record.args) < 3:
@@ -38,9 +32,10 @@ class AccessTokenRedactionFilter(logging.Filter):
         if not isinstance(request_target, str):
             return True
 
-        redacted_target = ACCESS_TOKEN_QUERY_PATTERN.sub(
-            r"\1<redacted>",
-            request_target,
+        redacted_target = (
+            f"{request_target.partition('?')[0]}?<redacted>"
+            if "?" in request_target
+            else request_target
         )
         if redacted_target != request_target:
             args = list(record.args)
@@ -83,6 +78,10 @@ async def lifespan(app: FastAPI):
         logger.warning("Supabase credentials not found. DB features will fail.")
     else:
         logger.info("Supabase client initialized.")
+        if not settings.media_url_encryption_key.strip():
+            logger.error(
+                "MEDIA_URL_ENCRYPTION_KEY is not configured; job creation is disabled."
+            )
 
     yield
 

@@ -3,7 +3,7 @@ import logging
 from app.main import AccessTokenRedactionFilter
 
 
-def test_access_log_redacts_download_token_query_value():
+def test_access_log_redacts_all_query_values():
     record = logging.LogRecord(
         name="uvicorn.access",
         level=logging.INFO,
@@ -24,5 +24,5 @@ def test_access_log_redacts_download_token_query_value():
 
     rendered = record.getMessage()
     assert "secret-value" not in rendered
-    assert "token=<redacted>" in rendered
-    assert "safe=1" in rendered
+    assert "safe=1" not in rendered
+    assert "/files/download/job-id?<redacted>" in rendered

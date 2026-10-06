@@ -1,123 +1,93 @@
-# Cloudflare Tunnel Deployment & Setup Guide
+# Cloudflare Tunnel Guide
 
 > **Language:** **English** · [ภาษาไทย](../th/CLOUDFLARE_TUNNEL_GUIDE.md)
 
-This guide covers setting up **Cloudflare Tunnel** to connect your local Docker backend (`media-loader-api` and `media-loader-worker`) to the Next.js Frontend on **Vercel** securely via HTTPS with zero port forwarding, no static IP, and full protection against browser Mixed Content blocking.
-
----
+This guide explains how to connect the local Docker API and worker to a
+Next.js frontend through Cloudflare Tunnel. The tunnel provides an HTTPS route
+to the API without router port forwarding.
 
 ## Architecture
 
 ```text
-┌────────────────────────────────────────────────────────┐
-│               Vercel (Frontend Next.js)                │
-│             https://media-loader.vercel.app            │
-└───────────────────────────┬────────────────────────────┘
-                            │ (HTTPS API Calls)
-                            ▼
-┌────────────────────────────────────────────────────────┐
-│             Cloudflare Global Edge Network             │
-│            (HTTPS / Automatic SSL / DDoS)              │
-└───────────────────────────┬────────────────────────────┘
-                            │ (Encrypted Outbound Tunnel)
-                            ▼
-┌────────────────────────────────────────────────────────┐
-│         Local Machine / Home Server (Win / Linux)      │
-│                                                        │
-│   ┌────────────────────────────────────────────────┐   │
-│   │             cloudflared daemon                 │   │
-│   └───────────────────────┬────────────────────────┘   │
-│                           │ (HTTP localhost:8000)      │
-│                           ▼                            │
-│   ┌────────────────────────────────────────────────┐   │
-│   │     Docker Compose: media-loader-api (FastAPI) │   │
-│   │     Docker Compose: media-loader-worker        │   │
-│   └───────────────────────┬────────────────────────┘   │
-│                           │                            │
-│                           ▼                            │
-│   ┌────────────────────────────────────────────────┐   │
-│   │          Supabase (Database & Auth)            │   │
-│   └────────────────────────────────────────────────┘   │
-└────────────────────────────────────────────────────────┘
+Vercel frontend
+    ↓ HTTPS API request
+Cloudflare public hostname
+    ↓ encrypted outbound tunnel
+cloudflared → Docker API on port 8000
+                 ↕ shared media-output volume
+              Docker worker
+                 ↓
+              Supabase
 ```
 
----
+The API and worker share the same local output volume. The tunnel exposes the
+API only; it does not expose the worker container directly.
 
-## Benefits of Cloudflare Tunnel
+## Before using this setup in production
 
-1. **Zero Inbound Open Ports**: No router port forwarding required. Your home public IP address is never exposed.
-2. **NAT / CGNAT Traversal**: Works out-of-the-box behind cellular hotspots and home fiber behind CGNAT.
-3. **Free Automatic SSL**: Cloudflare issues and manages trusted SSL certificates, preventing browser Mixed Content blocking.
-4. **100% Free**: No recurring server or bandwidth costs.
+Quick Tunnels are for testing and development. They use a temporary hostname,
+have no uptime guarantee, support up to 200 in-flight requests, and do not
+support Server-Sent Events. Anyone with the Quick Tunnel URL can reach the
+local service. Use a named tunnel for a stable hostname and do not treat a
+Quick Tunnel as a production deployment. See [Cloudflare Quick Tunnel
+limitations](https://developers.cloudflare.com/tunnel/get-started/quick-tunnels/).
 
----
+Cloudflare states that public-hostname routes on Free, Pro, and Business plans
+must use a specific paid Cloudflare service to serve video and other large
+files. Media Loader streams processed media through the API, so confirm that
+your intended delivery path complies with the current
+[Cloudflare Tunnel routing guidance](https://developers.cloudflare.com/tunnel/concepts/routing/)
+and [service-specific terms](https://www.cloudflare.com/service-specific-terms-application-services/)
+before publishing. If it does not fit, use a backend or file-delivery provider
+whose terms support this traffic.
 
-## Option 1: Quick Tunnel (Instant testing, no domain required)
+Cloudflare Tunnel is available on all plans, but that does not make the origin
+host, internet connection, or media delivery cost-free.
 
-Quick Tunnels provide an instant public HTTPS URL (e.g., `https://xxxx.trycloudflare.com`) pointing directly to FastAPI on port 8000.
+## Benefits
 
-### 1. Launch Quick Tunnel via CLI
+1. No inbound router ports need to be opened.
+2. The origin does not need a public static IP.
+3. A named tunnel can provide a stable hostname with HTTPS.
+4. The tunnel establishes outbound connections from the origin.
 
-Open PowerShell or Terminal:
+## Option 1: Quick Tunnel for temporary testing
+
+A Quick Tunnel creates a temporary public HTTPS URL such as
+`https://random-words.trycloudflare.com` for a local service. Do not use it as
+the production endpoint for the public application.
+
+Start the API locally or with Docker, then run:
 
 ```powershell
 cloudflared tunnel --url http://localhost:8000
 ```
 
-*(Or use the convenience script: `.\scripts\tunnel.ps1`)*
+Copy the generated URL from the terminal. Anyone who has this URL can reach
+the API. The URL changes when the process stops and starts again.
 
-### 2. Copy the Assigned URL
+To test through Vercel, set the URL as `NEXT_PUBLIC_FASTAPI_BASE_URL` in the
+Vercel project and redeploy. This public variable is included in the frontend
+build.
 
-The console output will display:
+## Option 2: Named Tunnel for a stable hostname
 
-```text
-+--------------------------------------------------------------------------------------------+
-|  Your quick Tunnel has been created! Visit it at (it may take some time to be reachable):  |
-|  https://random-words-1234.trycloudflare.com                                               |
-+--------------------------------------------------------------------------------------------+
-```
+Use a domain managed by Cloudflare and create a named tunnel. For a new
+production deployment, Cloudflare currently recommends remotely-managed
+tunnels; review its current dashboard instructions before setup.
 
-### 3. Update Vercel Environment Variables
-
-1. Go to [Vercel Dashboard](https://vercel.com/) → Select your `media-loader` project.
-2. Navigate to **Settings** → **Environment Variables**.
-3. Set or update:
-
-   ```env
-   NEXT_PUBLIC_FASTAPI_BASE_URL=https://random-words-1234.trycloudflare.com
-   ```
-
-4. Go to **Deployments** and trigger a **Redeploy**.
-
----
-
-## Option 2: Named Tunnel (Permanent custom domain)
-
-For permanent daily use, bind the tunnel to a domain you own on Cloudflare (e.g., `api.yourdomain.com`).
-
-### Step 1: Log in to Cloudflare
+For a locally-managed tunnel, the basic CLI flow is:
 
 ```powershell
 cloudflared tunnel login
-```
-
-### Step 2: Create Named Tunnel
-
-```powershell
 cloudflared tunnel create media-loader
-```
-
-This generates a **Tunnel ID** and saves credentials to `~/.cloudflared/<TUNNEL_ID>.json`.
-
-### Step 3: Route DNS to the Tunnel
-
-```powershell
 cloudflared tunnel route dns media-loader api.yourdomain.com
 ```
 
-### Step 4: Configure `config.yml`
+The command creates local tunnel credentials. Keep the credentials file private
+and do not commit it.
 
-Create `%USERPROFILE%\.cloudflared\config.yml` (Windows) or `~/.cloudflared/config.yml` (Linux/macOS):
+A locally-managed tunnel configuration can route the hostname to the API:
 
 ```yaml
 tunnel: <TUNNEL_ID>
@@ -129,93 +99,72 @@ ingress:
   - service: http_status:404
 ```
 
-### Step 5: Start the Tunnel
+Run it with:
 
 ```powershell
 cloudflared tunnel run media-loader
 ```
 
-*(To run continuously as a Windows Service:)*
+Use the Cloudflare dashboard or official setup instructions to create and run a
+remotely-managed tunnel. Never paste its token into chat, source code, or logs.
+
+## Option 3: Docker Compose
+
+The Compose service is configured as a temporary Quick Tunnel. Start it only
+for testing:
 
 ```powershell
-cloudflared service install
-Start-Service cloudflared
+docker compose --profile tunnel up -d tunnel
+docker compose logs tunnel
 ```
 
----
+Copy the generated HTTPS URL and set it as `NEXT_PUBLIC_FASTAPI_BASE_URL` in
+Vercel. Redeploy the frontend after changing this value.
 
-## Option 3: Run via Docker Compose
+### Use a remotely-managed tunnel with Compose
 
-The `tunnel` service in [docker-compose.yml](../../docker-compose.yml) is configured by default to run as a **Quick Tunnel (100% Free, no account/token needed)**:
+The tunnel service reads `.env.local` through its Compose `env_file` setting.
+For a remotely-managed tunnel:
 
-### Mode 1: Quick Tunnel (Free, Zero Account Needed)
-
-1. Start the tunnel container:
-
-   ```powershell
-   docker compose --profile tunnel up -d tunnel
-   ```
-
-2. View the generated HTTPS URL:
-
-   ```powershell
-   docker compose logs tunnel
-   ```
-
-   Look for the URL block:
-
-   ```text
-   +--------------------------------------------------------------------------------------------+
-   |  Your quick Tunnel has been created! Visit it at (it may take some time to be reachable):  |
-   |  https://xxxxxxxx.trycloudflare.com                                                        |
-   +--------------------------------------------------------------------------------------------+
-   ```
-
-   Set this URL as `NEXT_PUBLIC_FASTAPI_BASE_URL` in your Vercel Dashboard.
-
-### Mode 2: Named Tunnel (With Cloudflare Zero Trust Token)
-
-If you have a dedicated tunnel created in Cloudflare Dashboard:
-
-1. Add the token to `.env.local`:
-
-   ```env
-   CLOUDFLARE_TUNNEL_TOKEN=eyJhIjoi...
-   ```
-
-2. In `docker-compose.yml`, switch the comment under `tunnel` service to use `command: tunnel --no-autoupdate run` and uncomment `TUNNEL_TOKEN`.
+1. Put the Cloudflare tunnel token in `TUNNEL_TOKEN` in your local
+   `.env.local` file. Do not commit that file.
+2. In `docker-compose.yml`, change the tunnel command from
+   `tunnel --no-autoupdate --url http://api:8000` to
+   `tunnel --no-autoupdate run`. The container reads `TUNNEL_TOKEN` from its
+   environment.
 3. Start the service:
 
-   ```powershell
-   docker compose --profile tunnel up -d tunnel
-   ```
+```powershell
+docker compose --profile tunnel up -d tunnel
+```
 
----
+The Compose file has no commented token line to uncomment. Keep the token only
+in the local environment file.
 
-## CORS Configuration in `.env.local`
+## CORS configuration
 
-Ensure `CORS_ORIGINS` in `.env.local` includes your Vercel deployment URL:
+Add the exact Vercel origin to `CORS_ORIGINS` in the local environment used by
+the API. Replace the example domain with the deployed frontend domain:
 
 ```env
 CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000,https://media-loader.vercel.app
 ```
 
-*(After editing, restart the API container: `docker compose restart api`)*
+Restart the API after changing CORS configuration:
 
----
+```powershell
+docker compose restart api
+```
 
 ## Verification
 
-1. Verify the health check through your tunnel:
+Check the API health endpoint through the tunnel:
 
-   ```powershell
-   curl https://<YOUR_TUNNEL_DOMAIN>/health
-   ```
+```powershell
+curl https://<YOUR_TUNNEL_HOST>/health
+```
 
-   Expected response:
-
-   ```json
-   {"ok":true,"data":{"status":"healthy",...}}
-   ```
-
-2. Open `https://media-loader.vercel.app/history`. The connection error banner will disappear, and download history will load seamlessly.
+A healthy service returns an envelope containing `"status":"healthy"`. Then
+sign in to the deployed app, test an authorized job, and verify file delivery
+with media you have permission to process. Do not use real user content as a
+deployment test unless you are authorized to process it.

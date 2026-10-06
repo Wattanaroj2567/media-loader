@@ -9,6 +9,7 @@ from typing import Any
 
 from app.schemas import PolicyResult
 from app.supabase_client import get_supabase_client
+from app.url_storage import safe_url_reference
 
 logger = logging.getLogger("media_loader_api.policy_logger")
 
@@ -20,16 +21,15 @@ def log_decision(url: str, result: PolicyResult, user_id: str) -> None:
         logger.warning("Skipping policy log: Supabase client not configured.")
         return
 
-    from urllib.parse import urlparse
+    from urllib.parse import urlsplit
 
     try:
-        parsed = urlparse(url)
-        platform = parsed.hostname or "unknown"
+        platform = urlsplit(url).hostname or "unknown"
     except Exception:
         platform = "unknown"
 
     log_entry: dict[str, Any] = {
-        "url": url,
+        "url": safe_url_reference(url),
         "platform": platform,
         "decision": result.decision,
         "reason": result.reason,
@@ -38,6 +38,6 @@ def log_decision(url: str, result: PolicyResult, user_id: str) -> None:
 
     try:
         supabase.table("policy_logs").insert(log_entry).execute()
-        logger.info(f"Logged policy decision: {result.decision} for {url}")
-    except Exception as e:
-        logger.error(f"Failed to log policy decision: {e}")
+        logger.info("Logged policy decision: %s for %s", result.decision, platform)
+    except Exception as error:
+        logger.error("Failed to log policy decision: %s", type(error).__name__)

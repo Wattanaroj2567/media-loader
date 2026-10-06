@@ -14,6 +14,12 @@ from app.config import get_settings
 from app.errors import AppError
 from app.file_service import delete_local_output, local_output_exists
 from app.supabase_client import get_supabase_client
+from app.url_storage import (
+    UrlStorageError,
+    decrypt_url,
+    encrypt_url,
+    safe_url_reference,
+)
 
 logger = logging.getLogger("media_loader_api.job_service")
 
@@ -81,12 +87,20 @@ def create_job(
 
     job_id = str(uuid.uuid4())
     now = datetime.now(timezone.utc).isoformat()
+    try:
+        stored_url = encrypt_url(url)
+    except UrlStorageError as error:
+        raise AppError(
+            status_code=503,
+            code="URL_STORAGE_NOT_CONFIGURED",
+            message="Secure URL storage is not configured. Contact the application owner.",
+        ) from error
 
     job_data: dict[str, Any] = {
         "id": job_id,
         "user_id": user_id,
         "guest_session_id": guest_session_id,
-        "original_url": url,
+        "original_url": stored_url,
         "title": title,
         "platform": platform,
         "uploader": uploader,
@@ -130,6 +144,8 @@ def _normalize_job(job: dict, *, include_internal: bool = False) -> dict:
     if not job:
         return job
     job = dict(job)
+    if job.get("original_url"):
+        job["original_url"] = decrypt_url(job["original_url"])
     if "file_size" in job and job["file_size"] is not None:
         job["file_size_mb"] = round(job["file_size"] / (1024 * 1024), 2)
     if "total_bytes_estimate" in job and job["total_bytes_estimate"] is not None:
@@ -288,6 +304,7 @@ def cancel_job(
         "CANCELLED",
         user_id=user_id,
         guest_session_id=guest_session_id,
+        original_url=safe_url_reference(job["original_url"]),
         locked_by=None,
         locked_at=None,
     )

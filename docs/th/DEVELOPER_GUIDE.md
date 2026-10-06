@@ -15,7 +15,8 @@ media-loader/
 ├── apps/
 │   ├── web/                 # Next.js 16 Frontend (App Router, Tailwind, Drizzle)
 │   ├── api/                 # FastAPI Backend Service (URL analysis & Policy engine)
-│   └── worker/              # Python Media Worker (Queue listener, yt-dlp, FFmpeg)
+│   ├── worker/              # Python Media Worker (Queue listener, yt-dlp, FFmpeg)
+│   └── proxy/               # Public-IP egress proxy สำหรับ request จาก URL ผู้ใช้
 ├── apps/web/lib/db/
 │   └── schema.ts            # แหล่งข้อมูลหลักของตารางและคอลัมน์แอปพลิเคชัน
 ├── supabase/
@@ -33,20 +34,26 @@ sequenceDiagram
     actor User as ผู้ใช้งาน
     participant Web as Web App (Next.js)
     participant API as FastAPI Backend
+    participant Proxy as SSRF Egress Proxy
     participant DB as Supabase DB (Postgres)
     participant Worker as Media Worker (Python)
     participant Storage as Supabase Storage / Local Temp
 
     User->>Web: วาง URL สื่อที่ต้องการ
     Web->>API: POST /media/analyze (URL)
-    API->>API: ตรวจสอบ SSRF & Policy
+    API->>API: ตรวจ URL และ policy
+    API->>Proxy: ดึง metadata ผ่าน checked egress
+    Proxy->>Proxy: Resolve, ปฏิเสธ IP ที่ไม่ public และ pin address
+    Proxy-->>API: ส่ง source response กลับ
     API-->>Web: คืนค่ารายการฟอร์แมต & ข้อมูลเมตา
     User->>Web: เลือกฟอร์แมต ยืนยันสิทธิ์ และเข้าคิว
     Web->>API: POST /downloads
     API->>API: ตรวจ URL, Policy, Analysis และฟอร์แมตซ้ำ
-    API->>DB: บันทึก Job (Status: QUEUED พร้อม Worker Pool)
+    API->>DB: เข้ารหัส URL และสร้างงาน QUEUED
     Worker->>DB: รับงาน QUEUED จาก Pool ของตน
-    Worker->>Worker: ดาวน์โหลดและแปลงไฟล์ด้วย yt-dlp / FFmpeg
+    Worker->>Proxy: ดาวน์โหลดผ่าน checked egress
+    Proxy->>Proxy: ตรวจและ pin destination แต่ละรายการ
+    Worker->>Worker: ประมวลผลด้วย yt-dlp / FFmpeg
     Worker->>Storage: บันทึกผลลัพธ์ลง Local Temp / Optional Storage
     Worker->>DB: อัปเดตสถานะ Job (Status: COMPLETED)
     Web->>API: ขอรับไฟล์ผ่าน Endpoint ที่ตรวจสิทธิ์
@@ -74,6 +81,16 @@ pnpm check-env
 ```
 
 ### การสั่งรันบริการ Local Development
+
+ให้เปิด egress proxy ก่อนใช้ `pnpm dev` หรือรัน API/Worker ในเครื่อง:
+
+```bash
+docker compose up -d --build ssrf-proxy
+```
+
+กำหนด `MEDIA_URL_ENCRYPTION_KEY` เป็น Fernet key ค่าเดียวกันให้ API และ Worker
+ดูวิธีสร้าง key, ตั้ง proxy และย้าย URL แถวเดิมที่
+[Environment Variables](ENVIRONMENT_VARIABLES.md)
 
 ```bash
 # ค่าเริ่มต้น: เปิด Web, FastAPI แบบ reload และ Worker ใน Terminal เดียว
@@ -143,7 +160,7 @@ pnpm --filter web db:push
 
 ## 3. ดัชนีเอกสารทางเทคนิค (Documentation Index)
 
-รายละเอียดเชิงลึกของแต่ละส่วนงานสามารถอ่านเพิ่มเติมได้ในไดเรกทอรี [`docs/`](docs):
+รายละเอียดเชิงลึกของแต่ละส่วนงานสามารถอ่านเพิ่มเติมได้ในไดเรกทอรี `docs/`:
 
 | เอกสาร | วัตถุประสงค์และเนื้อหา |
 | :--- | :--- |
@@ -167,9 +184,10 @@ pnpm --filter web db:push
 ```text
 PENDING ──> ANALYZING ──> READY ──> QUEUED ──> DOWNLOADING ──> CONVERTING ──> UPLOADING ──> COMPLETED
 
+PENDING / READY / QUEUED / DOWNLOADING / CONVERTING ──> PAUSED ──> QUEUED (ทำงานต่อ)
 ทุกสถานะ ──> FAILED
 ทุกสถานะ ──> BLOCKED
-QUEUED / DOWNLOADING / CONVERTING ──> CANCELLED
+PENDING / ANALYZING / READY / QUEUED / DOWNLOADING / CONVERTING / UPLOADING / PAUSED ──> CANCELLED
 ```
 
 ---

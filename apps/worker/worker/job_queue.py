@@ -10,6 +10,7 @@ from typing import Any
 
 from worker.config import get_settings
 from worker.supabase_client import get_supabase_client
+from worker.url_storage import redact_stored_url
 
 logger = logging.getLogger("media_loader_worker.job_queue")
 
@@ -80,8 +81,8 @@ def poll_queued_job() -> dict | None:
         )
         return update_result.data[0]
 
-    except Exception as e:
-        logger.error(f"Failed to poll queued job: {e}")
+    except Exception as error:
+        logger.error("Failed to poll queued job: %s", type(error).__name__)
         return None
 
 
@@ -109,6 +110,28 @@ def update_job_status(
         "updated_at": now.isoformat(),
     }
 
+    if status in {"COMPLETED", "FAILED", "BLOCKED", "CANCELLED"}:
+        try:
+            url_result = (
+                supabase.table("download_jobs")
+                .select("original_url")
+                .eq("id", job_id)
+                .limit(1)
+                .execute()
+            )
+            stored_url = (
+                url_result.data[0].get("original_url") if url_result.data else None
+            )
+            if isinstance(stored_url, str):
+                update_data["original_url"] = redact_stored_url(stored_url)
+        except Exception as error:
+            logger.error(
+                "Could not prepare URL redaction for job %s: %s",
+                job_id,
+                type(error).__name__,
+            )
+            return False
+
     if error_message:
         update_data["error_message"] = error_message
 
@@ -133,8 +156,8 @@ def update_job_status(
             return False
         logger.info("Updated job %s to status %s", job_id, status)
         return True
-    except Exception as e:
-        logger.error(f"Failed to update job {job_id}: {e}")
+    except Exception as error:
+        logger.error("Failed to update job %s: %s", job_id, type(error).__name__)
         return False
 
 
@@ -238,6 +261,8 @@ def release_job_lock(job_id: str) -> bool:
         ).eq("id", job_id).execute()
         logger.info(f"Released lock on job {job_id}")
         return True
-    except Exception as e:
-        logger.error(f"Failed to release lock on job {job_id}: {e}")
+    except Exception as error:
+        logger.error(
+            "Failed to release lock on job %s: %s", job_id, type(error).__name__
+        )
         return False
