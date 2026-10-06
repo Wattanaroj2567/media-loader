@@ -28,7 +28,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { LoadingIndicator } from "@/components/loading-indicator";
 import { BorderBeam } from "@/components/ui/border-beam";
 import { useToast } from "@/components/toast";
-import { apiClient, type Job } from "@/lib/api-client";
+import { apiClient, canShareFiles, isIosDevice, type Job } from "@/lib/api-client";
+import { FileShareFlow, type FileShareRequest } from "@/components/file-share-flow";
 import {
   formatCalendarDate,
   formatMediaDuration,
@@ -1115,39 +1116,44 @@ export function JobList({ mode, compact = false, onQueueClosed }: JobListProps) 
     [t, toast, updateJob]
   );
 
+  const [shareRequest, setShareRequest] = useState<FileShareRequest | null>(null);
+
   const shareFile = useCallback(
     async (job: Job) => {
+      const filename = job.output_filename || job.title || "media";
+      if (canShareFiles()) {
+        // Buffer the file with progress in the save dialog, then share it.
+        setShareRequest({
+          jobId: job.id,
+          title: job.title || filename,
+          filename,
+          isIos: isIosDevice(),
+          autoStart: true,
+        });
+        return;
+      }
+      // No Web Share API on this browser — deliver via a plain download.
       setBusyState({ id: job.id, action: "share" });
       try {
-        const filename = job.output_filename || job.title || "media";
-        const result = await apiClient.shareJobFile(job.id, filename);
-        if (result === "unsupported") {
-          // No Web Share API on this browser — deliver via a plain download.
-          await apiClient.downloadJobFile(job.id, filename, null);
-        }
-        toast(
-          "success",
-          result === "shared"
-            ? t("file.sharedSuccess", {}, "แชร์ไฟล์แล้ว")
-            : t("queue.completedToastTitle", {}, "ดาวน์โหลดสำเร็จแล้ว"),
-          filename
-        );
-        // Refresh availability in case retention cleanup changed the file state.
-        await fetchJobs(true);
+        await apiClient.downloadJobFile(job.id, filename, null);
+        toast("success", t("queue.completedToastTitle", {}, "ดาวน์โหลดสำเร็จแล้ว"), filename);
       } catch (e) {
         console.warn("[Share File Error]:", e);
-        toast(
-          "error",
-          t("file.shareError", {}, "แชร์ไฟล์ไม่สำเร็จ"),
-          t("error.genericDesc")
-        );
-        await fetchJobs(true);
+        toast("error", t("history.downloadError", {}, "ดาวน์โหลดไฟล์ไม่สำเร็จ"), t("error.genericDesc"));
       } finally {
         setBusyState(null);
+        // Refresh availability in case retention cleanup changed the file state.
+        await fetchJobs(true);
       }
     },
     [fetchJobs, t, toast]
   );
+
+  const handleShareDone = useCallback(() => {
+    setShareRequest(null);
+    // Refresh availability in case retention cleanup changed the file state.
+    void fetchJobs(true);
+  }, [fetchJobs]);
 
   const downloadAgain = useCallback(
     (job: Job) => {
@@ -1403,6 +1409,8 @@ export function JobList({ mode, compact = false, onQueueClosed }: JobListProps) 
           onCancel={() => setConfirmState(null)}
         />
       )}
+
+      <FileShareFlow request={shareRequest} onDone={handleShareDone} />
     </section>
   );
 

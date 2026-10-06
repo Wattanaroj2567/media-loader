@@ -10,7 +10,11 @@ import {
 import { isActiveStatus, isTerminalStatus } from "@/lib/media-presenters";
 import { useToast } from "@/components/toast";
 import { useT } from "@/lib/i18n/context";
-import { SaveFileDialog } from "@/components/save-file-dialog";
+import {
+  FileShareFlow,
+  type FileShareOutcome,
+  type FileShareRequest,
+} from "@/components/file-share-flow";
 import {
   beginDownloadDelivery,
   finishDownloadDelivery,
@@ -24,98 +28,32 @@ export function GlobalJobNotifier() {
   const { t } = useT();
   const { jobs } = useJobPolling();
   const prevJobsRef = useRef<Record<string, string>>({}); // maps jobId -> status
-  const [choice, setChoice] = useState<{
-    jobId: string;
-    title: string;
-    filename: string;
-    isIos: boolean;
-  } | null>(null);
-  const choiceRef = useRef<{
-    jobId: string;
-    title: string;
-    filename: string;
-    isIos: boolean;
-  } | null>(null);
-  const [delivering, setDelivering] = useState(false);
-  const [deliveryAction, setDeliveryAction] = useState<"share" | "download" | null>(
-    null
+  const [choice, setChoice] = useState<FileShareRequest | null>(null);
+  const choiceRef = useRef<FileShareRequest | null>(null);
+
+  const handleChoiceDone = useCallback(
+    (outcome: FileShareOutcome) => {
+      const current = choiceRef.current;
+      choiceRef.current = null;
+      setChoice(null);
+      if (!current) return;
+      if (outcome === "shared" || outcome === "downloaded") {
+        finishDownloadDelivery(current.jobId, true);
+        return;
+      }
+      forgetPendingDownload(current.jobId);
+      if (outcome === "dismissed") {
+        // Keep the file on the server (temporary retention) — the user can
+        // still share or download it from the History page.
+        toast(
+          "info",
+          t("file.savedLaterTitle", {}, "เก็บไฟล์ไว้ให้แล้ว"),
+          t("file.savedLaterDesc", {}, "ไปที่หน้าประวัติเพื่อแชร์หรือดาวน์โหลดได้")
+        );
+      }
+    },
+    [t, toast]
   );
-
-  const closeChoice = useCallback(() => {
-    choiceRef.current = null;
-    setChoice(null);
-  }, []);
-
-  const deliverSharedFile = useCallback(async () => {
-    if (!choice) return;
-    setDeliveryAction("share");
-    setDelivering(true);
-    try {
-      const result = await apiClient.shareJobFile(choice.jobId, choice.filename);
-      finishDownloadDelivery(choice.jobId, true);
-      closeChoice();
-      toast(
-        "success",
-        result === "shared"
-          ? t("file.sharedSuccess", {}, "แชร์ไฟล์แล้ว")
-          : t("queue.completedToastTitle", {}, "ดาวน์โหลดสำเร็จแล้ว"),
-        choice.filename
-      );
-    } catch (err) {
-      console.warn("[Share File Error]:", err);
-      forgetPendingDownload(choice.jobId);
-      closeChoice();
-      toast(
-        "error",
-        t("file.shareError", {}, "แชร์ไฟล์ไม่สำเร็จ"),
-        t("error.genericDesc")
-      );
-    } finally {
-      setDelivering(false);
-      setDeliveryAction(null);
-    }
-  }, [choice, t, toast, closeChoice]);
-
-  const deliverDownloadFile = useCallback(async () => {
-    if (!choice) return;
-    setDeliveryAction("download");
-    setDelivering(true);
-    try {
-      await apiClient.downloadJobFile(choice.jobId, choice.filename, null);
-      finishDownloadDelivery(choice.jobId, true);
-      closeChoice();
-      toast(
-        "success",
-        t("queue.completedToastTitle", {}, "ดาวน์โหลดสำเร็จแล้ว"),
-        choice.filename
-      );
-    } catch (err) {
-      console.warn("[Download File Error]:", err);
-      forgetPendingDownload(choice.jobId);
-      closeChoice();
-      toast(
-        "error",
-        t("history.downloadError", {}, "ดาวน์โหลดไฟล์ไม่สำเร็จ"),
-        err instanceof Error && err.message ? err.message : t("error.genericDesc")
-      );
-    } finally {
-      setDelivering(false);
-      setDeliveryAction(null);
-    }
-  }, [choice, t, toast, closeChoice]);
-
-  const dismissChoice = useCallback(() => {
-    if (!choice || delivering) return;
-    // Keep the file on the server (temporary retention) — the user can still
-    // share or download it from the History page.
-    forgetPendingDownload(choice.jobId);
-    closeChoice();
-    toast(
-      "info",
-      t("file.savedLaterTitle", {}, "เก็บไฟล์ไว้ให้แล้ว"),
-      t("file.savedLaterDesc", {}, "ไปที่หน้าประวัติเพื่อแชร์หรือดาวน์โหลดได้")
-    );
-  }, [choice, delivering, t, toast, closeChoice]);
 
   useEffect(() => {
     let dead = false;
@@ -283,16 +221,5 @@ export function GlobalJobNotifier() {
     };
   }, [jobs, toast, t]);
 
-  return (
-    <SaveFileDialog
-      open={choice !== null}
-      title={choice?.title ?? ""}
-      busy={delivering}
-      busyAction={deliveryAction}
-      isIos={choice?.isIos ?? false}
-      onShare={() => void deliverSharedFile()}
-      onDownload={() => void deliverDownloadFile()}
-      onDismiss={dismissChoice}
-    />
-  );
+  return <FileShareFlow request={choice} onDone={handleChoiceDone} />;
 }

@@ -243,6 +243,13 @@
   "file.savedLaterDesc": "ไฟล์ถูกเก็บไว้ชั่วคราว ไปที่หน้าประวัติเพื่อแชร์หรือดาวน์โหลดได้",
   "file.sharedSuccess": "แชร์ไฟล์แล้ว",
   "file.shareError": "แชร์ไฟล์ไม่สำเร็จ",
+  "file.transferLoading": "กำลังโหลดไฟล์...",
+  "file.transferLoadingPercent": "กำลังโหลดไฟล์ {percent}%",
+  "file.transferResume": "โหลดต่อ",
+  "file.transferProgress": "ความคืบหน้าการโหลดไฟล์",
+  "file.transferHint": "กำลังโหลดไฟล์ก่อนบันทึก ถ้าสลับไปแอปอื่น ระบบจะพักไว้และโหลดต่อเมื่อกลับมา",
+  "file.transferPausedHint": "พักการโหลดไว้ระหว่างที่ออกจากหน้านี้ จะโหลดต่อจากเดิมเมื่อกลับมา",
+  "file.transferReadyHint": "ไฟล์พร้อมแล้ว แตะปุ่มด้านล่างเพื่อบันทึก",
 
   "account.title": "บัญชี",
   "account.viewProfile": "ดูโปรไฟล์",

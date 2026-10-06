@@ -1008,7 +1008,7 @@ export function MediaAnalyzer() {
                 {t("download.noFormats")}
               </p>
             ) : (
-              <div className="grid gap-2.5 grid-cols-1 sm:grid-cols-3 md:grid-cols-4">
+              <div className="grid gap-2.5 grid-cols-2 sm:grid-cols-3 md:grid-cols-4">
                 {visibleFormats.map((format, index) => (
                   <FormatCard
                     key={`${format.type}-${format.format_id}`}

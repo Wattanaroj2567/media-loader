@@ -250,16 +250,31 @@ async function mockApi(
     if (route.request().method() === "OPTIONS") {
       return route.fulfill({ status: 204, headers: CORS_HEADERS });
     }
-    return route.fulfill({
-      status: 200,
-      headers: {
-        "Content-Type": "application/octet-stream",
-        "Content-Disposition": `attachment; filename="${FILENAME}"`,
-        ...CORS_HEADERS,
-      },
-      body: Buffer.from(new Array(4096).fill(7)),
-    });
+    return route.fulfill(fileDownloadResponse());
   });
+}
+
+function fileDownloadResponse() {
+  return {
+    status: 200,
+    headers: {
+      "Content-Type": "application/octet-stream",
+      "Content-Disposition": `attachment; filename="${FILENAME}"`,
+      ...CORS_HEADERS,
+    },
+    body: Buffer.from(new Array(4096).fill(7)),
+  };
+}
+
+/** Simulate the browser tab being hidden (app switch) or shown again. */
+async function setPageHidden(page: import("@playwright/test").Page, hidden: boolean) {
+  await page.evaluate((isHidden) => {
+    Object.defineProperty(document, "visibilityState", {
+      configurable: true,
+      value: isHidden ? "hidden" : "visible",
+    });
+    document.dispatchEvent(new Event("visibilitychange"));
+  }, hidden);
 }
 
 test("dashboard has one shared jobs polling loop", async ({ page, context }) => {
@@ -656,6 +671,86 @@ test.describe("Mobile share / save flow (simulated iPhone)", () => {
     ).toBeVisible();
     // No file was consumed (nothing was shared).
     expect(await page.evaluate(() => window.__sharedPayload)).toBeNull();
+  });
+
+  test("shows progress for a slow file and saves it with a second tap", async ({
+    page,
+    context,
+  }) => {
+    await seedAuth(context);
+    await stubShare(page);
+    await mockApi(page, { jobs: () => [completedJob()] });
+    // Slower than the tap's user-activation window, like a large file on a
+    // slow home uplink.
+    await page.route("**/files/download/**", async (route) => {
+      if (route.request().method() === "OPTIONS") {
+        return route.fulfill({ status: 204, headers: CORS_HEADERS });
+      }
+      await new Promise((resolve) => setTimeout(resolve, 4000));
+      return route.fulfill(fileDownloadResponse());
+    });
+
+    await analyzeAndStartDownload(page);
+    const dialog = page.locator('[role="dialog"]');
+    await dialog.getByRole("button", { name: /แชร์|share/i }).first().click();
+
+    await expect(dialog.getByRole("progressbar")).toBeVisible();
+    await expect(dialog.getByText(/กำลังโหลดไฟล์|loading file/i).first()).toBeVisible();
+    await expect(dialog.getByText(/แตะปุ่มด้านล่างเพื่อบันทึก|tap the button below to save/i)).toBeVisible({
+      timeout: 15000,
+    });
+    // The share sheet waits for a fresh tap instead of failing on iOS.
+    expect(await page.evaluate(() => window.__sharedPayload)).toBeNull();
+
+    await dialog.getByRole("button", { name: /แชร์|share/i }).first().click();
+    await expect
+      .poll(() => page.evaluate(() => window.__sharedPayload !== null))
+      .toBe(true);
+    const payload = (await page.evaluate(() => window.__sharedPayload))!;
+    expect(payload.files[0].name).toBe(FILENAME);
+    expect(payload.files[0].size).toBe(4096);
+    await expect(page.getByText(/แชร์ไฟล์แล้ว|shared/i)).toBeVisible();
+  });
+
+  test("leaving the browser pauses the save and resumes it on return", async ({
+    page,
+    context,
+  }) => {
+    await seedAuth(context);
+    await stubShare(page);
+    await mockApi(page, { jobs: () => [completedJob()] });
+    let fileRequests = 0;
+    await page.route("**/files/download/**", async (route) => {
+      if (route.request().method() === "OPTIONS") {
+        return route.fulfill({ status: 204, headers: CORS_HEADERS });
+      }
+      fileRequests += 1;
+      if (fileRequests === 1) {
+        // The user switches apps and the suspended tab loses its transfer.
+        await setPageHidden(page, true);
+        return route.abort("failed");
+      }
+      return route.fulfill(fileDownloadResponse());
+    });
+
+    await analyzeAndStartDownload(page);
+    const dialog = page.locator('[role="dialog"]');
+    await dialog.getByRole("button", { name: /แชร์|share/i }).first().click();
+
+    await expect(dialog.getByText(/พักการโหลดไว้|paused while/i)).toBeVisible({
+      timeout: 10000,
+    });
+    await expect(page.getByText(/แชร์ไฟล์ไม่สำเร็จ|could not share/i)).toHaveCount(0);
+
+    await setPageHidden(page, false);
+
+    await expect
+      .poll(() => page.evaluate(() => window.__sharedPayload !== null), {
+        timeout: 10000,
+      })
+      .toBe(true);
+    expect(fileRequests).toBe(2);
+    await expect(page.getByText(/แชร์ไฟล์ไม่สำเร็จ|could not share/i)).toHaveCount(0);
   });
 });
 

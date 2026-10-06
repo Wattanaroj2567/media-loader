@@ -1,5 +1,6 @@
 import { getGuestSessionId } from "./guest-session.ts";
 import { getDownloadFilename, type MediaFormat } from "./media-presenters.ts";
+import { ResumableDownload, type TransferProgress } from "./resumable-download.ts";
 
 function getApiBaseUrl(): string {
   if (process.env.NEXT_PUBLIC_FASTAPI_BASE_URL) {
@@ -517,53 +518,67 @@ export class ApiClient {
   }
 
   /**
-   * Deliver a completed file through the native share sheet (Web Share API).
-   *
-   * On iOS the share sheet includes "Save Video / Save Image" which saves
-   * straight into the Photos app; on Android the user can pick Photos, Files,
-   * Drive, etc. When sharing is unavailable or dismissed we fall back to a
-   * regular browser download with the already-fetched blob instead of making a
-   * second request for the same completed file.
-   *
-   * Returns:
-   *   - "shared":      file handed to the native share sheet
-   *   - "downloaded":  share was unavailable/dismissed; file downloaded instead
-   *   - "unsupported": this browser has no Web Share API; nothing was consumed
+   * Start buffering a completed file for the native share sheet. The transfer
+   * reports progress, pauses when the tab is suspended, and resumes with a
+   * Range request (see ResumableDownload).
    */
-  async shareJobFile(
+  createFileTransfer(
     jobId: string,
-    preferredFilename: string
-  ): Promise<"shared" | "downloaded" | "unsupported"> {
-    if (!canShareFiles()) return "unsupported";
-
-    const response = await this.fileResponse(jobId);
-    const blob = await response.blob();
-    const filename = getDownloadFilename(
-      response.headers.get("Content-Disposition"),
-      preferredFilename
-    );
-    const file = new File([blob], filename, {
-      // The API always serves octet-stream, but iOS decides whether the share
-      // sheet offers "Save Video / Save Image" (into Photos) based on the
-      // MIME type, so infer a proper one from the file extension.
-      type: mimeFromFilename(filename) || blob.type || "application/octet-stream",
+    onProgress?: (progress: TransferProgress) => void
+  ): ResumableDownload {
+    return new ResumableDownload({
+      onProgress,
+      open: async (offset, signal) => {
+        const headers = await this.authorizationHeaders(false, false);
+        if (offset > 0) headers.set("Range", `bytes=${offset}-`);
+        return this.fetcher(
+          `${this.baseUrl}/files/download/${encodeURIComponent(jobId)}`,
+          { headers, signal }
+        );
+      },
     });
-
-    if (!navigator.canShare({ files: [file] })) {
-      triggerBlobDownload(blob, filename);
-      return "downloaded";
-    }
-
-    try {
-      await navigator.share({ files: [file], title: filename });
-      return "shared";
-    } catch {
-      // On any share failure (including dismissing the share sheet), deliver
-      // the blob we already hold instead of making another request.
-      triggerBlobDownload(blob, filename);
-      return "downloaded";
-    }
   }
+}
+
+/** Build the File handed to the share sheet from a finished transfer. */
+export function transferToFile(
+  transfer: ResumableDownload,
+  preferredFilename: string
+): File {
+  const filename = getDownloadFilename(transfer.contentDisposition, preferredFilename);
+  // The API always serves octet-stream, but iOS decides whether the share sheet
+  // offers "Save Video / Save Image" (into Photos) based on the MIME type, so
+  // infer a proper one from the file extension.
+  const type = mimeFromFilename(filename) || "application/octet-stream";
+  return new File([transfer.toBlob(type)], filename, { type });
+}
+
+/**
+ * Open the native share sheet for an already-buffered file. Call this directly
+ * from a tap handler: browsers (iOS Safari in particular) reject share() once
+ * the tap's user activation has expired.
+ *
+ *   - "shared":    the share sheet completed
+ *   - "cancelled": the user dismissed the share sheet
+ *   - "blocked":   the browser refused (no user activation or unsupported file)
+ */
+export async function shareBufferedFile(
+  file: File
+): Promise<"shared" | "cancelled" | "blocked"> {
+  if (!canShareFiles() || !navigator.canShare({ files: [file] })) return "blocked";
+  try {
+    await navigator.share({ files: [file], title: file.name });
+    return "shared";
+  } catch (error) {
+    return error instanceof DOMException && error.name === "AbortError"
+      ? "cancelled"
+      : "blocked";
+  }
+}
+
+/** Save an already-buffered file through a regular browser download. */
+export function saveBufferedFile(file: File) {
+  triggerBlobDownload(file, file.name);
 }
 
 export const apiClient = new ApiClient();

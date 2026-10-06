@@ -109,7 +109,9 @@ def create_app() -> FastAPI:
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
-        expose_headers=["Content-Disposition"],
+        # Content-Range/Length let the web app show progress and resume a
+        # mobile file transfer with a Range request after the tab is suspended.
+        expose_headers=["Content-Disposition", "Content-Range", "Content-Length"],
         allow_private_network=True,
     )
 

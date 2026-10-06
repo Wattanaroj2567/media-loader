@@ -243,6 +243,13 @@
   "file.savedLaterDesc": "Your file is kept temporarily — open History to share or download it.",
   "file.sharedSuccess": "File shared",
   "file.shareError": "Could not share file",
+  "file.transferLoading": "Loading file...",
+  "file.transferLoadingPercent": "Loading file {percent}%",
+  "file.transferResume": "Resume",
+  "file.transferProgress": "File loading progress",
+  "file.transferHint": "Loading the file before saving. If you switch apps, it pauses and resumes when you return.",
+  "file.transferPausedHint": "Paused while you were away. It continues from where it stopped when you return.",
+  "file.transferReadyHint": "The file is ready. Tap the button below to save it.",
 
   "account.title": "Account",
   "account.viewProfile": "View profile",
