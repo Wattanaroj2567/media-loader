@@ -122,7 +122,7 @@ services:
     restart: unless-stopped
     env_file:
       - .env.local
-    command: tunnel --no-autoupdate --url http://api:8000
+    command: tunnel --no-autoupdate run --url http://api:8000
     networks:
       - api-access
       - proxy-internet

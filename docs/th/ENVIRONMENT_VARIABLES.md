@@ -136,8 +136,9 @@ MEDIA_STORAGE_BUCKET=media-downloads
 
 ## Cloudflare Tunnel
 
-บริการ tunnel ใน Compose อ่านค่า `TUNNEL_TOKEN` จาก `.env.local`
-เมื่อใช้ remotely-managed tunnel หากใช้ Quick Tunnel ชั่วคราวให้เว้นค่านี้ว่าง
+บริการ tunnel ใน Compose รัน remotely-managed tunnel และอ่านค่า `TUNNEL_TOKEN`
+จาก `.env.local` ส่วน Quick Tunnel ไม่ต้องใช้ token แต่ต้องเปลี่ยน command ของ
+tunnel ดูรายละเอียดในคู่มือ Cloudflare Tunnel
 
 ```env
 TUNNEL_TOKEN=

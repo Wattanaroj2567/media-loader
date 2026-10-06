@@ -141,8 +141,9 @@ the listening port.
 
 ## Cloudflare Tunnel
 
-The Compose tunnel service reads `TUNNEL_TOKEN` from `.env.local` when using a
-remotely-managed tunnel. Leave it unset for the temporary Quick Tunnel command.
+The Compose tunnel service runs a remotely-managed tunnel and reads
+`TUNNEL_TOKEN` from `.env.local`. A Quick Tunnel needs no token but requires
+changing the tunnel command; see the Cloudflare Tunnel guide.
 
 ```env
 TUNNEL_TOKEN=

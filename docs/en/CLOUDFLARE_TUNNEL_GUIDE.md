@@ -110,36 +110,31 @@ remotely-managed tunnel. Never paste its token into chat, source code, or logs.
 
 ## Option 3: Docker Compose
 
-The Compose service is configured as a temporary Quick Tunnel. Start it only
-for testing:
-
-```powershell
-docker compose --profile tunnel up -d tunnel
-docker compose logs tunnel
-```
-
-Copy the generated HTTPS URL and set it as `NEXT_PUBLIC_FASTAPI_BASE_URL` in
-Vercel. Redeploy the frontend after changing this value.
-
-### Use a remotely-managed tunnel with Compose
-
-The tunnel service reads `.env.local` through its Compose `env_file` setting.
-For a remotely-managed tunnel:
+The Compose tunnel service runs a remotely-managed (named) tunnel. It reads
+`TUNNEL_TOKEN` from `.env.local` through its Compose `env_file` setting.
 
 1. Put the Cloudflare tunnel token in `TUNNEL_TOKEN` in your local
    `.env.local` file. Do not commit that file.
-2. In `docker-compose.yml`, change the tunnel command from
-   `tunnel --no-autoupdate --url http://api:8000` to
-   `tunnel --no-autoupdate run`. The container reads `TUNNEL_TOKEN` from its
-   environment.
-3. Start the service:
+2. Start the service. The tunnel is behind the `tunnel` profile, so include
+   the profile whenever you recreate the stack; a plain `docker compose up`
+   leaves an existing tunnel container on its old network:
 
 ```powershell
-docker compose --profile tunnel up -d tunnel
+docker compose --profile tunnel up -d
+docker compose logs tunnel
 ```
 
 The Compose file has no commented token line to uncomment. Keep the token only
 in the local environment file.
+
+### Use a Quick Tunnel with Compose for testing
+
+To test without a named tunnel, change the tunnel command in
+`docker-compose.yml` from `tunnel --no-autoupdate run --url http://api:8000`
+to `tunnel --no-autoupdate --url http://api:8000`, start the service, and copy
+the generated HTTPS URL from the logs into `NEXT_PUBLIC_FASTAPI_BASE_URL` in
+Vercel. Redeploy the frontend after changing this value, and restore the
+command afterwards.
 
 ## CORS configuration
 

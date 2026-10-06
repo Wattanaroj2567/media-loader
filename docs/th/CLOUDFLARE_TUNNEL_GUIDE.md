@@ -106,35 +106,30 @@ cloudflared tunnel run media-loader
 
 ## วิธีที่ 3: Docker Compose
 
-บริการ tunnel ใน Compose ตั้งค่าเป็น Quick Tunnel ชั่วคราว เริ่มเฉพาะตอนทดสอบ:
-
-```powershell
-docker compose --profile tunnel up -d tunnel
-docker compose logs tunnel
-```
-
-คัดลอก HTTPS URL ที่ได้ไปกำหนดเป็น `NEXT_PUBLIC_FASTAPI_BASE_URL` ใน
-Vercel หลังเปลี่ยนค่านี้ต้อง redeploy Frontend
-
-### ใช้ remotely-managed tunnel ผ่าน Compose
-
-บริการ tunnel อ่าน `.env.local` ผ่านการตั้งค่า Compose `env_file`
-เมื่อต้องการใช้ remotely-managed tunnel:
+บริการ tunnel ใน Compose รัน remotely-managed tunnel (named tunnel) โดยอ่าน
+`TUNNEL_TOKEN` จาก `.env.local` ผ่านการตั้งค่า Compose `env_file`
 
 1. ใส่ tunnel token ใน `TUNNEL_TOKEN` ของไฟล์ `.env.local` ในเครื่อง
    ห้าม commit ไฟล์นี้
-2. ใน `docker-compose.yml` เปลี่ยน command ของ tunnel จาก
-   `tunnel --no-autoupdate --url http://api:8000` เป็น
-   `tunnel --no-autoupdate run` container จะอ่านค่า `TUNNEL_TOKEN`
-   จาก environment
-3. เริ่มบริการ:
+2. เริ่มบริการ tunnel อยู่ใน profile `tunnel` จึงต้องใส่ profile ทุกครั้งที่สร้าง
+   stack ใหม่ ถ้าใช้ `docker compose up` เฉยๆ container tunnel เดิมจะค้างอยู่ใน
+   network เก่า:
 
 ```powershell
-docker compose --profile tunnel up -d tunnel
+docker compose --profile tunnel up -d
+docker compose logs tunnel
 ```
 
 ใน Compose ปัจจุบันไม่มีบรรทัด token ที่ comment ไว้ให้เปิดใช้
 เก็บ token ไว้ใน environment file ในเครื่องเท่านั้น
+
+### ใช้ Quick Tunnel ผ่าน Compose สำหรับทดสอบ
+
+ถ้าต้องการทดสอบโดยไม่ใช้ named tunnel ให้เปลี่ยน command ของ tunnel ใน
+`docker-compose.yml` จาก `tunnel --no-autoupdate run --url http://api:8000`
+เป็น `tunnel --no-autoupdate --url http://api:8000` แล้วเริ่มบริการ คัดลอก
+HTTPS URL จาก log ไปกำหนดเป็น `NEXT_PUBLIC_FASTAPI_BASE_URL` ใน Vercel
+หลังเปลี่ยนค่านี้ต้อง redeploy Frontend และเปลี่ยน command กลับเมื่อทดสอบเสร็จ
 
 ## ตั้งค่า CORS
 
