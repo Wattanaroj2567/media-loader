@@ -79,11 +79,17 @@ Endpoint ตรวจสอบสถานะระบบแบบสาธา�
   "ok": true,
   "data": {
     "status": "healthy",
-    "worker_pool": "local"
+    "worker_id": "local-worker-1",
+    "worker_pool": "local",
+    "output_mode": "local_temp",
+    "supabase_connected": true
   },
   "error": null
 }
 ```
+
+`worker_id` คือรหัสของ worker, `output_mode` คือโหมดเก็บไฟล์ผลลัพธ์ และ
+`supabase_connected` บอกว่าตั้งค่า Supabase ไว้หรือไม่ (ไม่ได้ทดสอบการเชื่อมต่อจริง)
 
 ### POST `/media/analyze`
 
@@ -130,6 +136,7 @@ Response ที่สำเร็จมีข้อมูลจริงจา�
         "quality_label": "1080p · 30 FPS",
         "width": 1920,
         "height": 1080,
+        "raw_height": 1080,
         "fps": 30,
         "bitrate": null,
         "video_codec": "avc1",
@@ -153,6 +160,12 @@ Instagram สาธารณะ ตัววิเคราะห์อาจอ
 `is_animated_gif` จะเป็น `true` เฉพาะเมื่อ metadata ระบุว่าเป็นสื่อ animated GIF
 รวมถึงโพสต์ X ที่เสิร์ฟไฟล์ MP4 จาก path สาธารณะ `/tweet_video/` และลิงก์ GIF
 ตรงจาก Giphy ที่ redirect ไปยังไฟล์ preview MP4 แบบไม่มีเสียง
+
+ใน `formats[]` ค่า `height` และ `quality_label` เป็นระดับคุณภาพ (quality tier)
+ตามป้ายของ YouTube ส่วน `resolution` คือขนาดเฟรมจริงของไฟล์ สำหรับเฟรมที่กว้างกว่า
+16:9 ระดับคุณภาพจะคำนวณจากความสูงเทียบเท่า 16:9 ของความกว้าง เช่น วิดีโอ
+1920x960 จะได้ `height` เป็น `1080` และ `quality_label` เป็น `1080p` แต่
+`resolution` ยังเป็น `1920x960` ส่วน `raw_height` คือความสูงเฟรมจริง (`960` ในตัวอย่างนี้)
 
 หากนโยบายบล็อก URL ระบบจะตอบผลการตัดสินโดยไม่มีรายการ format
 ผู้ใช้ต้องยืนยันสิทธิ์ก่อนส่ง `POST /downloads`

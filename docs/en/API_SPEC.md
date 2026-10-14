@@ -81,11 +81,18 @@ Public health check.
   "ok": true,
   "data": {
     "status": "healthy",
-    "worker_pool": "local"
+    "worker_id": "local-worker-1",
+    "worker_pool": "local",
+    "output_mode": "local_temp",
+    "supabase_connected": true
   },
   "error": null
 }
 ```
+
+`worker_id` identifies the worker, `output_mode` is the output storage mode, and
+`supabase_connected` reports whether Supabase is configured (it does not test the
+connection).
 
 ### POST `/media/analyze`
 
@@ -133,6 +140,7 @@ A successful response includes real source metadata and formats. Fields may be
         "quality_label": "1080p · 30 FPS",
         "width": 1920,
         "height": 1080,
+        "raw_height": 1080,
         "fps": 30,
         "bitrate": null,
         "video_codec": "avc1",
@@ -157,6 +165,12 @@ when the primary extractor omits it. It does not use account cookies.
 `is_animated_gif` is true only when source metadata identifies animated GIF
 media. This also covers X posts served as MP4 from the public `/tweet_video/`
 path and direct Giphy GIF links whose preview redirects to a silent MP4.
+
+In `formats[]`, `height` and `quality_label` are a quality tier that follows
+YouTube's labels, while `resolution` is the file's actual frame size. For frames
+wider than 16:9, the tier comes from the 16:9-equivalent height of the width. For
+example, a 1920x960 video reports `height` `1080` and `quality_label` `1080p`,
+but `resolution` stays `1920x960`. `raw_height` carries the actual frame height
 
 A blocked policy decision is returned without formats. Rights confirmation is
 required later, when submitting `POST /downloads`.
