@@ -2,10 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import {
-  SaveFileDialog,
-  type ShareTransferState,
-} from "@/components/save-file-dialog";
+import { SaveFileDialog, type ShareTransferState } from "@/components/save-file-dialog";
 import { useToast } from "@/components/toast";
 import {
   apiClient,
@@ -176,7 +173,11 @@ export function FileShareFlow({
     const file = fileRef.current;
     if (file) {
       saveBufferedFile(file);
-      toast("success", t("queue.completedToastTitle", {}, "ดาวน์โหลดสำเร็จแล้ว"), file.name);
+      toast(
+        "success",
+        t("queue.completedToastTitle", {}, "ดาวน์โหลดสำเร็จแล้ว"),
+        file.name
+      );
       finish("downloaded");
       return;
     }

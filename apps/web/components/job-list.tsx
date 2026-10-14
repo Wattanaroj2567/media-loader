@@ -1136,10 +1136,18 @@ export function JobList({ mode, compact = false, onQueueClosed }: JobListProps) 
       setBusyState({ id: job.id, action: "share" });
       try {
         await apiClient.downloadJobFile(job.id, filename, null);
-        toast("success", t("queue.completedToastTitle", {}, "ดาวน์โหลดสำเร็จแล้ว"), filename);
+        toast(
+          "success",
+          t("queue.completedToastTitle", {}, "ดาวน์โหลดสำเร็จแล้ว"),
+          filename
+        );
       } catch (e) {
         console.warn("[Share File Error]:", e);
-        toast("error", t("history.downloadError", {}, "ดาวน์โหลดไฟล์ไม่สำเร็จ"), t("error.genericDesc"));
+        toast(
+          "error",
+          t("history.downloadError", {}, "ดาวน์โหลดไฟล์ไม่สำเร็จ"),
+          t("error.genericDesc")
+        );
       } finally {
         setBusyState(null);
         // Refresh availability in case retention cleanup changed the file state.

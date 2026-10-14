@@ -81,7 +81,11 @@ export function SaveFileDialog({
           label={
             percent === null
               ? t("file.transferLoading", {}, "กำลังโหลดไฟล์...")
-              : t("file.transferLoadingPercent", { percent }, `กำลังโหลดไฟล์ ${percent}%`)
+              : t(
+                  "file.transferLoadingPercent",
+                  { percent },
+                  `กำลังโหลดไฟล์ ${percent}%`
+                )
           }
           iconClassName="size-4"
         />

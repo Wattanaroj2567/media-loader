@@ -179,7 +179,9 @@ test("does not retry HTTP errors such as an expired file", async () => {
   const download = new ResumableDownload({
     open: async () => {
       calls += 1;
-      return new Response(JSON.stringify({ error: { message: "gone" } }), { status: 410 });
+      return new Response(JSON.stringify({ error: { message: "gone" } }), {
+        status: 410,
+      });
     },
     visibility: fakeVisibility().source,
     retryDelayMs: 0,

@@ -692,17 +692,25 @@ test.describe("Mobile share / save flow (simulated iPhone)", () => {
 
     await analyzeAndStartDownload(page);
     const dialog = page.locator('[role="dialog"]');
-    await dialog.getByRole("button", { name: /แชร์|share/i }).first().click();
+    await dialog
+      .getByRole("button", { name: /แชร์|share/i })
+      .first()
+      .click();
 
     await expect(dialog.getByRole("progressbar")).toBeVisible();
     await expect(dialog.getByText(/กำลังโหลดไฟล์|loading file/i).first()).toBeVisible();
-    await expect(dialog.getByText(/แตะปุ่มด้านล่างเพื่อบันทึก|tap the button below to save/i)).toBeVisible({
+    await expect(
+      dialog.getByText(/แตะปุ่มด้านล่างเพื่อบันทึก|tap the button below to save/i)
+    ).toBeVisible({
       timeout: 15000,
     });
     // The share sheet waits for a fresh tap instead of failing on iOS.
     expect(await page.evaluate(() => window.__sharedPayload)).toBeNull();
 
-    await dialog.getByRole("button", { name: /แชร์|share/i }).first().click();
+    await dialog
+      .getByRole("button", { name: /แชร์|share/i })
+      .first()
+      .click();
     await expect
       .poll(() => page.evaluate(() => window.__sharedPayload !== null))
       .toBe(true);
@@ -735,7 +743,10 @@ test.describe("Mobile share / save flow (simulated iPhone)", () => {
 
     await analyzeAndStartDownload(page);
     const dialog = page.locator('[role="dialog"]');
-    await dialog.getByRole("button", { name: /แชร์|share/i }).first().click();
+    await dialog
+      .getByRole("button", { name: /แชร์|share/i })
+      .first()
+      .click();
 
     await expect(dialog.getByText(/พักการโหลดไว้|paused while/i)).toBeVisible({
       timeout: 10000,
