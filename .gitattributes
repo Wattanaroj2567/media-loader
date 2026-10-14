@@ -1,0 +1,7 @@
+# Normalize line endings so Windows and Linux checkouts match .editorconfig.
+* text=auto eol=lf
+
+# Windows batch files require CRLF.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
