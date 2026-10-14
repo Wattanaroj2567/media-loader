@@ -70,7 +70,12 @@ class FormatInfo(BaseModel):
     resolution: str | None = None
     quality_label: str
     width: int | None = None
-    height: int | None = None
+    height: int | None = Field(
+        default=None, description="Quality tier height (YouTube-style label)"
+    )
+    raw_height: int | None = Field(
+        default=None, description="Actual frame height reported by the source"
+    )
     fps: int | None = None
     bitrate: int | None = None
     video_codec: str | None = None

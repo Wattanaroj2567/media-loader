@@ -455,6 +455,7 @@ def normalize_extractor_result(
                 quality_label=quality_label,
                 width=width,
                 height=height,
+                raw_height=raw_height,
                 fps=fps,
                 bitrate=bitrate,
                 video_codec=video_codec,

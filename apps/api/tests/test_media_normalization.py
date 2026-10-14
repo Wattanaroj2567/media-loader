@@ -235,6 +235,8 @@ def test_normalize_extractor_result_labels_wide_frames_by_youtube_tier():
     top = videos[0]
     assert top.format_id == "137"
     assert top.resolution == "1920x960"
+    assert top.raw_height == 960
+    assert [item.raw_height for item in videos] == [960, 640, 428, 320, 214, 128]
 
 
 def test_normalize_extractor_result_ignores_implausible_audio_bitrate_without_duration():
