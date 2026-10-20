@@ -202,6 +202,8 @@ users.
 - Authentication and dashboard UI
 - URL analysis and format selection
 - Queue, history, and settings pages
+- Queue cards use compact 112 px thumbnails on mobile and show the localized
+  creation date and time; history cards show the download date.
 - Authenticated same-origin file streaming for signed-in users
 
 ### FastAPI

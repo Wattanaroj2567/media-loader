@@ -33,6 +33,7 @@ import { apiClient, canShareFiles, isIosDevice, type Job } from "@/lib/api-clien
 import { FileShareFlow, type FileShareRequest } from "@/components/file-share-flow";
 import {
   formatCalendarDate,
+  formatCalendarDateTime,
   formatMediaDuration,
   isActiveStatus,
 } from "@/lib/media-presenters.ts";
@@ -81,30 +82,6 @@ const statusBadge: Record<string, string> = {
 };
 
 /* ─── Utilities ──────────────────────────────────────────────────────── */
-function formatTime(iso: string | undefined, locale: "en" | "th") {
-  if (!iso) return "";
-  try {
-    const d = new Date(iso);
-    const mins = Math.floor((Date.now() - d.getTime()) / 60000);
-    const relativeTime = new Intl.RelativeTimeFormat(
-      locale === "th" ? "th-TH" : "en-US",
-      {
-        numeric: "auto",
-      }
-    );
-    if (mins < 1) return relativeTime.format(0, "minute");
-    if (mins < 60) return relativeTime.format(-mins, "minute");
-    const hrs = Math.floor(mins / 60);
-    if (hrs < 24) return relativeTime.format(-hrs, "hour");
-    return new Intl.DateTimeFormat(locale === "th" ? "th-TH" : "en-US", {
-      day: "numeric",
-      month: "short",
-    }).format(d);
-  } catch {
-    return "";
-  }
-}
-
 function outputLabel(job: Job) {
   const parts = [
     job.output_format?.toUpperCase(),
@@ -279,7 +256,7 @@ function JobCard({
     !!job.file_available &&
     !selectionMode;
   const title = job.title || job.output_filename || job.original_url;
-  const time = formatTime(job.completed_at || job.updated_at || job.created_at, locale);
+  const queueDateTime = formatCalendarDateTime(job.created_at, locale);
   const downloadDate = formatCalendarDate(job.completed_at || job.created_at, locale);
   const duration = formatMediaDuration(job.duration_seconds);
   const label = outputLabel(job);
@@ -300,19 +277,6 @@ function JobCard({
           .toLowerCase()
           .includes(job.source_domain.toLowerCase().split(".")[0])
       : false;
-
-  const clockTime = useMemo(() => {
-    const iso = job.created_at;
-    if (!iso) return "";
-    try {
-      const d = new Date(iso);
-      const hh = String(d.getHours()).padStart(2, "0");
-      const mm = String(d.getMinutes()).padStart(2, "0");
-      return `${hh}:${mm}`;
-    } catch {
-      return "";
-    }
-  }, [job.created_at]);
 
   return (
     <article
@@ -335,7 +299,7 @@ function JobCard({
       )}
       <div
         className={`flex min-w-0 flex-1 gap-3 ${
-          mode === "history" ? "flex-row items-start" : "flex-col"
+          mode === "history" ? "flex-row items-start" : "flex-row items-center"
         } sm:flex-row sm:items-center`}
       >
         {selectionMode && (
@@ -355,13 +319,10 @@ function JobCard({
             />
           </div>
         )}
-        {/* History thumbnails stay compact on mobile; queue cards use a larger preview. */}
+        {/* Compact thumbnails keep queue cards readable on mobile. */}
         <div
-          className={`shrink-0 overflow-hidden rounded-xl ${
-            mode === "history"
-              ? "h-16 w-28 sm:h-13.5 sm:w-24"
-              : "aspect-video w-full sm:aspect-auto sm:h-13.5 sm:w-24"
-          }`}
+          data-testid="job-thumbnail"
+          className="h-16 w-28 shrink-0 overflow-hidden rounded-xl sm:h-13.5 sm:w-24"
         >
           <Thumb job={job} priority={priority} />
         </div>
@@ -395,11 +356,14 @@ function JobCard({
               </span>
             )}
             {label && <span className="text-[11px] text-text-muted">{label}</span>}
-            {mode === "queue" && time && (
-              <span className="flex items-center gap-1 text-[11px] text-text-muted">
+            {mode === "queue" && queueDateTime && (
+              <time
+                dateTime={job.created_at}
+                className="flex items-center gap-1 text-[11px] text-text-muted"
+              >
                 <Clock3 className="size-3" />
-                {clockTime ? `${clockTime} · ${time}` : time}
-              </span>
+                {queueDateTime}
+              </time>
             )}
           </div>
 

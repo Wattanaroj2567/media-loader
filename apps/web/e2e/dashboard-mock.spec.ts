@@ -61,6 +61,7 @@ test.describe("Mocked Dashboard Workflow", () => {
     context,
     page,
   }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
     const appOrigin = new URL(test.info().project.use.baseURL!).origin;
     await seedAuth(context, appOrigin);
     await context.addCookies([
@@ -198,7 +199,25 @@ test.describe("Mocked Dashboard Workflow", () => {
     await expect(
       page.getByRole("status").filter({ hasText: "Added to queue" })
     ).toContainText("You can add another link now");
-    await expect(page.locator("#download-queue")).toContainText(queuedJob.title);
+    const queueCard = page
+      .locator("#download-queue article")
+      .filter({ hasText: queuedJob.title });
+    await expect(queueCard).toContainText(queuedJob.title);
+    const thumbnail = queueCard.getByTestId("job-thumbnail");
+    await expect
+      .poll(() =>
+        thumbnail.evaluate((element) => element.getBoundingClientRect().width)
+      )
+      .toBe(112);
+    await expect
+      .poll(() =>
+        thumbnail.evaluate((element) => element.getBoundingClientRect().height)
+      )
+      .toBe(64);
+    const queueTimestamp = queueCard.locator("time");
+    await expect(queueTimestamp).toHaveAttribute("datetime", queuedJob.created_at);
+    await expect(queueTimestamp).toContainText("Sep 18, 2026");
+    await expect(queueTimestamp).toContainText(/\d{1,2}:\d{2}/);
     // Queueing a job must request a scroll down to the queue anchor.
     await expect(page.locator("#download-queue-anchor")).toHaveAttribute(
       "data-scroll-into-view-calls",
