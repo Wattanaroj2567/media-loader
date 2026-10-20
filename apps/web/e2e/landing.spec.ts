@@ -13,7 +13,9 @@ test.describe("Landing Page & Brand UI", () => {
     await page.goto(baseURL);
 
     await expect(page.locator("html")).toHaveAttribute("lang", "en");
-    await expect(page.getByText("Instant Download · No Login Required")).toBeVisible();
+    await expect(
+      page.getByText("Your queue and history, in your account")
+    ).toBeVisible();
     await context.close();
   });
 
@@ -34,13 +36,13 @@ test.describe("Landing Page & Brand UI", () => {
     await page.goto(baseURL);
 
     await expect(page.locator("html")).toHaveAttribute("lang", "th");
-    await expect(
-      page.getByText("ดาวน์โหลดได้ทันที โดยไม่ต้องเข้าสู่ระบบ")
-    ).toBeVisible();
+    await expect(page.getByText("คิวงานและประวัติในบัญชีของคุณ")).toBeVisible();
     await context.close();
   });
 
-  test("should render main hero title and Google login button", async ({ page }) => {
+  test("should open the shared auth modal from the header without a link", async ({
+    page,
+  }) => {
     await page.goto("/");
 
     // 1. Assert main heading is rendered and visible
@@ -48,12 +50,20 @@ test.describe("Landing Page & Brand UI", () => {
     await expect(heroHeading).toBeVisible();
     await expect(heroHeading).not.toBeEmpty();
 
-    // 2. Assert Google OAuth login button exists and is enabled
+    // The header uses the same modal as URL submission, even without a URL.
     const loginButton = page
-      .getByRole("button", { name: /sign in|เข้าสู่ระบบ|google/i })
+      .getByRole("button", { name: /sign in|เข้าสู่ระบบ/i })
       .first();
     await expect(loginButton).toBeVisible();
-    await expect(loginButton).toBeEnabled();
+    await loginButton.click();
+    await expect(page).toHaveURL(/\/$/);
+    await expect(
+      page.getByRole("dialog", { name: "เข้าสู่ระบบ", exact: true })
+    ).toBeVisible();
+    await expect(page.getByRole("dialog")).toHaveCount(1);
+    await expect(page.getByRole("status")).toHaveCount(0);
+    await page.getByRole("button", { name: "ปิด", exact: true }).click();
+    await expect(loginButton).toBeFocused();
 
     // 3. Assert assurances / policy features exist
     const mainContainer = page.locator("main");
@@ -69,26 +79,177 @@ test.describe("Landing Page & Brand UI", () => {
     await expect(ambientMotion).toBeVisible();
 
     const animation = await ambientMotion.evaluate((element) => {
-      const rings = Array.from(element.children);
+      const glows = Array.from(element.querySelectorAll(".hero-ambient-glow"));
       return {
         heavyElements: element.querySelectorAll("canvas, video").length,
-        names: rings.map((ring) => getComputedStyle(ring).animationName),
+        names: glows.map((glow) => getComputedStyle(glow).animationName),
       };
     });
     expect(animation.heavyElements).toBe(0);
-    expect(animation.names).toEqual([
-      "hero-orbit-clockwise",
-      "hero-orbit-counter-clockwise",
-    ]);
+    expect(animation.names).toEqual(["hero-ambient-drift", "hero-ambient-drift"]);
 
     await page.emulateMedia({ reducedMotion: "reduce" });
-    const reducedDuration = await ambientMotion
-      .locator(".hero-ambient-ring")
+    const reducedAnimation = await ambientMotion
+      .locator(".hero-ambient-glow")
       .first()
-      .evaluate((element) =>
-        Number.parseFloat(getComputedStyle(element).animationDuration)
+      .evaluate((element) => getComputedStyle(element).animationName);
+    expect(reducedAnimation).toBe("none");
+  });
+
+  test("should keep floating brand marks outside hero copy at every screen size", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    const decoration = page.getByTestId("hero-platforms");
+    await expect(decoration).toHaveAttribute("aria-hidden", "true");
+    for (const width of [1440, 1280, 1100, 1024, 768, 390, 360, 320]) {
+      await page.setViewportSize({ width, height: 900 });
+      const geometry = await decoration.evaluate((element) => {
+        const intro = element.parentElement!;
+        const copy = [
+          intro.querySelector("h1")!,
+          intro.querySelector("p")!,
+          intro.querySelector(".inline-flex")!,
+        ].map((node) => node.getBoundingClientRect());
+        const marks = Array.from(element.querySelectorAll("[data-platform]"))
+          .filter((node) => node.getBoundingClientRect().width > 0)
+          .map((node) => {
+            const rect = node.getBoundingClientRect();
+            return {
+              insideViewport: rect.left >= 0 && rect.right <= innerWidth,
+              overlapsCopy: copy.some(
+                (text) =>
+                  rect.left < text.right &&
+                  rect.right > text.left &&
+                  rect.top < text.bottom &&
+                  rect.bottom > text.top
+              ),
+              pointerEvents: getComputedStyle(node).pointerEvents,
+              animation: getComputedStyle(node).animationName,
+            };
+          });
+        return { marks, overflows: document.documentElement.scrollWidth > innerWidth };
+      });
+      expect(geometry.overflows, `width ${width}`).toBe(false);
+      expect(geometry.marks).toHaveLength(8);
+      for (const mark of geometry.marks) {
+        expect(mark.insideViewport, `width ${width}`).toBe(true);
+        expect(mark.overlapsCopy, `width ${width}`).toBe(false);
+        expect(mark.pointerEvents).toBe("none");
+        expect(mark.animation).toContain("platform-float");
+      }
+      if (width === 1440 || width === 390) {
+        await page.screenshot({ path: `test-results/hero-platforms-${width}.png` });
+      }
+    }
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    for (const mark of await decoration.locator("[data-platform]").all()) {
+      await expect(mark).toHaveCSS("animation-name", "none");
+      const asset = await page.request.get(
+        `/platforms/${await mark.getAttribute("data-platform")}.svg`
       );
-    expect(reducedDuration).toBeLessThanOrEqual(0.001);
+      expect(asset.ok()).toBe(true);
+      expect(await asset.text()).toContain("<svg");
+    }
+  });
+
+  test("should keep pastes local until an explicit sign-in action", async ({
+    page,
+    context,
+  }) => {
+    await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+    const analyzedUrls: string[] = [];
+    let queuedDownloads = 0;
+    page.on("request", (request) => {
+      if (
+        request.method() === "POST" &&
+        new URL(request.url()).pathname === "/downloads"
+      ) {
+        queuedDownloads += 1;
+      }
+    });
+    await page.route("**/media/analyze*", async (route) => {
+      const headers = {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST,OPTIONS",
+        "Access-Control-Allow-Headers": "*",
+      };
+      if (route.request().method() === "OPTIONS") {
+        await route.fulfill({ status: 204, headers });
+        return;
+      }
+      analyzedUrls.push(route.request().postDataJSON().url);
+      await route.fulfill({
+        headers,
+        contentType: "application/json",
+        body: JSON.stringify({
+          ok: true,
+          data: {
+            policy: { decision: "blocked", reason: "Fixture policy check" },
+            media: null,
+            formats: [],
+          },
+          error: null,
+        }),
+      });
+    });
+    await page.goto("/");
+
+    const linkInput = page.getByRole("textbox", { name: "วางลิงก์คลิป" });
+    const feedback = page.getByTestId("link-paste-feedback");
+    await expect(feedback).toHaveCount(0);
+    await page.evaluate(() =>
+      navigator.clipboard.writeText("https://example.com/first.mp4")
+    );
+    await linkInput.click();
+    await linkInput.press("Control+V");
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await page.getByRole("dialog").press("Escape");
+    await expect(linkInput).toHaveValue("https://example.com/first.mp4");
+    await expect(feedback).toHaveCount(1);
+    expect(analyzedUrls).toHaveLength(0);
+    await expect
+      .poll(() => feedback.evaluate((element) => getComputedStyle(element).opacity))
+      .toBe("0");
+
+    await linkInput.fill("");
+    await page.evaluate(() =>
+      navigator.clipboard.writeText("https://example.com/second.mp4")
+    );
+    await page.getByRole("button", { name: "วางลิงก์", exact: true }).click();
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await page.getByRole("dialog").press("Escape");
+    await expect(linkInput).toHaveValue("https://example.com/second.mp4");
+    expect(analyzedUrls).toHaveLength(0);
+
+    await expect
+      .poll(() => feedback.evaluate((element) => getComputedStyle(element).opacity))
+      .toBe("0");
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await linkInput.fill("");
+    await page.evaluate(() =>
+      navigator.clipboard.writeText("https://example.com/third.mp4")
+    );
+    await page.getByRole("button", { name: "วางลิงก์", exact: true }).click();
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await page.getByRole("dialog").press("Escape");
+    await expect(feedback).toBeHidden();
+    expect(analyzedUrls).toHaveLength(0);
+    expect(analyzedUrls).toHaveLength(0);
+    expect(queuedDownloads).toBe(0);
+    await expect(page).toHaveURL(/\/$/);
+    await page.getByTestId("url-submit").click();
+    await expect(page).toHaveURL(/\/$/);
+    await expect(
+      page.getByRole("dialog", { name: "เข้าสู่ระบบ", exact: true })
+    ).toBeVisible();
+    await expect(page.getByRole("status")).toContainText("เก็บลิงก์ไว้แล้ว");
+    await page.getByRole("dialog").press("Escape");
+    await expect(linkInput).toHaveValue("https://example.com/third.mp4");
+    await page.reload();
+    await expect(linkInput).toHaveValue("https://example.com/third.mp4");
+    expect(analyzedUrls).toHaveLength(0);
   });
 
   test("should translate the compact mobile login label", async ({ page }) => {
@@ -96,10 +257,8 @@ test.describe("Landing Page & Brand UI", () => {
     await page.goto("/");
 
     const topbar = page.getByTestId("landing-topbar");
-    const instantBadge = page.getByText("ดาวน์โหลดได้ทันที โดยไม่ต้องเข้าสู่ระบบ");
-    const loginButton = page
-      .getByRole("button", { name: /เข้าสู่ระบบ|google/i })
-      .first();
+    const instantBadge = page.getByText("คิวงานและประวัติในบัญชีของคุณ");
+    const loginButton = page.getByRole("button", { name: /เข้าสู่ระบบ/i }).first();
     await expect(topbar).toBeVisible();
     await expect(instantBadge).toBeVisible();
     await expect(loginButton).toBeVisible();
@@ -203,6 +362,52 @@ test.describe("Landing Page & Brand UI", () => {
     await expect(page.getByTestId("platform-output-formats")).toBeVisible();
   });
 
+  test("should show platform names without redundant colored tags on mobile and desktop", async ({
+    page,
+  }) => {
+    const platformIds = [
+      "youtube",
+      "tiktok",
+      "instagram",
+      "facebook",
+      "x",
+      "bilibili",
+      "vk",
+      "giphy",
+    ];
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/");
+
+    const mobilePlatformCard = page.getByTestId("platform-card-youtube");
+    await expect(mobilePlatformCard).toBeVisible();
+    await expect(
+      mobilePlatformCard.getByRole("heading", { name: "YouTube" })
+    ).toBeVisible();
+
+    for (const platformId of platformIds) {
+      await expect(
+        page.getByTestId(`platform-card-${platformId}`).locator("span.rounded-full")
+      ).toHaveCount(0);
+    }
+
+    await page.setViewportSize({ width: 1280, height: 900 });
+    const comparisonTable = page.getByRole("table").nth(1);
+    await expect(comparisonTable).toBeVisible();
+    await expect(comparisonTable.getByRole("row").nth(1)).toContainText("YouTube");
+
+    for (let rowIndex = 1; rowIndex <= platformIds.length; rowIndex += 1) {
+      await expect(
+        comparisonTable
+          .getByRole("row")
+          .nth(rowIndex)
+          .getByRole("cell")
+          .first()
+          .locator("span.rounded-full")
+      ).toHaveCount(0);
+    }
+  });
+
   test("should render 4-step workflow indicator card", async ({ page }) => {
     await page.goto("/");
 
@@ -246,30 +451,29 @@ test.describe("Landing Page & Brand UI", () => {
     }
   });
 
-  test("should keep desktop tables display-only", async ({ page }) => {
+  test("should keep workflow table display-only and expose platform details", async ({
+    page,
+  }) => {
     await page.setViewportSize({ width: 1280, height: 800 });
     await page.goto("/");
 
-    for (const testId of ["workflow-table", "platform-table"]) {
-      const table = page.getByTestId(testId);
-      await expect(table).toBeVisible();
-      await expect(
-        table.locator(
-          'button, a, input, select, textarea, [tabindex]:not([tabindex="-1"])'
-        )
-      ).toHaveCount(0);
+    const workflowTable = page.getByTestId("workflow-table");
+    await expect(workflowTable).toBeVisible();
+    await expect(
+      workflowTable.locator(
+        'button, a, input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      )
+    ).toHaveCount(0);
 
-      const firstRow = table.locator("tbody tr").first();
-      const backgroundBeforeHover = await firstRow.evaluate(
-        (element) => getComputedStyle(element).backgroundColor
-      );
-      await firstRow.hover();
-      await expect
-        .poll(() =>
-          firstRow.evaluate((element) => getComputedStyle(element).backgroundColor)
-        )
-        .toBe(backgroundBeforeHover);
-    }
+    const platformTable = page.getByTestId("platform-table");
+    await expect(platformTable).toBeVisible();
+    await expect(
+      platformTable.getByTestId("platform-details-button-youtube")
+    ).toHaveAttribute("aria-expanded", "false");
+    await platformTable.getByTestId("platform-details-button-youtube").click();
+    await expect(platformTable.getByTestId("platform-details-youtube")).toContainText(
+      /60 เฟรม|60 frames/i
+    );
   });
 
   test("should keep assurance cards display-only", async ({ page }) => {
@@ -319,14 +523,21 @@ test.describe("Landing Page & Brand UI", () => {
     await page.goto("/");
 
     const table = page.getByTestId("platform-table");
-    await expect(table.getByRole("columnheader", { name: /^GIF$/i })).toBeVisible();
+    await expect(table.getByRole("columnheader", { name: /GIF/i })).toBeVisible();
     await expect(
       table.getByRole("columnheader", { name: /output formats|รูปแบบไฟล์/i })
     ).toHaveCount(0);
 
     const giphyRow = table.getByRole("row").filter({ hasText: "Giphy" });
     await expect(giphyRow).toBeVisible();
-    await expect(giphyRow).toContainText(/original gif|gif ต้นฉบับ/i);
+    await giphyRow.getByTestId("platform-details-button-giphy").click();
+    await expect(table.getByTestId("platform-details-giphy")).toContainText(
+      /original gif|gif ต้นฉบับ/i
+    );
+    await page.setViewportSize({ width: 1280, height: 1400 });
+    await page
+      .getByTestId("platform-capabilities-section")
+      .screenshot({ path: "test-results/platform-table-readable.png" });
   });
 
   test("should separate MP4, MP3, and GIF capabilities on mobile cards", async ({
@@ -338,10 +549,13 @@ test.describe("Landing Page & Brand UI", () => {
     const giphyCard = page.getByTestId("platform-card-giphy");
     await giphyCard.scrollIntoViewIfNeeded();
     await expect(giphyCard).toBeVisible();
-    await expect(giphyCard.getByText("MP4", { exact: true })).toBeVisible();
-    await expect(giphyCard.getByText("MP3", { exact: true })).toBeVisible();
+    await expect(giphyCard.getByText(/^(วิดีโอ|Video)$/)).toBeVisible();
+    await expect(giphyCard.getByText(/^(เสียง|Audio)$/)).toBeVisible();
     await expect(giphyCard.getByText("GIF", { exact: true })).toBeVisible();
-    await expect(giphyCard).toContainText(/original gif|gif ต้นฉบับ/i);
+    await giphyCard.getByTestId("platform-details-button-giphy").click();
+    await expect(giphyCard.getByTestId("platform-details-giphy")).toContainText(
+      /original gif|gif ต้นฉบับ/i
+    );
   });
 
   test("should keep the downloader before the workflow and platform sections", async ({
@@ -356,7 +570,7 @@ test.describe("Landing Page & Brand UI", () => {
       name: /ขั้นตอนการดาวน์โหลด|workflow built for real use/i,
     });
     const platformHeading = page.getByRole("heading", {
-      name: /ตารางเปรียบเทียบการรองรับแต่ละแพลตฟอร์ม|platform capabilities & format support/i,
+      name: /แต่ละแพลตฟอร์มดาวน์โหลดอะไรได้บ้าง|what can you download from each platform/i,
     });
 
     await expect(downloaderInput).toBeVisible();

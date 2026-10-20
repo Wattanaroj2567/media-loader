@@ -103,7 +103,7 @@ export default function AccountPage() {
                     {user.name || user.email.split("@")[0] || "User"}
                   </p>
                   <div className="mt-1 flex flex-wrap items-center gap-2">
-                    <p className="truncate text-xs font-mono text-text-muted sm:text-sm">
+                    <p className="truncate text-xs font-sans text-text-muted sm:text-sm">
                       {user.email}
                     </p>
                     <span className="rounded-md border border-border bg-bg-base px-2 py-0.5 text-[10px] font-semibold text-text-muted">
@@ -122,7 +122,7 @@ export default function AccountPage() {
                   type="submit"
                   variant="outline"
                   size="sm"
-                  className="h-9.5 w-full cursor-pointer gap-2 rounded-xl border-border bg-bg-base/70 text-xs font-semibold text-text transition-all duration-150 hover:border-rose-500/40 hover:bg-rose-500/10 hover:text-rose-500 sm:w-auto"
+                  className="h-9.5 w-full cursor-pointer gap-2 rounded-lg border-border bg-bg-base/70 text-xs font-semibold text-text transition-all duration-150 hover:border-rose-500/40 hover:bg-rose-500/10 hover:text-rose-500 sm:w-auto"
                 >
                   <LogOut className="size-3.5" />
                   <span>{t("account.signOut", {}, "ออกจากระบบ")}</span>
@@ -186,14 +186,14 @@ export default function AccountPage() {
                     value={confirmText}
                     onChange={(e) => setConfirmText(e.target.value)}
                     placeholder={t("account.confirmPlaceholder", {}, "DELETE")}
-                    className="h-10 rounded-xl border-rose-500/30 bg-bg-base/60 text-xs text-text placeholder:text-text-dim focus-visible:ring-rose-500/20"
+                    className="h-10 rounded-lg border-rose-500/30 bg-bg-base/60 text-xs text-text placeholder:text-text-dim focus-visible:ring-rose-500/20"
                   />
                   <Button
                     type="button"
                     variant="destructive"
                     disabled={!isConfirmValid(confirmText) || deleting}
                     onClick={() => setConfirmOpen(true)}
-                    className="h-10 w-full rounded-xl text-xs font-semibold cursor-pointer"
+                    className="h-10 w-full rounded-lg text-xs font-semibold cursor-pointer"
                   >
                     {deleting ? (
                       <LoadingIndicator

@@ -46,8 +46,17 @@ export function ThemeToggle({
         setIsOpen(false);
       }
     }
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        setIsOpen(false);
+      }
+    }
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
   }, [isOpen]);
 
   if (!mounted) {
@@ -64,8 +73,10 @@ export function ThemeToggle({
     return (
       <div
         className={cn(
-          "h-9 w-full animate-pulse rounded-full",
-          tone === "surface" && "border border-border/60 bg-bg-surface/40",
+          "h-8 animate-pulse rounded-full",
+          tone === "surface"
+            ? "w-13 border border-border/70 bg-bg-surface/40"
+            : "size-8",
           className
         )}
       />
@@ -86,7 +97,7 @@ export function ThemeToggle({
         role="radiogroup"
         aria-label={t("theme.selectLabel", {}, "เลือกธีม")}
         className={cn(
-          "grid grid-cols-3 gap-1 rounded-xl border border-border/80 bg-bg-base/60 p-1 backdrop-blur-md shadow-inner",
+          "flex w-full items-center rounded-xl border border-border/60 bg-bg-base/70 p-1",
           className
         )}
       >
@@ -102,19 +113,21 @@ export function ThemeToggle({
               onClick={() => setTheme(opt.value)}
               title={`${t("theme.selectLabel", {}, "ธีม")}: ${opt.label}`}
               className={cn(
-                "flex h-8 min-w-0 cursor-pointer items-center justify-center gap-1.5 rounded-lg px-1 text-xs font-medium transition-all duration-200 select-none outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+                "flex h-8 flex-1 min-w-0 cursor-pointer items-center justify-center gap-1.5 rounded-lg px-1 text-xs font-medium transition-all duration-150 select-none outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
                 isActive
-                  ? "border border-primary/30 bg-bg-elevated text-primary font-semibold shadow-xs"
-                  : "border border-transparent text-text-muted hover:bg-bg-surface/70 hover:text-text"
+                  ? "bg-bg-elevated text-primary font-semibold shadow-xs"
+                  : "text-text-muted hover:bg-bg-surface/50 hover:text-text"
               )}
             >
               <Icon
                 className={cn(
-                  "size-3.5 shrink-0 transition-transform duration-200",
-                  isActive && "scale-110 text-primary"
+                  "size-3.5 shrink-0 transition-colors",
+                  isActive ? "text-primary" : "text-text-muted"
                 )}
               />
-              <span className="truncate text-[11px] font-medium">{opt.label}</span>
+              <span className="truncate text-[11px] sm:text-xs font-medium">
+                {opt.label}
+              </span>
             </button>
           );
         })}
@@ -136,35 +149,49 @@ export function ThemeToggle({
           aria-label={`${t("theme.selectLabel", {}, "เลือกธีม")}: ${activeOption.label}`}
           title={`${t("theme.selectLabel", {}, "เลือกธีม")}: ${activeOption.label}`}
           className={cn(
-            "flex cursor-pointer items-center justify-center rounded-full text-xs font-semibold transition-all duration-200 outline-none",
+            "group flex h-8 cursor-pointer items-center justify-center rounded-full border px-2.5 text-xs font-semibold transition-all duration-200 outline-none select-none",
             tone === "ghost"
-              ? "text-text-muted hover:bg-bg-elevated hover:text-primary"
-              : "border border-border/70 bg-bg-surface/40 text-text-muted hover:border-primary/40 hover:bg-primary/10 hover:text-primary",
-            showLabel ? "h-8.5 w-full gap-1.5 px-2.5" : "size-8.5",
+              ? "border-transparent bg-transparent text-text-muted hover:bg-bg-elevated hover:text-primary"
+              : cn(
+                  "border-border/70 bg-bg-surface/50 text-text-muted backdrop-blur-sm shadow-2xs",
+                  "dark:border-white/12 dark:bg-white/6",
+                  "hover:border-border hover:bg-bg-surface hover:text-text",
+                  "dark:hover:border-white/20 dark:hover:bg-white/10 dark:hover:text-text"
+                ),
+            "focus-visible:ring-2 focus-visible:ring-primary/40",
+            isOpen &&
+              "border-primary/50 bg-primary/5 text-primary ring-2 ring-primary/20 dark:border-primary/50 dark:bg-primary/10 dark:text-primary",
+            showLabel ? "gap-1.5" : "gap-1.5",
             className
           )}
         >
-          <ActiveIcon className="size-3.5 shrink-0 transition-colors" />
+          <ActiveIcon
+            className={cn(
+              "size-3.5 shrink-0 transition-colors",
+              isOpen ? "text-primary" : "text-text-muted group-hover:text-text"
+            )}
+          />
           {showLabel && (
             <span className="text-xs truncate text-text">{activeOption.label}</span>
           )}
-          {showLabel && (
-            <ChevronDown
-              className={cn(
-                "size-3 text-text-dim transition-transform duration-200",
-                isOpen && "rotate-180"
-              )}
-            />
-          )}
+          <ChevronDown
+            className={cn(
+              "size-3 shrink-0 transition-transform duration-200",
+              isOpen
+                ? "rotate-180 text-primary"
+                : "text-text-dim group-hover:text-text-muted"
+            )}
+            aria-hidden="true"
+          />
         </button>
 
         {isOpen && (
           <div
             className={cn(
-              "absolute z-50 w-40 overflow-hidden rounded-2xl border border-border/80 bg-popover/95 p-1.5 backdrop-blur-xl animate-in fade-in-50 zoom-in-95 duration-150",
+              "absolute z-50 min-w-36 overflow-hidden rounded-2xl border border-border/80 bg-popover/95 p-1.5 backdrop-blur-xl shadow-xl animate-in fade-in-50 zoom-in-95 duration-150",
               dropdownAlign === "top"
                 ? "bottom-full mb-2 left-0"
-                : "top-full mt-1.5 right-0"
+                : "top-full mt-2 right-0"
             )}
           >
             {options.map((opt) => {
@@ -179,17 +206,22 @@ export function ThemeToggle({
                     setIsOpen(false);
                   }}
                   className={cn(
-                    "flex w-full cursor-pointer items-center justify-between rounded-xl px-2.5 py-2 text-xs font-medium transition-colors",
+                    "flex w-full cursor-pointer items-center justify-between gap-3 rounded-xl px-3 py-2 text-xs font-medium transition-colors outline-none",
                     isSelected
-                      ? "bg-primary/14 text-primary font-semibold"
-                      : "text-text-muted hover:bg-bg-surface/80 hover:text-text"
+                      ? "bg-primary/10 text-primary font-semibold"
+                      : "text-text-muted hover:bg-bg-surface hover:text-text"
                   )}
                 >
                   <span className="flex items-center gap-2">
                     <Icon className="size-3.5 shrink-0" />
                     <span>{opt.label}</span>
                   </span>
-                  {isSelected && <Check className="size-3.5 shrink-0 text-primary" />}
+                  {isSelected && (
+                    <Check
+                      className="size-3.5 shrink-0 text-primary"
+                      aria-hidden="true"
+                    />
+                  )}
                 </button>
               );
             })}
