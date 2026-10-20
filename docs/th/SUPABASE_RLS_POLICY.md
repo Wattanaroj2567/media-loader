@@ -20,8 +20,9 @@ supabase/rls_policies.sql    → นโยบาย Row Level Security
 ผู้ใช้ที่ล็อกอินอ่านได้เฉพาะแถวข้อมูลของบัญชีตนเอง นโยบายใช้เงื่อนไข
 `auth.uid() = user_id` สำหรับแถวของผู้ใช้ หรือ `auth.uid() = id` สำหรับโปรไฟล์
 
-งานผู้เยี่ยมชมไม่มี Supabase user ID โดย API จะจำกัดการเข้าถึงงานด้วย
-`guest_session_id` เว็บเบราว์เซอร์ไม่อ่านงาน guest ผ่าน Supabase โดยตรง
+งานผู้เยี่ยมชมรุ่นเดิมไม่มี Supabase user ID โดย API จะจำกัดการเข้าถึงด้วย
+`guest_session_id` การสร้างงานใหม่ต้องเข้าสู่ระบบ และเว็บเบราว์เซอร์ไม่อ่านงาน
+guest ผ่าน Supabase โดยตรง
 
 schema ปัจจุบันมีตาราง public สามตาราง ได้แก่ `profiles`, `download_jobs`
 และ `policy_logs` รายการ format ที่วิเคราะห์ได้เป็นข้อมูลใน API response

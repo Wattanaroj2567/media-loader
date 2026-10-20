@@ -7,11 +7,10 @@ API หลักคือบริการ FastAPI โดยปกติเป�
 ## การยืนยันตัวตนและการใช้งานแบบผู้เยี่ยมชม
 
 - `GET /health` เปิดให้เรียกได้โดยไม่ต้องยืนยันตัวตน
-- `POST /media/analyze` และ `POST /downloads` รองรับทั้งผู้ใช้ที่เข้าสู่ระบบและผู้เยี่ยมชม
-- สำหรับงานของผู้เยี่ยมชม ให้ส่ง Header `X-Guest-Session-ID` ค่าเดิมตอนสร้างงาน
-  และทุกครั้งที่เรียกดู จัดการ หรือรับไฟล์ เว็บแอปจะจัดเก็บและใช้ ID นี้ซ้ำ
-- หากไม่ส่ง Header ดังกล่าว คำขอ `POST /downloads` แบบไม่ล็อกอินยังสร้าง ID ผู้เยี่ยมชม
-  ให้ใหม่ แต่ไม่ได้ส่ง ID นั้นกลับมาใน Response ทำให้เรียกดูงานดังกล่าวภายหลังไม่ได้
+- การวิเคราะห์ สร้างงาน และ resume ต้องใช้ Supabase Bearer token ที่ตรวจแล้ว
+- งานใหม่ผูกกับบัญชีที่ตรวจแล้ว Header ผู้เยี่ยมชมใช้สร้างงานไม่ได้
+- งานผู้เยี่ยมชมเดิมยังเรียกดู หยุด ยกเลิก ลบ และรับไฟล์ได้เมื่อส่ง
+  `X-Guest-Session-ID` ของเจ้าของงาน แต่ resume โดยไม่ล็อกอินไม่ได้
 - `GET /downloads` และ `DELETE /account` ต้องใช้ Supabase access token ใน
   `Authorization: Bearer <token>`
 - คำสั่งกับงานแต่ละรายการและการขอ download token ใช้ได้ทั้ง Bearer token
@@ -25,9 +24,63 @@ URL ต้นทางของงานจะถูกเข้ารหัส�
 values ออก การวิเคราะห์และดาวน์โหลดส่งผ่าน public-IP egress proxy ตามที่ระบุใน
 [Security and Policy](SECURITY_AND_POLICY.md)
 
+## Route ยืนยันตัวตนของเว็บ
+
+Route เหล่านี้อยู่บน Next.js web origin ไม่ใช่ FastAPI base API
+Supabase Auth จัดการบัญชีและ session คำขอ FastAPI ของผู้ใช้ที่ล็อกอินยังส่ง
+access token ของ Supabase
+
+เมื่อวาง URL ที่ถูกต้อง หน้าสาธารณะเปิดฟอร์มเข้าสู่ระบบใน modal ทันทีโดยไม่มีกล่องถามขั้นแรก
+ปุ่มเข้าสู่ระบบบนแถบด้านบนเปิด modal ตัวเดียวกันได้แม้ยังไม่มีลิงก์ และรักษาลิงก์ที่รอวิเคราะห์ไว้
+บนมือถือฟอร์มแสดงเต็มหน้าจอ รวมถึงแนวนอน ส่วนจอใหญ่ใช้ modal ตรงกลาง
+ผู้ใช้เลื่อนฟอร์มได้โดยปุ่มปิดยังอยู่มุมเดิม และเว้นพื้นที่ขอบจอตาม safe area
+ฟอร์มเข้าสู่ระบบ สมัครสมาชิก และขออีเมลกู้รหัสผ่านเปิดใน modal เดียวกัน
+โดยไม่ออกจากหน้าแรก Route ยืนยันตัวตนเดิมยังใช้กับ callback และการเปิดโดยตรงได้
+ผู้ใช้ปิดกล่องได้ การวางหรือปิดกล่องยังไม่วิเคราะห์หรือเปลี่ยนหน้า ระบบจำลิงก์
+ใน session storage ของแท็บเดิม แม้ล็อกอินล้มเหลว โหลดหน้าใหม่ เปลี่ยนไปสมัคร
+หรือใช้ OAuth เมื่อล็อกอินแล้ว dashboard จะนำลิงก์มาวิเคราะห์ โดยไม่ใส่ URL
+ต้นทางใน query ของ redirect ผู้ใช้เลือกไฟล์แล้วกดปุ่มเดียว
+“ยืนยันสิทธิ์และดาวน์โหลด” เพื่อยืนยันสิทธิ์และสร้างงาน ไม่มี checkbox ยืนยันสิทธิ์แยก
+
+| Route | การทำงาน |
+| --- | --- |
+| `/auth/login` | เข้าสู่ระบบด้วย email/password หรือ Google |
+| `/auth/register` | สมัครด้วย email/password หรือ Google; ชื่อที่แสดงเป็น metadata `full_name` ไม่ใช่ username สำหรับล็อกอิน |
+| `/auth/forgot-password` | ขออีเมลกู้รหัสผ่านและแสดงข้อความยืนยันแบบกลางเหมือนกัน แม้ provider ล้มเหลว |
+| `/auth/reset-password` | ต้องมี authenticated session ที่ตรวจแล้ว เปลี่ยนรหัสผ่าน แล้ว global sign-out และเปิด `/auth/login?reset=success` |
+| `GET /auth/callback` | แลก authorization code เป็น session แล้ว redirect ไปปลายทางที่อนุญาต |
+| `POST /auth/signout` | เรียก Supabase sign-out; สำเร็จตอบ `303` ไป `/` หาก provider ล้มเหลวตอบ `503` พร้อม error code ที่ปลอดภัย |
+
+สมัครแล้วได้ session จะเปิด `/dashboard` หากต้องยืนยันอีเมลจะแจ้งให้ตรวจอีเมล
+โดยใช้ database trigger เดิมสร้าง profile อีเมลกู้รหัสผ่านกลับผ่าน
+`/auth/callback?next=/auth/reset-password` และต้องเปิดใน browser ที่ขอกู้รหัสผ่าน
+เพื่อใช้ PKCE หากเปลี่ยนรหัสผ่านสำเร็จแต่ global sign-out ล้มเหลว การลองใหม่
+จะสั่ง sign-out เท่านั้น
+การสมัครด้วยอีเมลจะเก็บภาษาที่เลือกใน user metadata ชื่อ `language` เมื่อ
+password sign-in หรือ callback สำเร็จ ระบบ sync ค่านี้จาก cookie
+`media-loader-locale` และใช้ภาษาไทยเมื่อ cookie ไม่มีหรือค่าไม่ถูกต้อง redirect
+สำหรับกู้รหัสผ่านไม่มี locale query parameter และแอปไม่ได้เลือกภาษาให้แม่แบบอีเมล
+ที่โฮสต์ใน Supabase
+
+ค่า `next` ของ callback ต้องเป็น same-origin ที่มี pathname เป็น `/dashboard`,
+`/history`, `/settings`, `/downloads` หรือ `/auth/reset-password` ระบบตัด query
+และ fragment ออก หากปลายทางไม่ผ่านจะใช้ `/dashboard` เมื่อ callback ล้มเหลว
+จะ redirect พร้อม error code ที่ปลอดภัยไปหน้าล็อกอินหรือกู้รหัสผ่าน
+
+Middleware ป้องกัน `/dashboard`, `/history`, `/downloads` และ `/settings`
+โดยส่งผู้ที่ไม่ล็อกอินกลับ `/` ผู้ที่ล็อกอินแล้วเปิด `/`, `/auth/login`,
+`/auth/register` หรือ `/auth/forgot-password` จะไป `/dashboard` หน้ากู้รหัสผ่าน
+และ callback error ยังเข้าถึงได้ โดย redirect จะรักษา session cookies
+
+เปิด Email/Password และ Google ใน Supabase dashboard และเพิ่ม URL ของ web origin
+`/auth/callback` กับ `/auth/callback?next=/auth/reset-password` ให้ตรงใน allowlist
+(เช่น `http://localhost:3000/auth/callback` และ
+`http://localhost:3000/auth/callback?next=/auth/reset-password`) ต้องตั้งค่าแต่ละ
+origin ที่ deploy ผ่าน dashboard ด้วยตนเอง
+
 ## รูปแบบ JSON response
 
-Endpoint ที่ตอบกลับเป็น JSON ใช้โครงสร้างนี้
+FastAPI endpoint ที่ตอบกลับเป็น JSON ใช้โครงสร้างนี้
 
 ```json
 {
@@ -57,13 +110,13 @@ Endpoint ที่ตอบกลับเป็น JSON ใช้โครง�
 | Method และ Path | การเข้าถึง |
 | --- | --- |
 | `GET /health` | สาธารณะ |
-| `POST /media/analyze` | ไม่ล็อกอินหรือใช้ Bearer token |
-| `POST /downloads` | ไม่ล็อกอินหรือใช้ Bearer token; ควรส่ง `X-Guest-Session-ID` สำหรับงานผู้เยี่ยมชม |
+| `POST /media/analyze` | ต้องใช้ Bearer token |
+| `POST /downloads` | ต้องใช้ Bearer token |
 | `GET /downloads` | ต้องใช้ Bearer token |
 | `GET /downloads/{job_id}` | Bearer token หรือ guest session ของเจ้าของงาน |
 | `POST /downloads/{job_id}/cancel` | Bearer token หรือ guest session ของเจ้าของงาน |
 | `POST /downloads/{job_id}/pause` | Bearer token หรือ guest session ของเจ้าของงาน |
-| `POST /downloads/{job_id}/resume` | Bearer token หรือ guest session ของเจ้าของงาน |
+| `POST /downloads/{job_id}/resume` | ต้องใช้ Bearer token |
 | `DELETE /downloads/{job_id}` | Bearer token หรือ guest session ของเจ้าของงาน |
 | `GET /files/token/{job_id}` | Bearer token หรือ guest session ของเจ้าของงาน |
 | `GET /files/download/{job_id}` | Download token, Bearer token หรือ guest session ของเจ้าของงาน |
@@ -94,8 +147,8 @@ Endpoint ตรวจสอบสถานะระบบแบบสาธา�
 ### POST `/media/analyze`
 
 ตรวจสอบ URL และวิเคราะห์สื่อก่อนสร้างงาน API จะตรวจนโยบายและความปลอดภัยของ URL
-ก่อนดึงข้อมูลเมตากับรูปแบบไฟล์ที่มีให้เลือก Endpoint นี้ไม่บังคับล็อกอิน
-หากมีผู้ใช้เข้าสู่ระบบ ระบบจะผูกบันทึกการตัดสินนโยบายกับบัญชีนั้น
+ก่อนดึงข้อมูลเมตากับรูปแบบไฟล์ที่มีให้เลือก ต้องยืนยันตัวตนก่อนตรวจ policy
+หรือดึงข้อมูล และผูกบันทึกการตัดสินนโยบายกับบัญชีนั้น
 
 Request:
 
@@ -190,8 +243,8 @@ Request:
 `rights_confirmed` ไม่เป็น `true` ระบบรับ output แบบ GIF เฉพาะเมื่อการวิเคราะห์
 ระบุว่าต้นทางเป็นสื่อ animated GIF และ format ต้นทางต้องเข้ากันได้กับ output ที่เลือก
 
-เมื่อสำเร็จ Response จะมี ID งานและสถานะ `QUEUED` ผู้เยี่ยมชมควรส่ง
-`X-Guest-Session-ID` เพื่อให้เรียกดูงานเดิมได้ภายหลัง
+เมื่อสำเร็จ Response จะมี ID งานและสถานะ `QUEUED` งานผูกกับบัญชีที่ตรวจแล้ว
+โดยไม่ใช้ Header ผู้เยี่ยมชมที่ส่งมาเป็นเจ้าของงาน
 
 ### GET `/downloads`
 

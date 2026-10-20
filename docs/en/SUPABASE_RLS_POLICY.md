@@ -21,9 +21,9 @@ make those changes in the Drizzle schema.
 Signed-in users may read only rows that belong to their account. Policies use
 `auth.uid() = user_id` for user-owned rows or `auth.uid() = id` for profiles.
 
-Guest jobs have no Supabase user ID. The API scopes those jobs by
-`guest_session_id`; browser clients do not query guest jobs directly through
-Supabase.
+Legacy guest jobs have no Supabase user ID. The API scopes those records by
+`guest_session_id`; new job creation requires a signed-in account. Browser
+clients do not query guest jobs directly through Supabase.
 
 The current application schema has three public tables: `profiles`,
 `download_jobs`, and `policy_logs`. Analyzed formats are API response data.

@@ -31,8 +31,8 @@
   origin ที่ปลอดภัยโดยไม่บันทึก URL ที่ส่งมา
 - เส้นทาง Giphy GIF โดยตรงยังตรวจว่า URL สุดท้ายอยู่บน Giphy และเป็น path ของ GIF
   และ egress proxy จะตรวจทุกปลายทางเครือข่ายด้วย
-- Guest session ID และ file token อายุสั้นใช้เข้าถึงงานหรือไฟล์ของ Guest ได้
-  ให้เก็บเป็น credentials
+- Guest session ID รุ่นเดิมและ file token อายุสั้นใช้เข้าถึงงานหรือไฟล์ guest ได้
+  ให้เก็บเป็น credentials งานใหม่ต้องใช้บัญชีที่เข้าสู่ระบบ
 - โหมดจัดเก็บปัจจุบันคือ `local_temp` ยังไม่ได้พัฒนาการจัดเก็บและส่งไฟล์ผ่าน
   Supabase Storage ให้ครบ
 

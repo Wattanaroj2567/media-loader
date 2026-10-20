@@ -66,13 +66,70 @@ This keeps heavy processing out of Vercel Functions and Supabase Edge Functions.
 
 ## Request flow
 
-### Login
+### Authentication
 
 ```text
 User → Next.js → Supabase Auth → Dashboard
 ```
 
 Signed-in API requests use the current Supabase access token.
+
+Supabase Auth remains the authority for accounts and sessions. The web app offers
+email/password login at `/auth/login` and registration at `/auth/register`.
+Registration accepts an optional display name stored as `full_name` metadata;
+it is not a username credential. Email signup stores the selected interface
+language as `language` user metadata. When changed, the interface language is
+persisted in localStorage and a one-year cookie. Successful password sign-in and auth
+callback exchanges sync the account preference from that cookie, defaulting to
+Thai when it is missing or invalid. The existing database trigger creates the
+user profile. A signup with a session opens `/dashboard`; when email confirmation
+is required, the page asks the user to check their email first.
+
+Google sign-in is available on both pages. Google and email callbacks return to
+`/auth/callback`, which exchanges the authorization code for a Supabase session.
+The callback accepts a same-origin `next` destination only for `/dashboard`,
+`/history`, `/settings`, `/downloads`, or `/auth/reset-password`, strips its query
+and fragment, and otherwise falls back to `/dashboard`. Callback failures show a
+safe error on the login or recovery page.
+
+### Password recovery and sign-out
+
+`/auth/forgot-password` requests a recovery email and always shows the same
+neutral confirmation, including when the provider fails. The email link returns
+through `/auth/callback?next=/auth/reset-password`. Open it in the browser that
+requested recovery so the PKCE exchange can use that browser's verifier. The
+recovery redirect includes only `next=/auth/reset-password`; it does not pass a
+locale query parameter. The app does not select a language for the hosted
+Supabase email template.
+
+`/auth/reset-password` requires a verified authenticated session before updating
+the password. After the update, the app signs out globally and opens
+`/auth/login?reset=success` with a full navigation. If sign-out fails after the
+password was changed, retry signs out again without repeating the password update.
+
+`POST /auth/signout` always asks Supabase to sign out. It redirects to `/` with
+status `303` on success; a provider failure returns `503` with a safe error code
+and does not report a successful logout.
+
+### Page access and provider setup
+
+Middleware redirects anonymous visitors from `/dashboard`, `/history`,
+`/downloads`, and `/settings` to `/`. Signed-in visitors to `/`, `/auth/login`,
+`/auth/register`, and `/auth/forgot-password` go to `/dashboard`. Recovery remains
+accessible and callback errors remain visible. Session cookies are preserved on
+middleware redirects.
+
+In the Supabase dashboard, enable the Email/Password and Google providers and
+allowlist these exact redirect URLs for each web origin (replace the example
+origin with the deployed origin):
+
+- `http://localhost:3000/auth/callback`
+- `http://localhost:3000/auth/callback?next=/auth/reset-password`
+
+Provider setup is a manual dashboard prerequisite. The public flow is paste,
+explicit sign-in action, authentication, restored link, analysis, format selection,
+rights confirmation button, and queue creation. Same-tab session storage preserves the link
+without placing it in authentication redirect query parameters.
 
 ### Analyze URL
 
@@ -90,8 +147,8 @@ FastAPI extracts source metadata and available formats when allowed
 FastAPI returns the analysis result
 ```
 
-Analysis is available to guests and signed-in users. Policy decisions are
-associated with the signed-in user when a valid session is present.
+Analysis requires a verified account before policy processing or source requests.
+Policy decisions are associated with that account.
 
 ### Create job
 
@@ -107,8 +164,8 @@ FastAPI encrypts the source URL and creates a QUEUED row with the target worker 
 A worker in that pool claims the job
 ```
 
-Signed-in jobs are scoped to the user's ID. Guest jobs use
-`X-Guest-Session-ID`. In local-temp mode, queue affinity prevents a worker from
+New jobs are scoped to the verified user's ID. Legacy guest jobs retain
+owner-checked access but cannot resume anonymously. In local-temp mode, queue affinity prevents a worker from
 claiming a job when it cannot share its filesystem with the API.
 
 ### Process job
@@ -126,8 +183,8 @@ Worker updates job status and progress
 ### Deliver file
 
 For signed-in users, the desktop download route authenticates with the
-Next.js session cookie and streams the FastAPI response. Guest flows can request
-a short-lived download token and use it to stream their own completed file.
+Next.js session cookie and streams the FastAPI response. Legacy guest jobs can
+request a short-lived download token and use it to stream their own completed file.
 
 A successful download does not immediately delete the output. The worker's
 retention cleanup removes expired files after the configured period, which
@@ -151,7 +208,7 @@ users.
 
 - URL validation and policy decisions
 - Metadata analysis and available format responses
-- User- or guest-scoped job creation and actions
+- Account-owned job creation and owner-checked legacy guest job actions
 - Owner-checked streaming and cleanup of local files
 - Account deletion
 - Encrypts source URLs before storing jobs and uses the checked egress proxy
@@ -182,7 +239,7 @@ related job metadata are stored on `download_jobs`; there is no separate
 
 ## Data ownership
 
-Signed-in job rows are scoped to `user_id`. Guest jobs have a nullable
+New job rows are scoped to `user_id`. Legacy guest jobs have a nullable
 `user_id` and are scoped by `guest_session_id` through the API. Browser clients
 cannot mutate server-managed queue or policy-log rows directly; FastAPI and the
 worker perform trusted writes.
@@ -212,6 +269,7 @@ to `QUEUED` and is picked up by a worker in its target pool.
 - Require rights confirmation when creating a job.
 - Keep media processing in the worker, outside Vercel Functions.
 - Keep the API and worker on the same shared output volume in local-temp mode.
-- Scope every job and file operation to its signed-in owner or guest session.
+- Scope every new job and file operation to its signed-in owner; retain
+  owner-checked access for legacy guest sessions.
 - Do not expose service-role keys to browser code.
 - Keep output in `local_temp`; complete cloud object storage and delivery are not implemented.
