@@ -5,7 +5,7 @@ import os from "os";
 
 // Load monorepo root .env.local manually to populate process.env in the monorepo context
 const rootEnvPath = path.resolve(__dirname, "../../.env.local");
-if (fs.existsSync(rootEnvPath)) {
+if (process.env.MEDIA_LOADER_SKIP_ENV_FILES !== "1" && fs.existsSync(rootEnvPath)) {
   const content = fs.readFileSync(rootEnvPath, "utf8");
   for (const line of content.split("\n")) {
     const trimmed = line.trim();

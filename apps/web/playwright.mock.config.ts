@@ -27,13 +27,13 @@ export default defineConfig({
     {
       command: "node e2e/support/mock-supabase-server.mjs",
       url: "http://localhost:9999/auth/v1/health",
-      reuseExistingServer: true,
+      reuseExistingServer: false,
       timeout: 30000,
     },
     {
       command: "node e2e/support/start-mock-dev.mjs",
       url: "http://localhost:3100",
-      reuseExistingServer: true,
+      reuseExistingServer: false,
       timeout: 180000,
     },
   ],

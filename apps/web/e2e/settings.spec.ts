@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { mockEmptyJobs } from "./support/mock-empty-jobs";
 
 const APP_ORIGIN = "http://localhost:3100";
 const SESSION_COOKIE = "sb-localhost-auth-token";
@@ -44,6 +45,10 @@ async function seedAuth(context: {
 }
 
 test.describe("Account Settings Page UI", () => {
+  test.beforeEach(async ({ page }) => {
+    await mockEmptyJobs(page);
+  });
+
   test("Google OAuth badge meets WCAG AA text contrast", async ({ page, context }) => {
     await seedAuth(context);
     await page.emulateMedia({ colorScheme: "dark" });
