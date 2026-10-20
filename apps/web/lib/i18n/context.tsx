@@ -9,15 +9,15 @@ import {
   ReactNode,
 } from "react";
 import { Locale, defaultLocale } from "./config";
-import thMessages from "./messages/th.json";
-import enMessages from "./messages/en.json";
 
 type Messages = Record<string, string>;
 
-const staticMessages: Record<Locale, Messages> = {
-  th: thMessages as Messages,
-  en: enMessages as Messages,
+const loadMessages: Record<Locale, () => Promise<Messages>> = {
+  th: async () => (await import("./messages/th.json")).default as Messages,
+  en: async () => (await import("./messages/en.json")).default as Messages,
 };
+
+const emptyMessages: Messages = {};
 
 function translate(
   messages: Messages,
@@ -46,19 +46,21 @@ interface I18nContextValue {
 const I18nContext = createContext<I18nContextValue>({
   locale: defaultLocale,
   setLocale: () => {},
-  t: (key, vars, fallback) =>
-    translate(staticMessages[defaultLocale], key, vars, fallback),
+  t: (key, vars, fallback) => translate(emptyMessages, key, vars, fallback),
   loaded: true,
 });
 
 export function I18nProvider({
   children,
   initialLocale = defaultLocale,
+  initialMessages,
 }: {
   children: ReactNode;
   initialLocale?: Locale;
+  initialMessages: Messages;
 }) {
   const [locale, setLocaleState] = useState<Locale>(initialLocale);
+  const [messages, setMessages] = useState<Messages>(initialMessages);
 
   useEffect(() => {
     document.documentElement.lang = locale;
@@ -66,6 +68,7 @@ export function I18nProvider({
 
   const setLocale = useCallback((l: Locale) => {
     setLocaleState(l);
+    void loadMessages[l]().then(setMessages);
     localStorage.setItem("media-loader-locale", l);
     // Write cookie so the server knows the locale on next page loads / refreshes
     document.cookie = `media-loader-locale=${l}; path=/; max-age=31536000; SameSite=Lax`;
@@ -95,14 +98,9 @@ export function I18nProvider({
       vars?: Record<string, string | number>,
       fallback?: string
     ): string => {
-      return translate(
-        staticMessages[locale] || staticMessages[defaultLocale],
-        key,
-        vars,
-        fallback
-      );
+      return translate(messages, key, vars, fallback);
     },
-    [locale]
+    [messages]
   );
 
   return (

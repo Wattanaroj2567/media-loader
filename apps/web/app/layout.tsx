@@ -6,6 +6,8 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { cookies, headers } from "next/headers";
 import { detectLocaleFromAcceptLanguage, isLocale } from "@/lib/i18n/config";
 import { BrowserSafetyGuard } from "@/components/browser-safety-guard";
+import thMessages from "@/lib/i18n/messages/th.json";
+import enMessages from "@/lib/i18n/messages/en.json";
 import "./globals.css";
 
 const ibmPlexSansThai = IBM_Plex_Sans_Thai({
@@ -35,6 +37,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const initialLocale = isLocale(localeCookie)
     ? localeCookie
     : detectLocaleFromAcceptLanguage(requestHeaders.get("accept-language"));
+  const initialMessages = initialLocale === "th" ? thMessages : enMessages;
 
   return (
     <html
@@ -49,7 +52,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           enableSystem
           disableTransitionOnChange
         >
-          <I18nProvider initialLocale={initialLocale}>
+          <I18nProvider initialLocale={initialLocale} initialMessages={initialMessages}>
             <ToastProvider>
               <BrowserSafetyGuard />
               {children}
