@@ -24,8 +24,8 @@ supabase/rls_policies.sql    → นโยบาย Row Level Security
 `guest_session_id` การสร้างงานใหม่ต้องเข้าสู่ระบบ และเว็บเบราว์เซอร์ไม่อ่านงาน
 guest ผ่าน Supabase โดยตรง
 
-schema ปัจจุบันมีตาราง public สามตาราง ได้แก่ `profiles`, `download_jobs`
-และ `policy_logs` รายการ format ที่วิเคราะห์ได้เป็นข้อมูลใน API response
+schema ปัจจุบันมีตาราง public สี่ตาราง ได้แก่ `profiles`, `download_jobs`,
+`policy_logs` และ `push_subscriptions` รายการ format ที่วิเคราะห์ได้เป็นข้อมูลใน API response
 ส่วน format ที่เลือกและ metadata ของงานจัดเก็บใน `download_jobs` ไม่มีตาราง
 `media_formats` แยกต่างหาก
 
@@ -35,6 +35,7 @@ schema ปัจจุบันมีตาราง public สามตาร�
 profiles
 download_jobs
 policy_logs
+push_subscriptions
 ```
 
 ต้องเปิด RLS บนทุกตารางในรายการ
@@ -55,8 +56,9 @@ with check (auth.uid() = id)
 ```
 
 Browser client อ่านได้เฉพาะแถว `download_jobs` และ `policy_logs` ของตน
-แต่ไม่มี policy สำหรับ insert, update หรือ delete ตารางเหล่านี้ถูกจัดการ
-จากฝั่ง server FastAPI และ Worker เขียนข้อมูลหลังตรวจนโยบายและเจ้าของงานแล้ว
+และไม่มีสิทธิ์เข้าถึง `push_subscriptions` เพราะ endpoint และ key เป็น
+credential ส่วนตัว FastAPI บันทึกหรือลบ subscription หลังยืนยันบัญชี ส่วน
+Worker อ่านด้วย service role เพื่อส่งการแจ้งเตือน
 
 ## Service-role key
 

@@ -25,8 +25,8 @@ Legacy guest jobs have no Supabase user ID. The API scopes those records by
 `guest_session_id`; new job creation requires a signed-in account. Browser
 clients do not query guest jobs directly through Supabase.
 
-The current application schema has three public tables: `profiles`,
-`download_jobs`, and `policy_logs`. Analyzed formats are API response data.
+The current application schema has four public tables: `profiles`,
+`download_jobs`, `policy_logs`, and `push_subscriptions`. Analyzed formats are API response data.
 The selected format and related metadata are stored on `download_jobs`; there
 is no separate `media_formats` table.
 
@@ -36,6 +36,7 @@ is no separate `media_formats` table.
 profiles
 download_jobs
 policy_logs
+push_subscriptions
 ```
 
 Enable RLS on each table.
@@ -56,9 +57,10 @@ with check (auth.uid() = id)
 ```
 
 Browser clients may read only their own `download_jobs` and `policy_logs` rows.
-They have no direct insert, update, or delete policies for these server-managed
-tables. FastAPI and the worker perform trusted writes after policy and ownership
-checks.
+They have no direct access to `push_subscriptions`, because its endpoint and
+keys are private push credentials. FastAPI stores or deletes subscriptions
+after authenticating the account, and the worker reads them using the service
+role to send notifications.
 
 ## Service-role key
 

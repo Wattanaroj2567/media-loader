@@ -122,6 +122,9 @@ FastAPI endpoint ที่ตอบกลับเป็น JSON ใช้โค
 | `GET /files/download/{job_id}` | Download token, Bearer token หรือ guest session ของเจ้าของงาน |
 | `DELETE /files/delete/{job_id}` | Bearer token หรือ guest session ของเจ้าของงาน |
 | `DELETE /account` | ต้องใช้ Bearer token |
+| `GET /notifications/vapid-public-key` | ต้องใช้ Bearer token |
+| `POST /notifications/subscriptions` | ต้องใช้ Bearer token |
+| `DELETE /notifications/subscriptions` | ต้องใช้ Bearer token |
 
 ### GET `/health`
 
@@ -334,3 +337,29 @@ retention ซึ่งค่าเริ่มต้นคือ 60 นาที
 
 ลบบัญชี Media Loader ของผู้ใช้ที่เข้าสู่ระบบ API จะลบไฟล์ชั่วคราวของผู้ใช้
 และลบบัญชี Supabase Auth ต้องใช้ Bearer token
+
+### Web Push subscriptions
+
+`GET /notifications/vapid-public-key` ส่ง public application server key ให้
+Push API ของเบราว์เซอร์ หากยังไม่ได้ตั้ง `VAPID_PUBLIC_KEY` จะตอบ `503
+PUSH_NOT_CONFIGURED`
+
+`POST /notifications/subscriptions` บันทึกหรืออัปเดต subscription ของบัญชีที่
+เข้าสู่ระบบ รับเฉพาะ endpoint แบบ HTTPS จากผู้ให้บริการ Push ที่รองรับ URL ของ
+endpoint และ subscription keys เป็นข้อมูลส่วนตัวและ API จะไม่ส่งค่ากลับ
+
+```json
+{
+  "endpoint": "https://fcm.googleapis.com/push/<subscription-token>",
+  "keys": {
+    "p256dh": "<browser-public-key>",
+    "auth": "<browser-auth-secret>"
+  },
+  "locale": "th"
+}
+```
+
+`DELETE /notifications/subscriptions` รับ endpoint ใน request body และลบเฉพาะ
+แถวของบัญชีที่ยืนยันตัวตนแล้ว Worker ส่งการแจ้งเตือนเมื่องานเปลี่ยนเป็น
+`COMPLETED`, `FAILED` หรือ `BLOCKED` และลบ endpoint ที่หมดอายุเมื่อได้รับ
+response `404` หรือ `410`

@@ -85,6 +85,16 @@ The proxy performs connection-time DNS validation and address pinning to prevent
 DNS rebinding. For non-Compose deployments, ensure the API and worker cannot
 make user-derived connections around their configured proxy.
 
+## Web Push delivery
+
+- Accept subscription endpoints only over HTTPS from the supported FCM, Mozilla,
+  Apple, and Windows push-service hostnames.
+- Re-check endpoints in the worker and send through the DNS-validating egress
+  proxy; never send to arbitrary user-provided hosts.
+- Keep subscription endpoints and browser keys in the server-managed,
+  RLS-protected `push_subscriptions` table. Never log or return them.
+- Keep the VAPID private key in API/worker secrets and out of browser bundles.
+
 ---
 
 ## Platform Policy

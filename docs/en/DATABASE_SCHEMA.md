@@ -87,6 +87,25 @@ Stores policy decisions for audit and debugging.
 
 ---
 
+## `push_subscriptions`
+
+Stores Web Push endpoints for signed-in accounts. The endpoint and encryption
+keys are private subscription credentials and are available only to trusted
+server services; browser clients do not query this table directly.
+
+| Column | Type | Notes |
+|---|---|---|
+| id | uuid | Primary key |
+| user_id | uuid | Owner; references `auth.users(id)` and cascades on account deletion |
+| endpoint | text | Unique push-service URL; never log or expose it |
+| p256dh | text | Browser subscription public key; server managed |
+| auth | text | Browser subscription authentication secret; server managed |
+| locale | text | `th` or `en` notification language |
+| created_at | timestamptz | Created timestamp |
+| updated_at | timestamptz | Last subscription update |
+
+---
+
 ## Dual-Layer Database Strategy
 
 Always follow this dual-layer strategy for database operations:
