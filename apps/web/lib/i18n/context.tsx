@@ -6,6 +6,7 @@ import {
   useState,
   useEffect,
   useCallback,
+  useRef,
   ReactNode,
 } from "react";
 import { Locale, defaultLocale } from "./config";
@@ -61,6 +62,7 @@ export function I18nProvider({
 }) {
   const [locale, setLocaleState] = useState<Locale>(initialLocale);
   const [messages, setMessages] = useState<Messages>(initialMessages);
+  const messageLoadId = useRef(0);
 
   useEffect(() => {
     document.documentElement.lang = locale;
@@ -68,7 +70,10 @@ export function I18nProvider({
 
   const setLocale = useCallback((l: Locale) => {
     setLocaleState(l);
-    void loadMessages[l]().then(setMessages);
+    const loadId = ++messageLoadId.current;
+    void loadMessages[l]().then((nextMessages) => {
+      if (messageLoadId.current === loadId) setMessages(nextMessages);
+    });
     localStorage.setItem("media-loader-locale", l);
     // Write cookie so the server knows the locale on next page loads / refreshes
     document.cookie = `media-loader-locale=${l}; path=/; max-age=31536000; SameSite=Lax`;
