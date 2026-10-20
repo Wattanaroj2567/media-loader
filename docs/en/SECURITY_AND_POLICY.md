@@ -32,8 +32,8 @@ The system must never become an unrestricted downloader.
   safe source origin without recording the submitted URL.
 - The direct Giphy GIF path still checks that the final URL remains on Giphy
   and has a GIF path; the egress proxy also checks every network destination.
-- Guest session IDs and short-lived file tokens grant access to a guest job or
-  file. Treat them as credentials.
+- Legacy guest session IDs and short-lived file tokens grant access to a guest
+  job or file. Treat them as credentials; new jobs require a signed-in account.
 - The default output mode is `local_temp`. Complete Supabase cloud-file storage
   and delivery are not implemented.
 

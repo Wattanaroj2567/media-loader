@@ -21,9 +21,9 @@
     "test:e2e:mock": "playwright test --config playwright.mock.config.ts",
     "test:e2e:ui": "playwright test --config playwright.config.ts --ui",
     "db:generate": "drizzle-kit generate",
-    "db:push": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio",
-    "db:pull": "drizzle-kit pull"
+    "db:push": "node --env-file-if-exists=../../.env.local ./node_modules/drizzle-kit/bin.cjs push",
+    "db:studio": "node --env-file-if-exists=../../.env.local ./node_modules/drizzle-kit/bin.cjs studio",
+    "db:pull": "node --env-file-if-exists=../../.env.local ./node_modules/drizzle-kit/bin.cjs pull"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
@@ -48,7 +48,6 @@
     "@types/node": "^26",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "dotenv": "^17.4.2",
     "drizzle-kit": "^0.31.10",
     "drizzle-orm": "^0.45.2",
     "eslint": "^9.39.4",

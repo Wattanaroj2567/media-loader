@@ -95,13 +95,13 @@ export function ConfirmDialog({
           <button
             type="button"
             onClick={onCancel}
-            className="h-11 w-full rounded-xl border border-border bg-bg-base/80 px-4 text-sm font-medium text-text-muted hover:bg-bg-surface hover:text-text sm:h-10 sm:w-auto cursor-pointer"
+            className="h-11 w-full rounded-lg border border-border bg-bg-base/80 px-4 text-sm font-medium text-text-muted hover:bg-bg-surface hover:text-text sm:h-10 sm:w-auto cursor-pointer"
           >
             {cancelText}
           </button>
           <Button
             onClick={onConfirm}
-            className={`h-11 w-full rounded-xl px-4 text-sm font-medium sm:h-10 sm:w-auto ${confirmBtnClass}`}
+            className={`h-11 w-full rounded-lg px-4 text-sm font-medium sm:h-10 sm:w-auto ${confirmBtnClass}`}
           >
             {confirmText}
           </Button>

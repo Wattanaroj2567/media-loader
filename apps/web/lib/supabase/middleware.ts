@@ -16,9 +16,11 @@ export async function updateSession(request: NextRequest) {
         },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
+          const previousCookies = supabaseResponse.cookies.getAll();
           supabaseResponse = NextResponse.next({
             request,
           });
+          previousCookies.forEach((cookie) => supabaseResponse.cookies.set(cookie));
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options)
           );
@@ -33,6 +35,14 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const path = request.nextUrl.pathname;
+  const redirectWithCookies = (pathname: string) => {
+    const url = request.nextUrl.clone();
+    url.pathname = pathname;
+    url.search = "";
+    const response = NextResponse.redirect(url);
+    supabaseResponse.cookies.getAll().forEach((cookie) => response.cookies.set(cookie));
+    return response;
+  };
   const isProtectedRoute =
     path.startsWith("/dashboard") ||
     path.startsWith("/history") ||
@@ -41,16 +51,19 @@ export async function updateSession(request: NextRequest) {
 
   // If trying to access a protected route and not logged in, redirect to landing page
   if (isProtectedRoute && !user) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/";
-    return NextResponse.redirect(url);
+    return redirectWithCookies("/");
   }
 
-  // If logged in and trying to access landing page, redirect to dashboard
-  if (path === "/" && user) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/dashboard";
-    return NextResponse.redirect(url);
+  // Keep callback failures visible even when an earlier session remains active.
+  const isAuthEntry = [
+    "/",
+    "/auth/login",
+    "/auth/register",
+    "/auth/forgot-password",
+  ].includes(path);
+  const hasCallbackError = request.nextUrl.searchParams.get("error") === "callback";
+  if (isAuthEntry && user && !hasCallbackError) {
+    return redirectWithCookies("/dashboard");
   }
 
   return supabaseResponse;

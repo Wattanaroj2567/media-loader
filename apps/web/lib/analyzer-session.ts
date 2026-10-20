@@ -11,3 +11,21 @@ export function consumeRequestedMediaAnalysis() {
   sessionStorage.removeItem(REQUESTED_ANALYSIS_URL_KEY);
   return url;
 }
+
+export function peekRequestedMediaAnalysis() {
+  if (typeof window === "undefined") return null;
+  try {
+    return sessionStorage.getItem(REQUESTED_ANALYSIS_URL_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function clearRequestedMediaAnalysis() {
+  if (typeof window === "undefined") return;
+  try {
+    sessionStorage.removeItem(REQUESTED_ANALYSIS_URL_KEY);
+  } catch {
+    /* A missing intent cannot start analysis. */
+  }
+}

@@ -66,15 +66,15 @@ export function SaveFileDialog({
     total && total > 0 ? Math.min(100, Math.floor((received / total) * 100)) : null;
   const shareLabel = isIos
     ? t("file.shareActionIos", {}, "บันทึกลงรูปภาพ / แชร์")
-    : t("file.shareAction", {}, "แชร์ / บันทึกลงแอปรูปภาพ");
+    : t("file.shareAction", {}, "แชร์ไฟล์");
 
   const shareBtn = (primary: boolean) => (
     <Button
       type="button"
-      variant={primary || phase === "ready" ? "default" : "outline"}
+      variant={primary ? "default" : "outline"}
       onClick={onShare}
       disabled={phase === "downloading" || downloading}
-      className="h-12 w-full gap-2 rounded-xl text-sm font-semibold cursor-pointer"
+      className="h-12 w-full gap-2 rounded-lg text-sm font-semibold cursor-pointer"
     >
       {phase === "downloading" ? (
         <LoadingIndicator
@@ -106,10 +106,10 @@ export function SaveFileDialog({
   const downloadBtn = (primary: boolean) => (
     <Button
       type="button"
-      variant={primary && phase !== "ready" ? "default" : "outline"}
+      variant={primary ? "default" : "outline"}
       onClick={onDownload}
       disabled={downloading || phase === "downloading"}
-      className="h-12 w-full gap-2 rounded-xl text-sm font-semibold cursor-pointer"
+      className="h-12 w-full gap-2 rounded-lg text-sm font-semibold cursor-pointer"
     >
       {downloading ? (
         <LoadingIndicator
@@ -138,7 +138,11 @@ export function SaveFileDialog({
             {},
             "พักการโหลดไว้ระหว่างที่ออกจากหน้านี้ จะโหลดต่อจากเดิมเมื่อกลับมา"
           )
-        : t("file.transferReadyHint", {}, "ไฟล์พร้อมแล้ว แตะปุ่มด้านล่างเพื่อบันทึก");
+        : t(
+            "file.transferReadyHint",
+            {},
+            "ไฟล์พร้อมแล้ว เลือกวิธีบันทึกหรือแชร์ไฟล์ด้านล่าง"
+          );
 
   return createPortal(
     <div
@@ -172,7 +176,7 @@ export function SaveFileDialog({
             onClick={onDismiss}
             disabled={downloading}
             aria-label={t("common.close", {}, "ปิด")}
-            className="grid size-9 shrink-0 place-items-center rounded-xl border border-border bg-bg-base/80 text-text-muted transition-colors hover:bg-bg-surface hover:text-text disabled:opacity-50 cursor-pointer"
+            className="grid size-8 shrink-0 place-items-center rounded-lg bg-transparent text-text-muted transition-colors hover:bg-bg-surface hover:text-text outline-none focus-visible:outline-2 focus-visible:outline-primary disabled:opacity-50 cursor-pointer"
           >
             <X className="size-4" />
           </button>

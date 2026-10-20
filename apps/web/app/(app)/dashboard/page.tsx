@@ -26,7 +26,7 @@ export default function DashboardPage() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2 text-[11px] font-medium text-text-muted">
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">
+          <span className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1.5 text-emerald-700 dark:text-emerald-300">
             <ShieldCheck aria-hidden="true" className="size-3.5" />
             {t("download.autoCheck", {}, "ตรวจสอบลิงก์อัตโนมัติ")}
           </span>

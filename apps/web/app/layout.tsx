@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Sans_Thai } from "next/font/google";
+import { IBM_Plex_Sans_Thai, Inter } from "next/font/google";
 import { I18nProvider } from "@/lib/i18n/context";
 import { ToastProvider } from "@/components/toast";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -12,6 +12,11 @@ const ibmPlexSansThai = IBM_Plex_Sans_Thai({
   variable: "--font-ibm-plex-sans-thai",
   weight: ["400", "500", "600", "700"],
   subsets: ["latin", "thai"],
+  display: "swap",
+});
+const inter = Inter({
+  variable: "--font-inter",
+  subsets: ["latin"],
   display: "swap",
 });
 
@@ -32,8 +37,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     : detectLocaleFromAcceptLanguage(requestHeaders.get("accept-language"));
 
   return (
-    <html lang={initialLocale} suppressHydrationWarning>
-      <body className={ibmPlexSansThai.variable} suppressHydrationWarning>
+    <html
+      lang={initialLocale}
+      className={`${ibmPlexSansThai.variable} ${inter.variable}`}
+      suppressHydrationWarning
+    >
+      <body suppressHydrationWarning>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

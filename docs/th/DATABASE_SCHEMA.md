@@ -30,8 +30,8 @@ Supabase PostgreSQL เป็นฐานข้อมูลหลักของ
 | คอลัมน์ (Column) | ประเภท (Type) | คำอธิบาย (Notes) |
 |---|---|---|
 | `id` | uuid | Primary key (ID งาน) |
-| `user_id` | uuid | เจ้าของคิวงาน (nullable สำหรับผู้ใช้ทั่วไปที่ไม่ได้ล็อกอิน) |
-| `guest_session_id` | text | Session ID ชั่วคราวของ Guest สำหรับติดตามความคืบหน้างานโดยไม่ต้องล็อกอิน |
+| `user_id` | uuid | เจ้าของงาน; เป็นค่าว่างได้เฉพาะงาน guest รุ่นเดิม |
+| `guest_session_id` | text | ID ชั่วคราวสำหรับตรวจเจ้าของงาน guest รุ่นเดิม; งานใหม่ต้องใช้บัญชี |
 | `original_url` | text | URL ต้นทางที่เข้ารหัสด้วย Fernet ระหว่างประมวลผลงาน; API และ Worker ใช้ `MEDIA_URL_ENCRYPTION_KEY` ค่าเดียวกัน |
 | `platform` | text | แพลตฟอร์ม (direct, youtube, tiktok ฯลฯ) |
 | `title` | text | ชื่อเรื่อง/หัวข้อสื่อ |
@@ -76,7 +76,7 @@ URL ให้เจ้าของงานที่มีสิทธิ์ แ
 | คอลัมน์ (Column) | ประเภท (Type) | คำอธิบาย (Notes) |
 |---|---|---|
 | `id` | uuid | Primary key |
-| `user_id` | uuid | ผู้ใช้งานที่ส่งคำขอ (nullable สำหรับ guest) |
+| `user_id` | uuid | บัญชีของผู้ส่งคำขอ; ข้อมูล guest รุ่นเดิมอาจเป็นค่าว่าง |
 | `url` | text | Source origin ที่ปกปิดแล้ว; ตัด path, query, fragment และ embedded credentials ออก |
 | `platform` | text | แพลตฟอร์มที่ตรวจพบ (direct, youtube, tiktok ฯลฯ) |
 | `decision` | text | ผลการตัดสิน (allowed, blocked, needs_confirmation) |

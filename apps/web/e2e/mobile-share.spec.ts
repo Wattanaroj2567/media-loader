@@ -252,6 +252,23 @@ async function mockApi(
     }
     return route.fulfill(fileDownloadResponse());
   });
+  await page.route("**/files/token/**", (route) => {
+    if (route.request().method() === "OPTIONS") {
+      return route.fulfill({ status: 204, headers: CORS_HEADERS });
+    }
+    return route.fulfill(
+      jsonResponse({
+        ok: true,
+        data: {
+          job_id: JOB_ID,
+          download_token: "mock-download-token",
+          download_url: `/files/download/${JOB_ID}?token=mock-download-token`,
+          expires_in: 300,
+        },
+        error: null,
+      })
+    );
+  });
 }
 
 function fileDownloadResponse() {
@@ -434,11 +451,12 @@ test("history selection controls remain visible on mobile", async ({
     const checkboxRect = checkbox.getBoundingClientRect();
     const thumbnail = checkbox
       .closest("article")
-      ?.querySelector("div.aspect-video")
+      ?.querySelector("div.overflow-hidden.rounded-xl")
       ?.getBoundingClientRect();
     return {
       checkboxCenterX: checkboxRect.left + checkboxRect.width / 2,
       checkboxCenterY: checkboxRect.top + checkboxRect.height / 2,
+      checkboxRight: checkboxRect.right,
       thumbnail: thumbnail
         ? {
             left: thumbnail.left,
@@ -450,11 +468,8 @@ test("history selection controls remain visible on mobile", async ({
     };
   });
   expect(checkboxPlacement.thumbnail).not.toBeNull();
-  expect(checkboxPlacement.checkboxCenterX).toBeGreaterThanOrEqual(
+  expect(checkboxPlacement.checkboxRight).toBeLessThanOrEqual(
     checkboxPlacement.thumbnail!.left
-  );
-  expect(checkboxPlacement.checkboxCenterX).toBeLessThanOrEqual(
-    checkboxPlacement.thumbnail!.right
   );
   expect(checkboxPlacement.checkboxCenterY).toBeGreaterThanOrEqual(
     checkboxPlacement.thumbnail!.top
@@ -613,7 +628,9 @@ async function analyzeAndStartDownload(page: import("@playwright/test").Page) {
   await page.keyboard.press("Enter");
   await expect(page.getByText(TITLE)).toBeVisible({ timeout: 20000 });
   await page
-    .getByRole("button", { name: /ดาวน์โหลด|download/i })
+    .getByRole("button", {
+      name: /ยืนยันสิทธิ์และดาวน์โหลด|confirm rights and download/i,
+    })
     .first()
     .click();
 }
@@ -700,10 +717,8 @@ test.describe("Mobile share / save flow (simulated iPhone)", () => {
     await expect(dialog.getByRole("progressbar")).toBeVisible();
     await expect(dialog.getByText(/กำลังโหลดไฟล์|loading file/i).first()).toBeVisible();
     await expect(
-      dialog.getByText(/แตะปุ่มด้านล่างเพื่อบันทึก|tap the button below to save/i)
-    ).toBeVisible({
-      timeout: 15000,
-    });
+      dialog.getByText(/กำลังโหลดไฟล์ก่อนบันทึก|loading the file before saving/i)
+    ).toBeVisible({ timeout: 15000 });
     // The share sheet waits for a fresh tap instead of failing on iOS.
     expect(await page.evaluate(() => window.__sharedPayload)).toBeNull();
 
@@ -788,7 +803,7 @@ test.describe("Desktop flow (unchanged behavior)", () => {
 test.describe("History Share button (mobile)", () => {
   test.use(iphoneLike);
 
-  test("shows a Share button for a completed job with file available", async ({
+  test("shows a Save to device button for a completed job with file available", async ({
     page,
     context,
   }) => {
@@ -798,7 +813,9 @@ test.describe("History Share button (mobile)", () => {
 
     await page.goto("/history");
 
-    const shareButton = page.getByRole("button", { name: /แชร์|share/i }).first();
+    const shareButton = page
+      .getByRole("button", { name: /บันทึกลงเครื่อง|save to device/i })
+      .first();
     await expect(shareButton).toBeVisible({ timeout: 20000 });
     await shareButton.click();
 

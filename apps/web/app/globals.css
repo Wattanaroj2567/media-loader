@@ -9,9 +9,9 @@
 @theme inline {
   --color-background: var(--bg-base);
   --color-foreground: var(--text);
-  --font-sans: var(--font-ibm-plex-sans-thai), sans-serif;
+  --font-sans: var(--font-inter), var(--font-ibm-plex-sans-thai), sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  --font-heading: var(--font-ibm-plex-sans-thai), sans-serif;
+  --font-heading: var(--font-inter), var(--font-ibm-plex-sans-thai), sans-serif;
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
@@ -60,21 +60,14 @@
   }
 }
 
-@keyframes hero-orbit-clockwise {
+@keyframes hero-ambient-drift {
   from {
-    transform: translate(-50%, -50%) rotate(0deg);
+    transform: translate3d(-2%, 0, 0) scale(1);
+    opacity: 0.65;
   }
   to {
-    transform: translate(-50%, -50%) rotate(360deg);
-  }
-}
-
-@keyframes hero-orbit-counter-clockwise {
-  from {
-    transform: translate(-50%, -50%) rotate(360deg);
-  }
-  to {
-    transform: translate(-50%, -50%) rotate(0deg);
+    transform: translate3d(4%, 6%, 0) scale(1.08);
+    opacity: 1;
   }
 }
 
@@ -126,6 +119,11 @@ body {
   min-width: 280px;
   overflow-x: clip;
   width: 100%;
+}
+
+.thai-distributed {
+  text-align: justify;
+  text-justify: inter-character;
 }
 
 :root {
@@ -213,14 +211,14 @@ body {
 
 html {
   background: var(--bg-base);
-  font-family: var(--font-ibm-plex-sans-thai), sans-serif;
+  font-family: var(--font-inter), var(--font-ibm-plex-sans-thai), sans-serif;
 }
 
 body {
   min-height: 100dvh;
   background-color: var(--bg-base);
   color: var(--text);
-  font-family: var(--font-ibm-plex-sans-thai), sans-serif;
+  font-family: var(--font-inter), var(--font-ibm-plex-sans-thai), sans-serif;
   background-image: linear-gradient(
     180deg,
     color-mix(in srgb, var(--bg-surface), transparent 58%),
@@ -242,7 +240,7 @@ h3,
 h4,
 h5,
 h6 {
-  font-family: var(--font-ibm-plex-sans-thai), sans-serif;
+  font-family: var(--font-inter), var(--font-ibm-plex-sans-thai), sans-serif;
   letter-spacing: normal;
 }
 
@@ -302,68 +300,54 @@ select {
 
   .hero-ambient-motion {
     position: absolute;
-    top: 7rem;
-    top: -2rem;
+    top: -3rem;
     left: 50%;
     z-index: 0;
-    width: min(82vw, 48rem);
-    height: 16rem;
-    width: min(92vw, 44rem);
-    height: min(92vw, 44rem);
+    width: min(110vw, 70rem);
+    height: 36rem;
     transform: translateX(-50%);
-    contain: layout paint;
     contain: layout style;
     pointer-events: none;
-    mask-image: radial-gradient(circle at 50% 50%, #000 20%, transparent 68%);
-    -webkit-mask-image: radial-gradient(circle at 50% 50%, #000 20%, transparent 68%);
+    mask-image: radial-gradient(ellipse at 50% 25%, #000 20%, transparent 80%);
+    -webkit-mask-image: radial-gradient(ellipse at 50% 25%, #000 20%, transparent 80%);
   }
 
   @media (min-width: 640px) {
     .hero-ambient-motion {
-      top: -4.5rem;
+      top: -6rem;
     }
   }
 
-  .hero-ambient-ring {
+  .hero-ambient-glow {
     position: absolute;
-    top: 50%;
-    left: 50%;
-    border: 1px solid color-mix(in srgb, var(--primary), transparent 78%);
-    border-radius: 9999px;
-    will-change: transform;
+    top: 0;
+    left: -8%;
+    width: 85%;
+    height: 85%;
+    background: radial-gradient(
+      ellipse at center,
+      color-mix(in srgb, var(--primary), transparent 86%),
+      transparent 68%
+    );
+    animation: hero-ambient-drift 18s ease-in-out infinite alternate;
   }
 
-  .hero-ambient-ring::after {
-    position: absolute;
-    top: -2px;
-    left: 50%;
-    width: 4px;
-    height: 4px;
-    border-radius: 9999px;
-    background: var(--primary);
-    box-shadow: 0 0 10px color-mix(in srgb, var(--primary), transparent 30%);
-    content: "";
-  }
-
-  .hero-ambient-ring:first-child {
-    width: 100%;
-    height: 48%;
-    width: 90%;
-    height: 44%;
-    animation: hero-orbit-clockwise 26s linear infinite;
-  }
-
-  .hero-ambient-ring:last-child {
-    width: 68%;
-    height: 34%;
-    width: 62%;
-    height: 30%;
-    border-color: color-mix(in srgb, var(--primary), transparent 86%);
-    animation: hero-orbit-counter-clockwise 19s linear infinite;
+  .hero-ambient-glow:last-child {
+    top: 15%;
+    right: -8%;
+    left: auto;
+    width: 75%;
+    height: 75%;
+    animation-duration: 24s;
+    animation-direction: alternate-reverse;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .hero-ambient-glow {
+    animation: none !important;
+  }
+
   *,
   *::before,
   *::after {
@@ -372,4 +356,10 @@ select {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* Suppress Edge / IE native password reveal and clear buttons to avoid duplicate icons */
+input::-ms-reveal,
+input::-ms-clear {
+  display: none;
 }

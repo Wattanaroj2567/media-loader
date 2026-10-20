@@ -30,8 +30,8 @@ Stores each media job.
 | Column | Type | Notes |
 |---|---|---|
 | id | uuid | Primary key |
-| user_id | uuid | Owner (nullable for anonymous guest downloads) |
-| guest_session_id | text | Ephemeral guest session ID for progress tracking without login |
+| user_id | uuid | Owner; nullable only on legacy guest jobs |
+| guest_session_id | text | Ephemeral ID retained for owner-checking legacy guest jobs; new jobs require an account |
 | original_url | text | Fernet-encrypted submitted URL while needed for job processing; API and worker share `MEDIA_URL_ENCRYPTION_KEY` |
 | platform | text | direct, youtube, tiktok, etc. |
 | title | text | Media title |
@@ -78,7 +78,7 @@ Stores policy decisions for audit and debugging.
 | Column | Type | Notes |
 |---|---|---|
 | id | uuid | Primary key |
-| user_id | uuid | Owner (nullable for guest downloads) |
+| user_id | uuid | Account associated with the policy decision; nullable on legacy guest records |
 | url | text | Redacted source origin; path, query, fragment, and embedded credentials are removed |
 | platform | text | Detected platform |
 | decision | text | allowed, blocked, needs_confirmation |

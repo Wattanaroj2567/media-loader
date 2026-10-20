@@ -19,11 +19,11 @@ rmSync(path.resolve(__dirname, "../../.next-mock"), {
 const PORT = process.env.MOCK_WEB_PORT || "3100";
 const MOCK_SUPABASE = `http://localhost:${process.env.MOCK_SUPABASE_PORT || 9999}`;
 
-const npmCmd = process.platform === "win32" ? "npm.cmd" : "npm";
+const pnpmCmd = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
 
 const child = spawn(
-  npmCmd,
-  ["run", "dev", "--", "--port", PORT, "--hostname", "localhost"],
+  pnpmCmd,
+  ["exec", "next", "dev", "--port", PORT, "--hostname", "localhost"],
   {
     stdio: "inherit",
     // On Windows, spawning .cmd wrappers requires a shell.
@@ -32,9 +32,11 @@ const child = spawn(
       ...process.env,
       NEXT_PUBLIC_SUPABASE_URL: MOCK_SUPABASE,
       NEXT_PUBLIC_SUPABASE_ANON_KEY: "mock-anon-key",
+      // Keep test requests off any API URL configured by the developer.
+      NEXT_PUBLIC_FASTAPI_BASE_URL: "http://127.0.0.1:18999",
       NEXT_DIST_DIR: ".next-mock",
     },
-  },
+  }
 );
 
 child.on("exit", (code) => process.exit(code ?? 0));

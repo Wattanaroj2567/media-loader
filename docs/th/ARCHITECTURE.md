@@ -65,13 +65,65 @@ Supabase Edge Functions
 
 ## ลำดับการทำงาน
 
-### เข้าสู่ระบบ
+### การยืนยันตัวตน
 
 ```text
 ผู้ใช้ → Next.js → Supabase Auth → Dashboard
 ```
 
 คำขอ API ของผู้ใช้ที่ล็อกอินจะส่ง Supabase access token ปัจจุบัน
+
+Supabase Auth เป็นผู้จัดการบัญชีและ session เว็บแอปรองรับการเข้าสู่ระบบด้วย
+email/password ที่ `/auth/login` และสมัครสมาชิกที่ `/auth/register`
+ชื่อที่แสดงเป็นข้อมูลเสริมใน metadata `full_name` ไม่ใช่ username สำหรับล็อกอิน
+การสมัครด้วยอีเมลจะบันทึกภาษาที่เลือกใน user metadata ชื่อ `language` เมื่อเปลี่ยน
+ภาษาในหน้าเว็บ ระบบบันทึกไว้ใน localStorage และ cookie อายุหนึ่งปี เมื่อเข้าสู่ระบบด้วยรหัสผ่านหรือ
+callback สำเร็จ ระบบ sync ค่าภาษาของบัญชีจาก cookie และใช้ภาษาไทยเมื่อ cookie ไม่มี
+หรือค่าไม่ถูกต้อง ส่วน database trigger เดิมสร้าง profile หากสมัครแล้วได้ session
+ระบบเปิด `/dashboard` หากต้องยืนยันอีเมล หน้าสมัครจะแจ้งให้ตรวจอีเมลก่อน
+
+ทั้งสองหน้ามี Google sign-in โดย callback ของ Google และอีเมลกลับมาที่
+`/auth/callback` เพื่อแลก authorization code เป็น Supabase session ปลายทาง
+`next` ต้องเป็น same-origin และอยู่ในรายการ `/dashboard`, `/history`,
+`/settings`, `/downloads` หรือ `/auth/reset-password` เท่านั้น ระบบตัด query
+และ fragment ออก และใช้ `/dashboard` หากปลายทางไม่ผ่าน เมื่อ callback ล้มเหลว
+หน้าล็อกอินหรือกู้รหัสผ่านจะแสดงข้อผิดพลาดที่ปลอดภัย
+
+### กู้รหัสผ่านและออกจากระบบ
+
+`/auth/forgot-password` ขออีเมลกู้รหัสผ่านและแสดงข้อความยืนยันแบบกลางเหมือนกัน
+ทุกครั้ง รวมถึงเมื่อ provider ล้มเหลว ลิงก์อีเมลกลับผ่าน
+`/auth/callback?next=/auth/reset-password` ต้องเปิดใน browser ที่ใช้ขอกู้รหัสผ่าน
+เพื่อให้ PKCE exchange ใช้ verifier ของ browser นั้นได้ redirect สำหรับกู้รหัสผ่าน
+มีเฉพาะ `next=/auth/reset-password` และไม่ส่ง locale ใน query แอปไม่ได้เลือกภาษา
+ให้แม่แบบอีเมลที่ตั้งค่าใน Supabase
+
+`/auth/reset-password` ตรวจ authenticated session ก่อนเปลี่ยนรหัสผ่าน
+เมื่อเปลี่ยนสำเร็จ ระบบสั่ง global sign-out และเปิด `/auth/login?reset=success`
+ด้วย full navigation หาก sign-out ล้มเหลวหลังเปลี่ยนรหัสแล้ว การลองใหม่จะสั่ง
+sign-out เท่านั้น ไม่เปลี่ยนรหัสผ่านซ้ำ
+
+`POST /auth/signout` เรียก Supabase sign-out ทุกครั้ง เมื่อสำเร็จ redirect ไป `/`
+ด้วยสถานะ `303` หาก provider ล้มเหลวจะตอบ `503` พร้อม error code ที่ปลอดภัย
+และไม่รายงานว่าออกจากระบบสำเร็จ
+
+### การเข้าถึงหน้าและการตั้งค่า provider
+
+Middleware ส่งผู้ที่ไม่ล็อกอินจาก `/dashboard`, `/history`, `/downloads` และ
+`/settings` กลับ `/` ส่วนผู้ที่ล็อกอินแล้วเปิด `/`, `/auth/login`,
+`/auth/register` หรือ `/auth/forgot-password` จะไป `/dashboard` หน้ากู้รหัสผ่าน
+ยังเข้าถึงได้และยังแสดง callback error โดยรักษา session cookies เมื่อ redirect
+
+เปิด Email/Password และ Google provider ใน Supabase dashboard และเพิ่ม redirect
+URL ต่อไปนี้ใน allowlist ให้ตรงกับแต่ละ web origin (เปลี่ยน origin ตัวอย่างเป็น
+origin ที่ deploy จริง):
+
+- `http://localhost:3000/auth/callback`
+- `http://localhost:3000/auth/callback?next=/auth/reset-password`
+
+ต้องตั้งค่า provider ผ่าน dashboard ด้วยตนเอง Flow คือวางลิงก์ กดเข้าสู่ระบบ
+ล็อกอิน กลับมาพร้อมลิงก์เดิม วิเคราะห์ เลือกไฟล์ กดยืนยันสิทธิ์ แล้วเข้าคิว
+ระบบจำลิงก์ใน session storage ของแท็บเดิม ไม่ใส่ URL ต้นทางใน query ของ redirect
 
 ### วิเคราะห์ URL
 
@@ -89,8 +141,8 @@ FastAPI ดึง metadata และ format ที่มีเมื่ออน
 FastAPI ส่งผลการวิเคราะห์กลับ
 ```
 
-ผู้เยี่ยมชมและผู้ใช้ที่ล็อกอินวิเคราะห์ URL ได้ หากมี session ที่ล็อกอิน
-ระบบจะผูกผลการตัดสินนโยบายกับบัญชีนั้น
+ต้องยืนยันบัญชีก่อนตรวจ policy หรือร้องขอข้อมูลต้นทาง
+ระบบผูกผลการตัดสินนโยบายกับบัญชีที่ตรวจแล้ว
 
 ### สร้างงาน
 
@@ -106,8 +158,8 @@ FastAPI เข้ารหัส URL ต้นทางและสร้าง�
 Worker ใน pool นั้นรับงาน
 ```
 
-งานผู้ใช้ที่ล็อกอินผูกกับ `user_id` ส่วนงานผู้เยี่ยมชมใช้
-`X-Guest-Session-ID` ในโหมด local temp ต้องกำหนด pool ให้ถูกต้อง
+งานใหม่ผูกกับ `user_id` ของบัญชีที่ตรวจแล้ว งานผู้เยี่ยมชมเดิมยังเข้าถึงได้
+เมื่อเป็นเจ้าของ แต่ resume โดยไม่ล็อกอินไม่ได้ ในโหมด local temp ต้องกำหนด pool ให้ถูกต้อง
 เพื่อไม่ให้ Worker รับงานเมื่อแชร์ filesystem กับ API ไม่ได้
 
 ### ประมวลผลงาน
@@ -125,7 +177,7 @@ Worker อัปเดตสถานะและความคืบหน้�
 ### ส่งไฟล์ให้ผู้ใช้
 
 สำหรับผู้ใช้ที่ล็อกอิน เส้นทางดาวน์โหลดผ่านเว็บจะตรวจ session cookie ของ
-Next.js แล้ว stream ข้อมูลจาก FastAPI งานผู้เยี่ยมชมขอ download token อายุสั้น
+Next.js แล้ว stream ข้อมูลจาก FastAPI งานผู้เยี่ยมชมเดิมขอ download token อายุสั้น
 เพื่อนำไป stream ไฟล์ของตนเองได้
 
 เมื่อดาวน์โหลดสำเร็จ ระบบจะไม่ลบไฟล์ทันที Worker จะลบไฟล์ที่หมดอายุตาม
@@ -148,7 +200,7 @@ Next.js แล้ว stream ข้อมูลจาก FastAPI งานผู�
 
 - ตรวจสอบ URL และตัดสินนโยบาย
 - วิเคราะห์ metadata และส่งรายการ format
-- สร้างและจัดการงานโดยจำกัดขอบเขตตามผู้ใช้หรือ guest session
+- สร้างงานใหม่ตามบัญชีและตรวจเจ้าของเมื่อจัดการงานผู้เยี่ยมชมเดิม
 - ตรวจเจ้าของก่อนส่งหรือลบไฟล์ local
 - ลบบัญชีผู้ใช้
 - เข้ารหัส URL ก่อนบันทึกงาน และส่ง request ต้นทางผ่าน egress proxy
@@ -178,7 +230,7 @@ Next.js แล้ว stream ข้อมูลจาก FastAPI งานผู�
 
 ## การเป็นเจ้าของข้อมูล
 
-แถวงานของผู้ใช้ที่ล็อกอินจำกัดด้วย `user_id` งานผู้เยี่ยมชมมี `user_id`
+แถวงานใหม่จำกัดด้วย `user_id` งานผู้เยี่ยมชมเดิมมี `user_id`
 เป็นค่าว่างและจำกัดด้วย `guest_session_id` ผ่าน API Browser client
 ไม่สามารถแก้ไขแถวคิวงานหรือ policy log ที่บริการจัดการเองได้ FastAPI และ
 Worker เป็นผู้เขียนข้อมูลจากฝั่งที่เชื่อถือได้
@@ -208,6 +260,6 @@ API อนุญาตให้หยุดชั่วคราวเฉพา�
 - ต้องให้ผู้ใช้ยืนยันสิทธิ์เมื่อสร้างงาน
 - ประมวลผลสื่อใน Worker นอก Vercel Functions
 - โหมด local temp ต้องให้ API และ Worker ใช้ output volume ร่วมกัน
-- จำกัดงานและไฟล์ตามเจ้าของที่ล็อกอินหรือ guest session
+- จำกัดงานใหม่และไฟล์ตามเจ้าของที่ล็อกอิน และตรวจเจ้าของของ guest session เดิม
 - ห้ามเปิดเผย service-role key ในโค้ดเบราว์เซอร์
 - ใช้ `local_temp` สำหรับไฟล์ผลลัพธ์; การจัดเก็บและส่งไฟล์ผ่าน Cloud Object Storage ยังทำไม่ครบ

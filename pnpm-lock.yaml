@@ -248,9 +248,6 @@ importers:
       '@types/react-dom':
         specifier: ^19
         version: 19.3.0(@types/react@19.3.0)
-      dotenv:
-        specifier: ^17.4.2
-        version: 17.4.2
       drizzle-kit:
         specifier: ^0.31.10
         version: 0.31.10(patch_hash=f036a88fcbb073fed39f51a1601c42923af3d9eaff3e399ce58d5673eda7e751)

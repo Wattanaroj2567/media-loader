@@ -16,6 +16,7 @@
 # next.js
 /.next/
 /.next-mock/
+/.next-codex-preview*/
 /out/
 
 # production

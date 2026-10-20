@@ -1,0 +1,140 @@
+.intro {
+  position: relative;
+  isolation: isolate;
+}
+
+.platforms {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  user-select: none;
+}
+
+.platform {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  opacity: 0.48;
+  animation: platform-float 8s ease-in-out infinite alternate;
+}
+
+.icon {
+  width: 34px;
+  height: 34px;
+  background: currentColor;
+  mask: var(--platform-icon) center / contain no-repeat;
+}
+
+.platform[data-platform="youtube"] {
+  left: 1%;
+  top: 32%;
+  color: #e65b66;
+  --tilt: -10deg;
+  animation-delay: -3s;
+}
+
+.platform[data-platform="instagram"] {
+  right: 3%;
+  top: 4%;
+  color: #c76fa1;
+  --tilt: 10deg;
+  animation-duration: 10s;
+  animation-delay: -6s;
+}
+
+.platform[data-platform="tiktok"] {
+  right: 1%;
+  bottom: 3%;
+  color: var(--text-muted);
+  --tilt: -8deg;
+  animation-duration: 9s;
+  animation-delay: -2s;
+}
+
+.platform[data-platform="facebook"] {
+  left: 6%;
+  bottom: -4%;
+  color: #5f91d4;
+  --tilt: 8deg;
+  animation-duration: 11s;
+  animation-delay: -7s;
+}
+
+.platform[data-platform="twitter-x"] {
+  left: 18%;
+  top: -12px;
+  color: var(--text-muted);
+  --tilt: -10deg;
+  animation-duration: 12s;
+  animation-delay: -4s;
+}
+
+@keyframes platform-float {
+  from {
+    transform: translate3d(0, 3px, 0) rotate(var(--tilt));
+  }
+  to {
+    transform: translate3d(0, -5px, 0) rotate(var(--tilt));
+  }
+}
+
+.platform[data-platform="bilibili"] {
+  right: 18%;
+  top: -12px;
+  color: #65bce0;
+  --tilt: 7deg;
+  animation-duration: 11s;
+  animation-delay: -5s;
+}
+
+.platform[data-platform="vk-video"] {
+  left: 8%;
+  top: -12px;
+  color: #e26b70;
+  --tilt: -7deg;
+  animation-duration: 10s;
+  animation-delay: -8s;
+}
+
+.platform[data-platform="giphy"] {
+  right: 10%;
+  bottom: -4%;
+  color: #89cbb4;
+  --tilt: 6deg;
+  animation-duration: 12s;
+  animation-delay: -1s;
+}
+
+@media (max-width: 1099px) {
+  .platforms {
+    position: relative;
+    z-index: auto;
+    display: grid;
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+    align-items: center;
+    justify-items: center;
+    max-width: 420px;
+    height: 28px;
+    margin: 0 auto 18px;
+  }
+  .platform {
+    position: static;
+    width: 28px;
+    height: 28px;
+    opacity: 0.4;
+  }
+  .icon {
+    width: 24px;
+    height: 24px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .platform {
+    animation: none;
+    transform: rotate(var(--tilt));
+  }
+}

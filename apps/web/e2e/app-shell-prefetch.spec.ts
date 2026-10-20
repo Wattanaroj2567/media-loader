@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { mockEmptyJobs } from "./support/mock-empty-jobs";
 
 const SESSION_COOKIE = "sb-localhost-auth-token";
 
@@ -46,6 +47,7 @@ test("app shell does not duplicate destination prefetches on initial load", asyn
   page,
 }) => {
   await seedAuth(context, new URL(test.info().project.use.baseURL!).origin);
+  await mockEmptyJobs(page);
   const routeRequests: string[] = [];
   page.on("request", (request) => {
     const url = new URL(request.url());

@@ -64,6 +64,43 @@ sequenceDiagram
 
 ## 2. Developer Command Reference
 
+The registration and password reset forms require at least 8 characters,
+without mandatory character-type mixtures. These are web-form checks; configure
+the hosted Supabase Auth password policy separately for server-side enforcement.
+The forms show a short hint encouraging a unique, memorable passphrase.
+Registration and reset forms show inline
+matching or mismatching feedback once the confirmation field is nonempty. Sign-in
+forms and password setup forms validate required fields and email format inline
+after blur or submission, update feedback while editing, and focus the first
+invalid field on submission. The optional display name remains optional. Sign-in
+accepts existing account passwords without applying the new-password rules or
+displaying password requirements.
+
+Email signup without an immediate session switches to a confirmation view, clears
+password fields, and offers confirmation email resend with a 60-second UI cooldown.
+Resends use [Supabase Auth resend](https://supabase.com/docs/reference/javascript/auth-resend);
+provider-side rate limits still apply. Users can return to edit their email.
+Email inputs request the email keyboard and disable capitalization and spellcheck.
+Registration uses signup-specific Google and email labels. The landing privacy
+copy explains that media is processed temporarily on the service and that files
+are removed automatically after the retention period.
+
+The landing platform matrix summarizes video resolution and MP3/GIF availability
+with short status labels. Each platform can expand to show its format conditions
+and file-size notes; mobile uses the same summary and expandable details.
+
+The root `pnpm test:e2e` command uses the isolated Playwright mock configuration.
+It starts a mock Supabase Auth server on `localhost:9999` and a separate Next.js
+server on `localhost:3100`, with its own `.next-mock` build directory. Normal
+local development uses `localhost:3000`. The mock E2E configuration starts its
+own servers and fails if either test port is already occupied instead of
+reusing another app. The test app pins its FastAPI base URL to
+`http://127.0.0.1:18999` so developer API settings cannot redirect test traffic.
+Frontend E2E tests stub FastAPI requests in the flows that exercise them; API
+and worker behavior is covered by their respective test suites. The download-flow test verifies that no job is created until the single
+“Confirm rights and download” button is clicked, then checks that the request
+contains `rights_confirmed: true`.
+
 All primary development tasks can be run directly from the repository root directory using `pnpm`:
 
 ### Environment & Dependencies
@@ -155,6 +192,13 @@ pnpm deadcode:worker  # Worker (Vulture)
 ```
 
 ### Database Operations (Drizzle ORM)
+
+`drizzle.config.ts` reads only `process.env`; importing it during `pnpm deadcode`
+does not load environment files. `db:generate` also needs no database credentials.
+The `db:push`, `db:pull`, and `db:studio` scripts explicitly load the root
+`.env.local` when present, using Node's `--env-file-if-exists`. Variables already
+supplied by the shell or CI take precedence. Agents must not run these
+file-loading commands against real credentials; the user runs them locally.
 
 ```bash
 # Push schema updates to Supabase / PostgreSQL

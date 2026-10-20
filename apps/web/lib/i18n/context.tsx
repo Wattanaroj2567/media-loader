@@ -8,6 +8,7 @@ import {
   useCallback,
   ReactNode,
 } from "react";
+import { createClient } from "@/lib/supabase/client";
 import { Locale, defaultLocale } from "./config";
 import thMessages from "./messages/th.json";
 import enMessages from "./messages/en.json";
@@ -70,6 +71,22 @@ export function I18nProvider({
     // Write cookie so the server knows the locale on next page loads / refreshes
     document.cookie = `media-loader-locale=${l}; path=/; max-age=31536000; SameSite=Lax`;
     document.documentElement.lang = l;
+
+    const syncAccountLanguage = async () => {
+      try {
+        const supabase = createClient();
+        const { data, error } = await supabase.auth.getSession();
+        if (error || !data.session || data.session.user.user_metadata.language === l) {
+          return;
+        }
+
+        await supabase.auth.updateUser({ data: { language: l } });
+      } catch {
+        // Account preference sync must not block changing the interface language.
+      }
+    };
+
+    void syncAccountLanguage();
   }, []);
 
   const t = useCallback(

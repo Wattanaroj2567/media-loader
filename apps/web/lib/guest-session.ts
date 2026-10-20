@@ -60,28 +60,6 @@ export function getGuestJobIds(): string[] {
 }
 
 /**
- * Records a new job ID into the guest session storage.
- */
-export function addGuestJobId(jobId: string): void {
-  if (!jobId) return;
-  if (typeof window === "undefined") {
-    if (!memoryFallbackJobs.includes(jobId)) {
-      memoryFallbackJobs = [jobId, ...memoryFallbackJobs].slice(0, 30);
-    }
-    return;
-  }
-  try {
-    const current = getGuestJobIds();
-    if (!current.includes(jobId)) {
-      const next = [jobId, ...current].slice(0, 30);
-      localStorage.setItem(GUEST_JOBS_KEY, JSON.stringify(next));
-    }
-  } catch {
-    // Ignore storage errors
-  }
-}
-
-/**
  * Removes a job ID from the guest session storage (e.g. after deletion).
  */
 export function removeGuestJobId(jobId: string): void {

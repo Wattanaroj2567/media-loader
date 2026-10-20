@@ -6,6 +6,8 @@ import {
   AlertCircle,
   Ban,
   CalendarDays,
+  ChevronLeft,
+  ChevronRight,
   Clock3,
   Copy,
   Download,
@@ -18,7 +20,6 @@ import {
   RefreshCw,
   Search,
   SearchX,
-  Share2,
   Trash2,
   X,
 } from "lucide-react";
@@ -41,6 +42,7 @@ import { ConfirmDialog } from "@/components/confirm-dialog";
 import { requestMediaAnalysis } from "@/lib/analyzer-session";
 import { useJobPolling } from "@/components/job-polling-provider";
 import { removeGuestJobId } from "@/lib/guest-session.ts";
+import { cn } from "@/lib/utils";
 
 type JobListMode = "queue" | "history";
 
@@ -230,7 +232,7 @@ function JobCard({
   onToggleSelection,
   onCancel,
   onCopyLink,
-  onDownloadAgain,
+  onAnalyzeOriginalLink,
   onShareFile,
   onPause,
   onResume,
@@ -246,7 +248,7 @@ function JobCard({
   onToggleSelection: () => void;
   onCancel: () => void;
   onCopyLink: () => void;
-  onDownloadAgain: () => void;
+  onAnalyzeOriginalLink: () => void;
   onShareFile: () => void;
   onPause: () => void;
   onResume: () => void;
@@ -269,7 +271,7 @@ function JobCard({
   const canPause =
     mode === "queue" && (job.status === "DOWNLOADING" || job.status === "CONVERTING");
   const canResume = mode === "queue" && job.status === "PAUSED";
-  const canDownloadAgain =
+  const canAnalyzeOriginalLink =
     mode === "history" && job.status === "COMPLETED" && !selectionMode;
   const canShareFile =
     mode === "history" &&
@@ -315,9 +317,11 @@ function JobCard({
   return (
     <article
       onClick={selectionMode ? onToggleSelection : undefined}
-      className={`relative overflow-hidden flex flex-col gap-3 rounded-2xl border p-3.5 shadow-[inset_0_1px_0_var(--panel-highlight)] transition-all duration-200 sm:flex-row sm:items-center ${
-        selectionMode ? "cursor-pointer select-none" : ""
-      } ${
+      className={`relative overflow-hidden flex flex-col gap-3 rounded-2xl border p-3.5 shadow-[inset_0_1px_0_var(--panel-highlight)] transition-all duration-200 ${
+        mode === "history"
+          ? "lg:flex-row lg:items-center"
+          : "sm:flex-row sm:items-center"
+      } ${selectionMode ? "cursor-pointer select-none" : ""} ${
         selected
           ? "border-border bg-bg-elevated/65 sm:border-primary sm:bg-primary/10 sm:ring-2 sm:ring-primary/30 sm:shadow-md"
           : "border-border bg-bg-elevated/65 hover:border-primary/40 hover:bg-bg-elevated/85"
@@ -329,9 +333,19 @@ function JobCard({
       {job.status === "CONVERTING" && (
         <BorderBeam size={180} duration={6} colorFrom="#f59e0b" colorTo="#d97706" />
       )}
-      <div className="flex flex-col sm:flex-row min-w-0 flex-1 sm:items-center gap-3">
+      <div
+        className={`flex min-w-0 flex-1 gap-3 ${
+          mode === "history" ? "flex-row items-start" : "flex-col"
+        } sm:flex-row sm:items-center`}
+      >
         {selectionMode && (
-          <div className="absolute left-5 top-5 z-10 flex size-9 shrink-0 items-center justify-center rounded-xl border border-border/80 bg-bg-base/85 shadow-md backdrop-blur-md sm:static sm:min-h-11 sm:w-auto sm:rounded-none sm:border-0 sm:bg-transparent sm:px-1 sm:shadow-none sm:backdrop-blur-none">
+          <div
+            className={`z-10 flex size-9 shrink-0 items-center justify-center border border-border/80 bg-bg-base/85 shadow-md backdrop-blur-md sm:static sm:min-h-11 sm:w-auto sm:rounded-none sm:border-0 sm:bg-transparent sm:px-1 sm:shadow-none sm:backdrop-blur-none ${
+              mode === "history"
+                ? "self-start rounded-lg"
+                : "absolute left-5 top-5 rounded-xl"
+            }`}
+          >
             <Checkbox
               id={`history-select-${job.id}`}
               checked={selected}
@@ -341,8 +355,14 @@ function JobCard({
             />
           </div>
         )}
-        {/* Thumb — 16:9 aspect ratio on mobile, fixed 96x54 (16:9) on desktop */}
-        <div className="aspect-video w-full shrink-0 overflow-hidden rounded-xl sm:aspect-auto sm:h-13.5 sm:w-24">
+        {/* History thumbnails stay compact on mobile; queue cards use a larger preview. */}
+        <div
+          className={`shrink-0 overflow-hidden rounded-xl ${
+            mode === "history"
+              ? "h-16 w-28 sm:h-13.5 sm:w-24"
+              : "aspect-video w-full sm:aspect-auto sm:h-13.5 sm:w-24"
+          }`}
+        >
           <Thumb job={job} priority={priority} />
         </div>
 
@@ -431,7 +451,13 @@ function JobCard({
       </div>
 
       {/* Actions */}
-      <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-border/60 pt-2.5 sm:items-start sm:border-t-0 sm:pt-0.5">
+      <div
+        className={`flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-border/60 pt-2.5 ${
+          mode === "history"
+            ? "w-full lg:w-auto lg:items-start lg:border-t-0 lg:pt-0.5"
+            : "sm:items-start sm:border-t-0 sm:pt-0.5"
+        }`}
+      >
         {busyAction ? (
           <LoadingIndicator
             label={t("common.loading", {}, "กำลังโหลด...")}
@@ -440,14 +466,14 @@ function JobCard({
           />
         ) : (
           <>
-            {canDownloadAgain && (
+            {canAnalyzeOriginalLink && (
               <Button
                 size="sm"
                 variant="outline"
                 onClick={onCopyLink}
                 disabled={busy}
                 aria-label={t("history.copyLink", {}, "คัดลอกลิงก์")}
-                className="h-10 flex-1 gap-1.5 rounded-xl border-border bg-bg-surface/60 px-3.5 text-xs font-semibold text-text transition-all duration-150 hover:border-primary/40 hover:bg-primary/10 hover:text-primary active:scale-95 sm:h-8.5 sm:flex-none cursor-pointer"
+                className="h-10 flex-1 gap-1.5 rounded-lg border-border bg-bg-surface/60 px-3.5 text-xs font-semibold text-text transition-all duration-150 hover:border-primary/40 hover:bg-primary/10 hover:text-primary active:scale-95 sm:h-8.5 sm:flex-none cursor-pointer"
               >
                 <Copy className="size-3.5 text-primary" />
                 <span>{t("history.copyLink", {}, "คัดลอกลิงก์")}</span>
@@ -459,24 +485,26 @@ function JobCard({
                 variant="outline"
                 onClick={onShareFile}
                 disabled={busy}
-                aria-label={t("file.shareButton", {}, "แชร์")}
-                className="h-10 flex-1 gap-1.5 rounded-xl border-border bg-bg-surface/60 px-3.5 text-xs font-semibold text-text transition-all duration-150 hover:border-primary/40 hover:bg-primary/10 hover:text-primary active:scale-95 sm:h-8.5 sm:flex-none cursor-pointer"
+                aria-label={t("file.saveToDeviceButton", {}, "บันทึกลงเครื่อง")}
+                className="h-10 flex-1 gap-1.5 rounded-lg border-border bg-bg-surface/60 px-3.5 text-xs font-semibold text-text transition-all duration-150 hover:border-primary/40 hover:bg-primary/10 hover:text-primary active:scale-95 sm:h-8.5 sm:flex-none cursor-pointer"
               >
-                <Share2 className="size-3.5 text-primary" />
-                <span>{t("file.shareButton", {}, "แชร์")}</span>
+                <Download className="size-3.5 text-primary" />
+                <span>{t("file.saveToDeviceButton", {}, "บันทึกลงเครื่อง")}</span>
               </Button>
             )}
-            {canDownloadAgain && (
+            {canAnalyzeOriginalLink && (
               <Button
                 size="sm"
                 variant="outline"
-                onClick={onDownloadAgain}
+                onClick={onAnalyzeOriginalLink}
                 disabled={busy}
-                aria-label={t("history.downloadAgain", {}, "ดาวน์โหลดอีกครั้ง")}
-                className="h-10 flex-1 gap-1.5 rounded-xl border-border bg-bg-surface/60 px-3.5 text-xs font-semibold text-text transition-all duration-150 hover:border-primary/40 hover:bg-primary/10 hover:text-primary active:scale-95 sm:h-8.5 sm:flex-none cursor-pointer"
+                aria-label={t("history.analyzeOriginalLink", {}, "วิเคราะห์ลิงก์เดิม")}
+                className="h-10 flex-1 gap-1.5 rounded-lg border-border bg-bg-surface/60 px-3.5 text-xs font-semibold text-text transition-all duration-150 hover:border-primary/40 hover:bg-primary/10 hover:text-primary active:scale-95 sm:h-8.5 sm:flex-none cursor-pointer"
               >
                 <RefreshCw className="size-3.5 text-primary" />
-                <span>{t("history.downloadAgain", {}, "ดาวน์โหลดอีกครั้ง")}</span>
+                <span>
+                  {t("history.analyzeOriginalLink", {}, "วิเคราะห์ลิงก์เดิม")}
+                </span>
               </Button>
             )}
             {canResume && (
@@ -598,7 +626,7 @@ function HistoryHeader({
             variant="outline"
             size="sm"
             onClick={onStartSelection}
-            className="h-10 gap-2 rounded-xl border-border bg-bg-surface/60 text-xs font-semibold text-text-muted transition-colors hover:border-rose-500/25 hover:bg-rose-500/10 hover:text-rose-500 sm:h-9 cursor-pointer"
+            className="h-10 gap-2 rounded-lg border-border bg-bg-surface/60 text-xs font-semibold text-text-muted transition-colors hover:border-rose-500/25 hover:bg-rose-500/10 hover:text-rose-500 sm:h-9 cursor-pointer"
           >
             <Trash2 className="size-3.5" />
             {t("history.clearAll", {}, "ล้างประวัติ")}
@@ -622,7 +650,7 @@ function HistoryHeader({
                 key={f.id}
                 type="button"
                 onClick={() => setPlatformFilter(f.id)}
-                className={`min-h-8 rounded-xl px-3 text-xs font-semibold transition-all duration-150 cursor-pointer ${
+                className={`min-h-8 rounded-lg px-3 text-xs font-semibold transition-all duration-150 cursor-pointer ${
                   platformFilter === f.id
                     ? "border border-primary/40 bg-primary/10 text-primary shadow-xs"
                     : "border border-border/80 bg-bg-surface/50 text-text-muted hover:border-border hover:bg-bg-surface hover:text-text"
@@ -642,7 +670,7 @@ function HistoryHeader({
               suppressHydrationWarning
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={t("history.searchPlaceholder", {}, "ค้นหาชื่อหรือไฟล์...")}
-              className="h-9 w-full rounded-xl border border-border bg-bg-surface/60 pl-8 pr-8 text-xs font-medium text-text placeholder:text-text-dim outline-none transition-colors focus:border-primary/50 focus:bg-bg-elevated focus:ring-2 focus:ring-primary/10"
+              className="h-9 w-full rounded-lg border border-border bg-bg-surface/60 pl-8 pr-8 text-xs font-medium text-text placeholder:text-text-dim outline-none transition-colors focus:border-primary/50 focus:bg-bg-elevated focus:ring-2 focus:ring-primary/10"
             />
             {searchQuery && (
               <button
@@ -658,7 +686,7 @@ function HistoryHeader({
       )}
 
       {selectionMode && (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-bg-elevated/65 px-4 py-2.5 backdrop-blur-md shadow-xs animate-in fade-in-50 duration-200 sm:border-primary/30 sm:bg-primary/10">
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-bg-elevated px-4 py-2.5 shadow-xs animate-in fade-in-50 duration-200">
           <div className="flex items-center gap-2.5 sm:gap-3">
             <label className="flex items-center gap-2 cursor-pointer select-none py-1">
               <Checkbox
@@ -692,7 +720,7 @@ function HistoryHeader({
               size="sm"
               onClick={onCancelSelection}
               disabled={deleting}
-              className="h-8.5 px-3 text-xs font-semibold text-text-muted hover:bg-bg-surface hover:text-text cursor-pointer rounded-xl"
+              className="h-8.5 px-3 text-xs font-semibold text-text-muted hover:bg-bg-surface hover:text-text cursor-pointer rounded-lg"
             >
               {t("history.cancelSelect", {}, "ยกเลิก")}
             </Button>
@@ -703,7 +731,7 @@ function HistoryHeader({
               size="sm"
               onClick={onDeleteSelected}
               disabled={deleting || selectedCount === 0}
-              className="h-8.5 gap-1.5 px-3.5 text-xs font-semibold shadow-xs rounded-xl cursor-pointer"
+              className="h-8.5 gap-1.5 px-3.5 text-xs font-semibold shadow-xs rounded-lg cursor-pointer"
             >
               {deleting ? (
                 <LoadingIndicator
@@ -877,6 +905,133 @@ function OfflineBanner({
   );
 }
 
+/* ─── Pagination ─────────────────────────────────────────────────────── */
+const HISTORY_PAGE_SIZE = 10;
+
+function getPageNumbers(
+  currentPage: number,
+  totalPages: number
+): (number | "ellipsis")[] {
+  if (totalPages <= 7) {
+    return Array.from({ length: totalPages }, (_, i) => i + 1);
+  }
+
+  const pages: (number | "ellipsis")[] = [1];
+
+  if (currentPage > 3) {
+    pages.push("ellipsis");
+  }
+
+  const start = Math.max(2, currentPage - 1);
+  const end = Math.min(totalPages - 1, currentPage + 1);
+
+  for (let i = start; i <= end; i++) {
+    pages.push(i);
+  }
+
+  if (currentPage < totalPages - 2) {
+    pages.push("ellipsis");
+  }
+
+  pages.push(totalPages);
+  return pages;
+}
+
+function HistoryPagination({
+  currentPage,
+  totalPages,
+  totalItems,
+  pageSize,
+  onPageChange,
+}: {
+  currentPage: number;
+  totalPages: number;
+  totalItems: number;
+  pageSize: number;
+  onPageChange: (page: number) => void;
+}) {
+  const { t } = useT();
+  const pages = useMemo(
+    () => getPageNumbers(currentPage, totalPages),
+    [currentPage, totalPages]
+  );
+  const startItem = (currentPage - 1) * pageSize + 1;
+  const endItem = Math.min(currentPage * pageSize, totalItems);
+
+  return (
+    <nav
+      aria-label={t("pagination.label", {}, "การแบ่งหน้า")}
+      className="mt-6 flex flex-col items-center justify-between gap-3 border-t border-border/40 pt-4 sm:flex-row"
+    >
+      <p className="text-xs text-text-muted">
+        {t(
+          "pagination.showingRange",
+          { start: startItem, end: endItem, total: totalItems },
+          `แสดง ${startItem}–${endItem} จาก ${totalItems} รายการ`
+        )}
+      </p>
+
+      <div className="flex items-center gap-1.5">
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={currentPage <= 1}
+          onClick={() => onPageChange(currentPage - 1)}
+          className="h-8 gap-1 rounded-lg border-border/60 bg-bg-surface/50 px-2.5 text-xs text-text-muted hover:bg-bg-surface hover:text-text disabled:opacity-40 disabled:pointer-events-none"
+          aria-label={t("pagination.previous", {}, "ก่อนหน้า")}
+        >
+          <ChevronLeft className="size-3.5" />
+          <span className="hidden sm:inline">
+            {t("pagination.previous", {}, "ก่อนหน้า")}
+          </span>
+        </Button>
+
+        <div className="flex items-center gap-1">
+          {pages.map((p, idx) =>
+            p === "ellipsis" ? (
+              <span
+                key={`ellipsis-${idx}`}
+                className="flex h-8 w-6 items-center justify-center text-xs text-text-dim select-none"
+              >
+                …
+              </span>
+            ) : (
+              <Button
+                key={`page-${p}`}
+                variant={p === currentPage ? "default" : "outline"}
+                size="sm"
+                onClick={() => onPageChange(p)}
+                className={cn(
+                  "h-8 min-w-8 rounded-lg px-2 text-xs transition-colors",
+                  p === currentPage
+                    ? "border-primary bg-primary font-semibold text-primary-foreground hover:bg-primary/90"
+                    : "border-border/60 bg-bg-surface/50 text-text-muted hover:bg-bg-surface hover:text-text"
+                )}
+                aria-current={p === currentPage ? "page" : undefined}
+                aria-label={t("pagination.page", { page: p }, `หน้า ${p}`)}
+              >
+                {p}
+              </Button>
+            )
+          )}
+        </div>
+
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={currentPage >= totalPages}
+          onClick={() => onPageChange(currentPage + 1)}
+          className="h-8 gap-1 rounded-lg border-border/60 bg-bg-surface/50 px-2.5 text-xs text-text-muted hover:bg-bg-surface hover:text-text disabled:opacity-40 disabled:pointer-events-none"
+          aria-label={t("pagination.next", {}, "ถัดไป")}
+        >
+          <span className="hidden sm:inline">{t("pagination.next", {}, "ถัดไป")}</span>
+          <ChevronRight className="size-3.5" />
+        </Button>
+      </div>
+    </nav>
+  );
+}
+
 /* ─── Main ───────────────────────────────────────────────────────────── */
 interface JobListProps {
   mode: JobListMode;
@@ -900,6 +1055,7 @@ export function JobList({ mode, compact = false, onQueueClosed }: JobListProps) 
   const [deletingSelection, setDeletingSelection] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [platformFilter, setPlatformFilter] = useState("ALL");
+  const [currentPage, setCurrentPage] = useState(1);
   const [busyState, setBusyState] = useState<{
     id: string;
     action: "cancel" | "delete" | "pause" | "resume" | "share";
@@ -966,6 +1122,34 @@ export function JobList({ mode, compact = false, onQueueClosed }: JobListProps) 
         return true;
       });
   }, [jobs, mode, platformFilter, searchQuery]);
+
+  const isHistory = mode === "history";
+  const totalPages = isHistory
+    ? Math.max(1, Math.ceil(visibleJobs.length / HISTORY_PAGE_SIZE))
+    : 1;
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, platformFilter]);
+
+  useEffect(() => {
+    if (isHistory && totalPages > 0 && currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, isHistory, totalPages]);
+
+  const displayJobs = useMemo(() => {
+    if (!isHistory) return visibleJobs;
+    const startIndex = (currentPage - 1) * HISTORY_PAGE_SIZE;
+    return visibleJobs.slice(startIndex, startIndex + HISTORY_PAGE_SIZE);
+  }, [currentPage, isHistory, visibleJobs]);
+
+  const handlePageChange = useCallback((page: number) => {
+    setCurrentPage(page);
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }, []);
 
   const confirmJobId = confirmState?.jobId;
   useEffect(() => {
@@ -1163,7 +1347,7 @@ export function JobList({ mode, compact = false, onQueueClosed }: JobListProps) 
     void fetchJobs(true);
   }, [fetchJobs]);
 
-  const downloadAgain = useCallback(
+  const analyzeOriginalLink = useCallback(
     (job: Job) => {
       requestMediaAnalysis(job.original_url);
       router.push("/dashboard");
@@ -1368,27 +1552,39 @@ export function JobList({ mode, compact = false, onQueueClosed }: JobListProps) 
           />
         </div>
       ) : visibleJobs.length > 0 ? (
-        <div className="space-y-2.5">
-          {visibleJobs.map((job, index) => (
-            <JobCard
-              key={job.id}
-              job={job}
-              mode={mode}
-              priority={index === 0}
-              busy={deletingSelection || busyState?.id === job.id}
-              busyAction={busyState?.id === job.id ? busyState.action : null}
-              selectionMode={mode === "history" && selectionMode}
-              selected={selectedJobIds.has(job.id)}
-              onToggleSelection={() => toggleHistorySelection(job.id)}
-              onCancel={() => void cancelJob(job)}
-              onCopyLink={() => void copyLink(job)}
-              onDownloadAgain={() => void downloadAgain(job)}
-              onShareFile={() => void shareFile(job)}
-              onPause={() => void pauseJob(job)}
-              onResume={() => void resumeJob(job)}
+        <>
+          <div className="space-y-2.5">
+            {displayJobs.map((job, index) => (
+              <JobCard
+                key={job.id}
+                job={job}
+                mode={mode}
+                priority={index === 0 && currentPage === 1}
+                busy={deletingSelection || busyState?.id === job.id}
+                busyAction={busyState?.id === job.id ? busyState.action : null}
+                selectionMode={mode === "history" && selectionMode}
+                selected={selectedJobIds.has(job.id)}
+                onToggleSelection={() => toggleHistorySelection(job.id)}
+                onCancel={() => void cancelJob(job)}
+                onCopyLink={() => void copyLink(job)}
+                onAnalyzeOriginalLink={() => analyzeOriginalLink(job)}
+                onShareFile={() => void shareFile(job)}
+                onPause={() => void pauseJob(job)}
+                onResume={() => void resumeJob(job)}
+              />
+            ))}
+          </div>
+
+          {isHistory && totalPages > 1 && (
+            <HistoryPagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={visibleJobs.length}
+              pageSize={HISTORY_PAGE_SIZE}
+              onPageChange={handlePageChange}
             />
-          ))}
-        </div>
+          )}
+        </>
       ) : !loadError ? (
         <EmptyState
           mode={mode}

@@ -183,12 +183,13 @@ test.describe("Mocked Dashboard Workflow", () => {
     });
     await urlInput.fill(sourceUrl);
     await urlInput.press("Enter");
-    await expect(
-      page.getByRole("button", { name: "Download", exact: true })
-    ).toBeVisible();
+    const confirmAndDownload = page.getByRole("button", {
+      name: /confirm rights and download|ยืนยันสิทธิ์และดาวน์โหลด/i,
+    });
+    await expect(confirmAndDownload).toBeVisible();
     await expect(page.getByRole("button", { name: "GIF", exact: true })).toHaveCount(0);
     await expect(page.getByText("35,000 reactions", { exact: true })).toBeVisible();
-    await page.getByRole("button", { name: "Download", exact: true }).click();
+    await confirmAndDownload.click();
 
     await expect(urlInput).toHaveValue(sourceUrl);
     await expect(urlInput).toBeEditable();
@@ -303,7 +304,11 @@ test.describe("Mocked Dashboard Workflow", () => {
     });
     await urlInput.fill("https://example.com/video");
     await urlInput.press("Enter");
-    await page.getByRole("button", { name: "ดาวน์โหลด", exact: true }).click();
+    await page
+      .getByRole("button", {
+        name: /ยืนยันสิทธิ์และดาวน์โหลด|confirm rights and download/i,
+      })
+      .click();
 
     const errorToast = page
       .getByRole("status")
@@ -398,7 +403,11 @@ test.describe("Mocked Dashboard Workflow", () => {
     await urlInput.fill("https://x.com/i/status/2037838931568566363");
     await urlInput.press("Enter");
     await page.getByRole("button", { name: "GIF", exact: true }).click();
-    await page.getByRole("button", { name: "Download", exact: true }).click();
+    await page
+      .getByRole("button", {
+        name: /confirm rights and download|ยืนยันสิทธิ์และดาวน์โหลด/i,
+      })
+      .click();
 
     await expect
       .poll(() => createdBody)
@@ -659,6 +668,7 @@ test.describe("Mocked Dashboard Workflow", () => {
     await page.mouse.wheel(0, 300);
     await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(72);
     await expect(mobileHeader).toHaveAttribute("data-scroll-state", "visible");
+    await expect(mobileHeader).toBeVisible();
     await expect(mobileNavigation).toHaveAttribute("data-scroll-state", "compact");
     await expect(mobileNavigation).toBeVisible();
     await expect
@@ -669,6 +679,7 @@ test.describe("Mocked Dashboard Workflow", () => {
 
     await page.mouse.wheel(0, -140);
     await expect(mobileHeader).toHaveAttribute("data-scroll-state", "visible");
+    await expect(mobileHeader).toBeVisible();
     await expect(mobileNavigation).toHaveAttribute("data-scroll-state", "expanded");
     await expect(mobileNavigation).toBeVisible();
   });

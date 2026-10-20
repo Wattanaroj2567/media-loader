@@ -5,8 +5,6 @@ GET  /downloads — List user's jobs.
 GET  /downloads/{job_id} — Get job detail.
 """
 
-import uuid
-
 from fastapi import APIRouter, Depends, Header
 
 from app.auth import CurrentUser, get_current_user, get_current_user_optional
@@ -44,10 +42,9 @@ def is_format_compatible(format_info: FormatInfo, output_format: str) -> bool:
 @router.post("")
 async def create_download_job_endpoint(
     request: DownloadRequest,
-    current_user: CurrentUser | None = Depends(get_current_user_optional),
-    guest_session_id: str | None = Header(default=None, alias="x-guest-session-id"),
+    current_user: CurrentUser = Depends(get_current_user),
 ):
-    """Create a new download job (for logged-in users or guests)."""
+    """Create a new download job owned by the authenticated account."""
     if request.output_format not in {"mp4", "mp3", "gif"}:
         raise AppError(400, "INVALID_OUTPUT_FORMAT", "รองรับเฉพาะ MP4, MP3 และ GIF")
 
@@ -58,10 +55,7 @@ async def create_download_job_endpoint(
             "กรุณายืนยันสิทธิ์ในสื่อก่อนดำเนินการดาวน์โหลด",
         )
 
-    effective_user_id = current_user.id if current_user else None
-    effective_guest_id = (
-        None if effective_user_id else (guest_session_id or str(uuid.uuid4()))
-    )
+    effective_user_id = current_user.id
 
     url = str(request.url)
     policy = check_url(url)
@@ -99,7 +93,7 @@ async def create_download_job_endpoint(
 
     job_id = create_job(
         user_id=effective_user_id,
-        guest_session_id=effective_guest_id,
+        guest_session_id=None,
         url=url,
         format_id=selected.format_id,
         output_format=request.output_format,
@@ -196,16 +190,9 @@ async def pause_download_job_endpoint(
 @router.post("/{job_id}/resume")
 async def resume_download_job_endpoint(
     job_id: str,
-    current_user: CurrentUser | None = Depends(get_current_user_optional),
-    guest_session_id: str | None = Header(default=None, alias="x-guest-session-id"),
+    current_user: CurrentUser = Depends(get_current_user),
 ):
-    user_id = current_user.id if current_user else None
-    if not user_id and not guest_session_id:
-        raise AppError(401, "AUTH_REQUIRED", "จำเป็นต้องระบุข้อมูลผู้ใช้หรือเซสชัน")
-
-    return success_response(
-        data=resume_job(job_id, user_id=user_id, guest_session_id=guest_session_id)
-    )
+    return success_response(data=resume_job(job_id, user_id=current_user.id))
 
 
 @router.delete("/{job_id}")

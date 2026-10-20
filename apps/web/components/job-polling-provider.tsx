@@ -178,7 +178,7 @@ export function JobPollingProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     mountedRef.current = true;
     lastPollAtRef.current = Date.now();
-    void refreshJobs();
+    void (inFlightRef.current ?? refreshJobs());
 
     // Adaptive polling: stay fast (5s) while jobs are active, while the
     // first load is still pending, while recovering from a failure so
