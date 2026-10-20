@@ -10,16 +10,11 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import dynamic from "next/dynamic";
 import { X } from "lucide-react";
+import { AuthForm } from "@/components/auth-form";
 import { requestMediaAnalysis } from "@/lib/analyzer-session";
 import { useT } from "@/lib/i18n/context";
 import styles from "./auth-form.module.css";
-
-const AuthForm = dynamic(
-  () => import("@/components/auth-form").then((module) => module.AuthForm),
-  { ssr: false, loading: () => null }
-);
 
 const LandingAuthContext = createContext<{ openAuth: (url?: string) => void } | null>(
   null
