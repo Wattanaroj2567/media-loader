@@ -991,12 +991,13 @@ export function MediaAnalyzer() {
           >
             <div
               onClick={(e) => e.stopPropagation()}
+              data-testid="media-viewer-lightbox"
               className="ui-panel relative flex flex-col max-h-[92vh] w-full max-w-4xl items-center justify-center overflow-hidden rounded-3xl border border-border/80 bg-bg-surface p-3 shadow-2xl sm:p-5"
             >
               {/* Header Action Bar */}
-              <div className="mb-3 flex w-full flex-wrap items-center justify-between gap-2.5 border-b border-border/60 pb-3 px-1">
+              <div className="mb-3 grid w-full grid-cols-[minmax(0,1fr)_auto] items-start gap-x-2.5 gap-y-2.5 border-b border-border/60 px-1 pb-3 sm:flex sm:items-center sm:justify-between">
                 {embedUrl ? (
-                  <div className="flex gap-1 rounded-xl border border-border/80 bg-bg-base/70 p-1">
+                  <div className="col-start-1 row-start-1 flex min-w-0 gap-1 rounded-xl border border-border/80 bg-bg-base/70 p-1 sm:order-1">
                     <button
                       type="button"
                       onClick={() => {
@@ -1026,17 +1027,28 @@ export function MediaAnalyzer() {
                     </button>
                   </div>
                 ) : (
-                  <span className="truncate text-xs font-semibold text-text-muted">
+                  <span className="col-start-1 row-start-1 min-w-0 truncate text-xs font-semibold text-text-muted sm:order-1">
                     {t("download.thumbnailPreview", {}, "รูปภาพหน้าปก")}
                   </span>
                 )}
 
-                <div className="flex items-center gap-2 ml-auto">
-                  {lightboxTab === "image" && (
+                <button
+                  type="button"
+                  onClick={() => setShowLightbox(false)}
+                  data-testid="media-viewer-close"
+                  aria-label={t("common.close", {}, "ปิด")}
+                  className="col-start-2 row-start-1 grid size-11 shrink-0 place-items-center rounded-full border border-border/70 bg-bg-base/70 text-text shadow-sm transition-colors hover:bg-bg-surface active:scale-95 outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary cursor-pointer sm:order-3 sm:size-9 sm:rounded-lg sm:border-transparent sm:bg-transparent sm:text-text-muted sm:shadow-none"
+                >
+                  <X className="size-5 sm:size-4" />
+                </button>
+
+                {lightboxTab === "image" && (
+                  <div className="col-span-2 flex justify-end sm:order-2 sm:ml-auto sm:col-span-1">
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
+                      data-testid="media-viewer-download"
                       onClick={async () => {
                         try {
                           const res = await fetch(media.thumbnail_url!);
@@ -1059,16 +1071,8 @@ export function MediaAnalyzer() {
                       <Download className="size-3.5 text-primary" />
                       <span>{t("download.saveImage", {}, "ดาวน์โหลดรูป")}</span>
                     </Button>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => setShowLightbox(false)}
-                    aria-label={t("common.close", {}, "ปิด")}
-                    className="grid size-11 shrink-0 place-items-center rounded-full border border-border/70 bg-bg-base/70 text-text shadow-sm transition-colors hover:bg-bg-surface active:scale-95 outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary cursor-pointer sm:size-9 sm:rounded-lg sm:border-transparent sm:bg-transparent sm:text-text-muted sm:shadow-none"
-                  >
-                    <X className="size-5 sm:size-4" />
-                  </button>
-                </div>
+                  </div>
+                )}
               </div>
 
               {/* Main Content Area */}

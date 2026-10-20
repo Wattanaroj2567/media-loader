@@ -203,7 +203,8 @@ users.
 - URL analysis and format selection
 - Queue, history, and settings pages
 - Queue cards use compact 112 px thumbnails on mobile and show the localized
-  creation date and time; history cards show the download date.
+  creation date and time; history cards show the download date. The media
+  viewer places its close control at the upper right on mobile.
 - Authenticated same-origin file streaming for signed-in users
 
 ### FastAPI
