@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import get_settings
 from app.errors import AppError, app_error_handler, generic_error_handler
 from app.rate_limiter import RateLimiterMiddleware
-from app.routers import account, downloads, files, health, media
+from app.routers import account, downloads, files, health, media, notifications
 
 # Configure basic logging
 logging.basicConfig(
@@ -125,6 +125,7 @@ def create_app() -> FastAPI:
     app.include_router(downloads.router)
     app.include_router(files.router)
     app.include_router(account.router)
+    app.include_router(notifications.router)
 
     return app
 
