@@ -8,6 +8,7 @@ import {
   bigint,
   pgSchema,
   index,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 
 // Reference the auth schema from Supabase
@@ -101,3 +102,31 @@ export const policyLogs = pgTable(
     };
   }
 );
+
+// Push credentials are server-managed and never queried directly by the browser.
+export const pushSubscriptions = pgTable(
+  "push_subscriptions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    endpoint: text("endpoint").notNull(),
+    p256dh: text("p256dh").notNull(),
+    auth: text("auth").notNull(),
+    locale: text("locale").default("th").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    endpointUniqueIdx: uniqueIndex("push_subscriptions_endpoint_unique").on(
+      table.endpoint
+    ),
+    userCreatedAtIdx: index("push_subscriptions_user_created_at_idx").on(
+      table.userId,
+      table.createdAt
+    ),
+  })
+);
+
+export type PushSubscription = typeof pushSubscriptions.$inferSelect;

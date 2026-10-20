@@ -3,6 +3,9 @@
 alter table public.profiles enable row level security;
 alter table public.download_jobs enable row level security;
 alter table public.policy_logs enable row level security;
+alter table public.push_subscriptions enable row level security;
+
+-- Push endpoints and keys are accessible only through trusted server services.
 
 -- Profiles
 create policy "Users can read own profile"
