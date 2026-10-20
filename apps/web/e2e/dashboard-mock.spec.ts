@@ -230,6 +230,72 @@ test.describe("Mocked Dashboard Workflow", () => {
     await expect(page.getByText("35,000 reactions", { exact: true })).toHaveCount(0);
   });
 
+  test("shows an in-app alert when an active job completes without push alerts", async ({
+    context,
+    page,
+  }) => {
+    const appOrigin = new URL(test.info().project.use.baseURL!).origin;
+    await seedAuth(context, appOrigin);
+    await context.addCookies([
+      { name: "media-loader-locale", value: "en", url: appOrigin },
+    ]);
+    const queuedJob = {
+      id: "job-background-notification",
+      original_url: "https://example.com/video",
+      status: "QUEUED",
+      progress: 0,
+      selected_format: "mp4-720p",
+      selected_quality: "720p",
+      output_format: "mp4",
+      media_type: "video",
+      title: "Background notification test",
+      platform: "Test",
+      source_domain: "example.com",
+      thumbnail_url: null,
+      duration_seconds: 10,
+      output_filename: null,
+      file_available: false,
+      file_size_mb: null,
+      error_message: null,
+      created_at: "2026-09-18T12:00:00Z",
+      updated_at: "2026-09-18T12:00:00Z",
+      completed_at: null,
+      download_speed: null,
+    };
+    let shouldComplete = false;
+    await page.route("**/downloads*", async (route) => {
+      if (route.request().method() === "OPTIONS") {
+        await route.fulfill({ status: 204, headers: CORS_HEADERS });
+        return;
+      }
+
+      const job = shouldComplete
+        ? {
+            ...queuedJob,
+            status: "COMPLETED",
+            progress: 100,
+            updated_at: "2026-09-18T12:01:00Z",
+            completed_at: "2026-09-18T12:01:00Z",
+          }
+        : queuedJob;
+      await route.fulfill(
+        jsonResponse({
+          ok: true,
+          data: { jobs: [job], total: 1, limit: 100, offset: 0 },
+          error: null,
+        })
+      );
+    });
+
+    await page.goto("/dashboard");
+    await expect(page.locator("#download-queue")).toContainText(queuedJob.title);
+    shouldComplete = true;
+
+    await expect(page.getByText("Download Completed", { exact: true })).toBeVisible({
+      timeout: 15000,
+    });
+  });
+
   test("shows a localized wait time when download creation is rate limited", async ({
     context,
     page,

@@ -29,6 +29,12 @@ export const metadata: Metadata = {
   },
   description:
     "Private, rights-aware media loading for personal use. Sign in to queue downloads, track progress, and manage your media history.",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    title: "Media Loader",
+    statusBarStyle: "default",
+  },
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {

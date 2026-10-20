@@ -16,6 +16,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   }
 
   const navUser = {
+    id: user.id,
     name:
       user.user_metadata?.full_name ||
       user.user_metadata?.name ||
