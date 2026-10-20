@@ -6,16 +6,13 @@ import { createPortal } from "react-dom";
 import {
   AlertCircle,
   CheckCircle2,
-  ClipboardPaste,
   Clock3,
   Download,
   Eye,
   Film,
   Globe2,
   Heart,
-  Info,
   Play,
-  Search,
   ShieldAlert,
   UserRound,
   X,
@@ -24,7 +21,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { LoadingIndicator } from "@/components/loading-indicator";
 import { Skeleton } from "@/components/ui/skeleton";
-import { BorderBeam } from "@/components/ui/border-beam";
+import { MediaUrlInput } from "@/components/media-url-input";
 import { useToast } from "@/components/toast";
 import { ApiError, apiClient, type MediaAnalysis } from "@/lib/api-client";
 import { registerPendingDownload } from "@/lib/download-coordinator";
@@ -40,7 +37,6 @@ import {
 } from "@/lib/media-presenters.ts";
 import { useT } from "@/lib/i18n/context";
 import { validateUrl } from "@/lib/url-validation";
-import { addGuestJobId } from "@/lib/guest-session";
 
 type AnalyzerState = "idle" | "analyzing" | "ready" | "blocked" | "error";
 type FormatTab = "video" | "audio" | "gif";
@@ -152,7 +148,7 @@ function AnalyzerSkeleton() {
       />
       <div className="grid gap-4 rounded-2xl border border-border bg-bg-surface/55 p-4 sm:grid-cols-[240px_1fr]">
         <Skeleton
-          className="aspect-video w-full rounded-xl bg-bg-base/80"
+          className="aspect-video w-full rounded-[1.25rem] bg-bg-base/80"
           style={{ "--skeleton-delay": "0s" } as CSSProperties}
         />
         <div className="space-y-3 py-1">
@@ -678,7 +674,6 @@ export function MediaAnalyzer() {
         rights_confirmed: true,
       });
       if (job) {
-        addGuestJobId(job.job_id);
         registerPendingDownload(job.job_id, filename, null);
         setJustQueued(true);
         if (queuedTimerRef.current) {
@@ -760,89 +755,18 @@ export function MediaAnalyzer() {
 
   return (
     <div className="w-full">
-      {/* ── Search bar hero ── */}
-      <div className="mb-5">
-        <p className="ui-kicker mb-3">
-          {t("download.placeholderLabel", {}, "วางลิงก์คลิป")}
-        </p>
-        <div className="group relative overflow-hidden flex min-h-16 gap-2 rounded-2xl border border-border bg-bg-surface/60 p-2 transition-all duration-200 focus-within:border-primary/60 focus-within:bg-bg-elevated focus-within:ring-3 focus-within:ring-primary/15">
-          {state === "analyzing" && (
-            <BorderBeam size={200} duration={4} colorFrom="#00c8ff" colorTo="#0070f3" />
-          )}
-          <span className="grid size-11 shrink-0 place-items-center self-center rounded-xl bg-primary/12 text-primary">
-            <Search className="size-5" />
-          </span>
-          <input
-            type="url"
-            value={url}
-            // Browser extensions (autofill/password managers) may tag this
-            // field with extra attributes before hydration; tolerate that.
-            suppressHydrationWarning
-            autoComplete="off"
-            autoCorrect="off"
-            spellCheck={false}
-            onChange={(e) => setUrl(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                void analyze();
-              }
-            }}
-            onPaste={(e) => {
-              const pasted = e.clipboardData.getData("text").trim();
-              if (!pasted) return;
-              const converted = tryConvertThaiLayout(pasted);
-              // Let React update the input value first, then analyze
-              window.setTimeout(() => void analyze(converted), 0);
-            }}
-            placeholder="https://..."
-            className="min-w-0 flex-1 bg-transparent py-2 text-base font-medium text-text placeholder:font-normal placeholder:text-text-dim outline-none sm:text-lg"
-            aria-label={t("download.placeholder")}
-          />
-          {url ? (
-            <button
-              type="button"
-              onClick={() => {
-                setUrl("");
-                reset();
-              }}
-              className="grid min-h-11 min-w-11 place-items-center rounded-xl text-xs text-text-muted transition-colors hover:text-text cursor-pointer"
-              aria-label={t("download.clear")}
-            >
-              <X className="size-4" />
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={async () => {
-                try {
-                  const text = await navigator.clipboard.readText();
-                  if (text) {
-                    const converted = tryConvertThaiLayout(text);
-                    setUrl(converted);
-                    if (converted.trim()) {
-                      void analyze(converted);
-                    }
-                  }
-                } catch (err) {
-                  console.warn(
-                    "[Paste Action Error]: Clipboard access denied or empty",
-                    err
-                  );
-                }
-              }}
-              title={t("download.pasteTitle", {}, "คัดลอกลิงก์แล้วกดวาง")}
-              className="flex h-9 items-center gap-1.5 rounded-xl border border-primary/35 bg-primary/10 px-3 text-xs font-semibold text-primary transition-all duration-200 hover:border-primary/50 hover:bg-primary/20 active:scale-95 cursor-pointer"
-            >
-              <ClipboardPaste className="size-3.5 shrink-0" />
-              <span>{t("download.paste", {}, "วางลิงก์")}</span>
-            </button>
-          )}
-        </div>
-        <div className="mt-3 flex items-start gap-2.5 rounded-xl border border-border/70 bg-bg-surface/40 px-3.5 py-2.5 text-[11px] leading-relaxed text-text-muted">
-          <Info className="mt-0.5 size-3.5 shrink-0 text-primary" />
-          <p className="font-medium">{t("download.policyNote")}</p>
-        </div>
-      </div>
+      <MediaUrlInput
+        value={url}
+        onChange={setUrl}
+        onClear={reset}
+        onSubmit={() => void analyze()}
+        analyzing={state === "analyzing"}
+        onPaste={(text) => {
+          const converted = tryConvertThaiLayout(text);
+          setUrl(converted);
+          void analyze(converted);
+        }}
+      />
 
       {/* ── Analyzing skeleton ── */}
       {state === "analyzing" && <AnalyzerSkeleton />}
@@ -882,7 +806,7 @@ export function MediaAnalyzer() {
       {state === "ready" && analysis && media && (
         <div className="space-y-6">
           {/* Media Info Section */}
-          <div className="grid gap-4 sm:grid-cols-[200px_1fr] lg:gap-6 xl:grid-cols-[240px_1fr]">
+          <div className="grid grid-cols-[112px_minmax(0,1fr)] items-center gap-3 sm:grid-cols-[200px_1fr] sm:gap-4 lg:gap-6 xl:grid-cols-[240px_1fr]">
             {/* Clean Thumbnail Card -> Click to open Fullscreen Viewer */}
             {media.thumbnail_url ? (
               <button
@@ -897,7 +821,7 @@ export function MediaAnalyzer() {
                   {},
                   "คลิกเพื่อรับชมมีเดียแบบเต็มจอ"
                 )}
-                className="group block aspect-video w-full overflow-hidden rounded-2xl border border-border/80 bg-bg-surface text-left transition-all duration-200 hover:border-primary/50 active:scale-[0.99] cursor-pointer"
+                className="group block aspect-video w-full overflow-hidden rounded-xl border border-border/80 bg-bg-surface text-left transition-all duration-200 hover:border-primary/50 active:scale-[0.99] sm:rounded-[1.25rem] cursor-pointer"
               >
                 {/* The analyzed thumbnail is the dashboard's LCP image. */}
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -911,7 +835,7 @@ export function MediaAnalyzer() {
                 />
               </button>
             ) : (
-              <div className="grid aspect-video place-items-center rounded-2xl border border-border bg-bg-surface/50">
+              <div className="grid aspect-video place-items-center rounded-xl border border-border bg-bg-surface/50 sm:rounded-[1.25rem]">
                 <Film className="size-8 text-text-dim" />
               </div>
             )}
@@ -922,7 +846,7 @@ export function MediaAnalyzer() {
                 {media.title}
               </h2>
 
-              <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+              <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5 sm:mt-3 sm:gap-x-4 sm:gap-y-2">
                 {media.uploader && (
                   <span className="flex items-center gap-1.5 text-xs text-text-muted sm:text-sm">
                     <UserRound className="size-3.5 shrink-0 text-text-dim" />
@@ -1030,7 +954,7 @@ export function MediaAnalyzer() {
                   type="button"
                   onClick={() => void startDownload()}
                   disabled={!selectedFormat || queueing}
-                  className={`h-11 w-full rounded-xl px-8 text-xs font-semibold sm:w-50 cursor-pointer transition-all ${
+                  className={`h-11 w-full rounded-lg px-8 text-xs font-semibold sm:w-50 cursor-pointer transition-all ${
                     justQueued
                       ? "border-emerald-500/40 bg-emerald-600/90 hover:bg-emerald-600 text-white"
                       : ""
@@ -1046,7 +970,7 @@ export function MediaAnalyzer() {
                   ) : (
                     <>
                       <Download className="size-4" />
-                      {t("download.download")}
+                      {t("download.confirmAndDownload")}
                     </>
                   )}
                 </Button>
@@ -1140,7 +1064,7 @@ export function MediaAnalyzer() {
                     type="button"
                     onClick={() => setShowLightbox(false)}
                     aria-label={t("common.close", {}, "ปิด")}
-                    className="grid size-9 place-items-center rounded-xl border border-border bg-bg-base/80 text-text-muted transition-colors hover:bg-bg-surface hover:text-text cursor-pointer"
+                    className="grid size-8 place-items-center rounded-lg bg-transparent text-text-muted transition-colors hover:bg-bg-surface hover:text-text outline-none focus-visible:outline-2 focus-visible:outline-primary cursor-pointer"
                   >
                     <X className="size-4" />
                   </button>
