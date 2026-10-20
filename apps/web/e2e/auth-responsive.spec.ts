@@ -109,6 +109,12 @@ for (const locale of ["th", "en"] as const) {
         .fill("https://example.com/public-video.mp4");
       await page.getByPlaceholder("https://...").press("Enter");
       const modal = page.getByRole("dialog");
+      await expect(modal).toBeVisible();
+      expect(await modal.getByRole("heading").isVisible()).toBe(true);
+      const initialHeight = await modal.evaluate(
+        (element) => element.getBoundingClientRect().height
+      );
+      expect(initialHeight).toBeGreaterThan(200);
       await expect(modal).toHaveAccessibleName(labels.login);
       await checkLayout(page);
       const legalLinks = modal;
