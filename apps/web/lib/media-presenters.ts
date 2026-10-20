@@ -90,6 +90,24 @@ export function formatCalendarDate(
   }
 }
 
+export function formatCalendarDateTime(
+  iso: string | null | undefined,
+  locale: "en" | "th"
+) {
+  if (!iso) return "";
+  try {
+    return new Intl.DateTimeFormat(locale === "th" ? "th-TH" : "en-US", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    }).format(new Date(iso));
+  } catch {
+    return "";
+  }
+}
+
 function sanitizeFilename(filename: string) {
   return filename.replace(/[<>:"/\\|?*\u0000-\u001F]/g, "_");
 }

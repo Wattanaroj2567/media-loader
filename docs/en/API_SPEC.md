@@ -126,6 +126,9 @@ response.
 | `GET /files/download/{job_id}` | Download token, bearer token, or owning guest session |
 | `DELETE /files/delete/{job_id}` | Bearer token or owning guest session |
 | `DELETE /account` | Bearer token required |
+| `GET /notifications/vapid-public-key` | Bearer token required |
+| `POST /notifications/subscriptions` | Bearer token required |
+| `DELETE /notifications/subscriptions` | Bearer token required |
 
 ### GET `/health`
 
@@ -346,3 +349,30 @@ history remains. Access requires a bearer token or the owning guest session.
 Delete the signed-in user's Media Loader account. The API removes the user's
 local temporary outputs and deletes the Supabase Auth user. A bearer token is
 required.
+
+### Web Push subscriptions
+
+`GET /notifications/vapid-public-key` returns the public application server key
+needed by the browser Push API. It returns `503 PUSH_NOT_CONFIGURED` when
+`VAPID_PUBLIC_KEY` is empty.
+
+`POST /notifications/subscriptions` stores or updates the authenticated user's
+browser subscription. It accepts only HTTPS endpoints from supported push
+services; endpoint URLs and subscription keys are private credentials and are
+never returned by the API.
+
+```json
+{
+  "endpoint": "https://fcm.googleapis.com/push/<subscription-token>",
+  "keys": {
+    "p256dh": "<browser-public-key>",
+    "auth": "<browser-auth-secret>"
+  },
+  "locale": "th"
+}
+```
+
+`DELETE /notifications/subscriptions` accepts the subscription endpoint in its
+request body and removes only the row owned by the authenticated user. The
+worker sends notifications for job transitions to `COMPLETED`, `FAILED`, and
+`BLOCKED`; expired push endpoints are removed after a `404` or `410` response.

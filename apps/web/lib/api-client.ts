@@ -82,6 +82,11 @@ export interface FileDestination {
   createWritable: () => Promise<WritableStream<Uint8Array>>;
 }
 
+export interface BrowserPushSubscriptionData {
+  endpoint: string;
+  keys: { p256dh: string; auth: string };
+}
+
 async function currentAccessToken(): Promise<string | null> {
   const { createClient } = await import("./supabase/client.ts");
   const {
@@ -449,6 +454,35 @@ export class ApiClient {
 
   deleteAccount(): Promise<{ deleted: boolean }> {
     return this.request("/account", { method: "DELETE" }, true);
+  }
+
+  getVapidPublicKey(): Promise<{ public_key: string }> {
+    return this.request("/notifications/vapid-public-key", {}, true);
+  }
+
+  savePushSubscription(
+    subscription: BrowserPushSubscriptionData,
+    locale: "th" | "en"
+  ): Promise<{ subscribed: boolean }> {
+    return this.request(
+      "/notifications/subscriptions",
+      {
+        method: "POST",
+        body: JSON.stringify({ ...subscription, locale }),
+      },
+      true
+    );
+  }
+
+  deletePushSubscription(endpoint: string): Promise<{ deleted: boolean }> {
+    return this.request(
+      "/notifications/subscriptions",
+      {
+        method: "DELETE",
+        body: JSON.stringify({ endpoint }),
+      },
+      true
+    );
   }
 
   private async fileResponse(jobId: string) {

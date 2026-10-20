@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   formatCalendarDate,
+  formatCalendarDateTime,
   formatCardTitle,
   formatLikes,
   formatMediaDuration,
@@ -26,6 +27,16 @@ test("history date includes day, month, and year without download time", () => {
   assert.equal(formatCalendarDate("2026-09-21T12:00:00Z", "en"), "Sep 21, 2026");
   assert.equal(formatCalendarDate(undefined, "en"), "");
   assert.equal(formatCalendarDate("not-a-date", "en"), "");
+});
+
+test("queue date-time uses the localized calendar format and rejects invalid dates", () => {
+  const iso = "2026-09-21T12:34:00Z";
+  const formatted = formatCalendarDateTime(iso, "en");
+
+  assert.ok(formatted.startsWith(formatCalendarDate(iso, "en")));
+  assert.match(formatted, /\d{1,2}:\d{2}(?:\s(?:AM|PM))?/);
+  assert.equal(formatCalendarDateTime(undefined, "en"), "");
+  assert.equal(formatCalendarDateTime("not-a-date", "en"), "");
 });
 
 test("audio source formats prefer true audio-only formats over video formats with audio", () => {

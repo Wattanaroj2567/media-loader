@@ -135,4 +135,146 @@ test.describe("Account Settings Page UI", () => {
     const mainHeading = page.locator("h1, h2, header").first();
     await expect(mainHeading).toBeVisible();
   });
+
+  test("subscribes to push alerts and removes the subscription when disabled", async ({
+    page,
+    context,
+  }) => {
+    await seedAuth(context);
+    await context.addCookies([
+      { name: "media-loader-locale", value: "en", url: APP_ORIGIN },
+    ]);
+    await page.addInitScript(() => {
+      class GrantedNotification {
+        static permission: NotificationPermission = "granted";
+
+        static async requestPermission() {
+          return "granted" as NotificationPermission;
+        }
+      }
+
+      Object.defineProperty(window, "Notification", {
+        configurable: true,
+        value: GrantedNotification,
+      });
+      Object.defineProperty(window, "PushManager", {
+        configurable: true,
+        value: class MockPushManager {},
+      });
+
+      const subscription = {
+        endpoint: "https://fcm.googleapis.com/push/test-subscription",
+        toJSON: () => ({
+          endpoint: "https://fcm.googleapis.com/push/test-subscription",
+          expirationTime: null,
+          keys: { p256dh: "A".repeat(87), auth: "B".repeat(22) },
+        }),
+        unsubscribe: async () => {
+          localStorage.setItem("test:push-subscription", "0");
+          return true;
+        },
+      } as unknown as PushSubscription;
+      const registration = {
+        pushManager: {
+          getSubscription: async () =>
+            localStorage.getItem("test:push-subscription") === "1"
+              ? subscription
+              : null,
+          subscribe: async () => {
+            localStorage.setItem("test:push-subscription", "1");
+            return subscription;
+          },
+        },
+      };
+      const serviceWorker = {
+        register: async () => registration,
+        getRegistration: async () => registration,
+        ready: Promise.resolve(registration),
+      };
+      Object.defineProperty(navigator, "serviceWorker", {
+        configurable: true,
+        value: serviceWorker,
+      });
+    });
+
+    let savedSubscription: unknown;
+    let deletedEndpoint: string | undefined;
+    await page.route("**/notifications/**", async (route) => {
+      const request = route.request();
+      if (request.method() === "OPTIONS") {
+        await route.fulfill({
+          status: 204,
+          headers: {
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET,POST,DELETE,OPTIONS",
+            "Access-Control-Allow-Headers": "Authorization,Content-Type",
+          },
+        });
+        return;
+      }
+      if (request.url().endsWith("/vapid-public-key")) {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            ok: true,
+            data: { public_key: "B".repeat(87) },
+            error: null,
+          }),
+        });
+        return;
+      }
+      if (request.method() === "POST") {
+        savedSubscription = request.postDataJSON();
+      } else if (request.method() === "DELETE") {
+        deletedEndpoint = request.postDataJSON().endpoint;
+      }
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          ok: true,
+          data:
+            request.method() === "DELETE" ? { deleted: true } : { subscribed: true },
+          error: null,
+        }),
+      });
+    });
+
+    await page.goto("/settings");
+
+    const enableButton = page.getByRole("button", { name: "Enable", exact: true });
+    await expect(enableButton).toBeVisible();
+    await enableButton.click();
+
+    const disableButton = page.getByRole("button", { name: "Disable", exact: true });
+    await expect(disableButton).toBeVisible();
+    await expect
+      .poll(() =>
+        page.evaluate(() => localStorage.getItem("media-loader:browser-notifications"))
+      )
+      .toBe("1");
+    expect(savedSubscription).toEqual({
+      endpoint: "https://fcm.googleapis.com/push/test-subscription",
+      keys: { p256dh: "A".repeat(87), auth: "B".repeat(22) },
+      locale: "en",
+    });
+
+    await page.reload();
+    const persistedDisableButton = page.getByRole("button", {
+      name: "Disable",
+      exact: true,
+    });
+    await expect(persistedDisableButton).toBeVisible();
+    await persistedDisableButton.click();
+    await expect(
+      page.getByRole("button", { name: "Enable", exact: true })
+    ).toBeVisible();
+    await expect
+      .poll(() =>
+        page.evaluate(() => localStorage.getItem("media-loader:browser-notifications"))
+      )
+      .toBe("0");
+    expect(deletedEndpoint).toBe("https://fcm.googleapis.com/push/test-subscription");
+  });
 });

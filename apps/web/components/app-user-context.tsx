@@ -3,6 +3,7 @@
 import { createContext, useContext, type ReactNode } from "react";
 
 export interface AppUser {
+  id: string;
   name: string;
   email: string;
   avatar_url?: string;

@@ -202,6 +202,12 @@ users.
 - Authentication and dashboard UI
 - URL analysis and format selection
 - Queue, history, and settings pages
+- Queue cards use compact 112 px thumbnails on mobile and show the localized
+  creation date and time; history cards show the download date. The media
+  viewer places its close control at the upper right on mobile. Opt-in Web Push
+  subscriptions deliver completed, failed, and policy-blocked alerts for signed-in
+  account jobs through a service worker, including while the app is closed. On iPhone and iPad the
+  user must install Media Loader on the Home Screen and allow notifications.
 - Authenticated same-origin file streaming for signed-in users
 
 ### FastAPI
@@ -220,6 +226,7 @@ users.
 - Writes output to shared local temp storage by default
 - Removes expired temporary outputs
 - Decrypts queued source URLs and routes source requests through the proxy
+- Sends terminal job notifications to validated Web Push endpoints through the egress proxy
 
 ### SSRF proxy
 

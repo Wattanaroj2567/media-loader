@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   AlertTriangle,
   ArrowLeft,
+  Bell,
   ChevronDown,
   ChevronRight,
   LogOut,
@@ -18,6 +19,15 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/toast";
 import { useAppUser } from "@/components/app-user-context";
 import { apiClient } from "@/lib/api-client";
+import {
+  getBrowserPushSubscription,
+  hasBrowserNotificationsPreference,
+  getNotificationPermission,
+  registerBrowserPushSubscription,
+  requestBrowserNotifications,
+  setBrowserNotificationsPreference,
+  type BrowserNotificationPermission,
+} from "@/lib/browser-notifications";
 import { useT } from "@/lib/i18n/context";
 import { useRouter } from "next/navigation";
 import { ConfirmDialog } from "@/components/confirm-dialog";
@@ -26,13 +36,91 @@ import { UserAvatar } from "@/components/user-avatar";
 
 export default function AccountPage() {
   const router = useRouter();
-  const { t } = useT();
+  const { locale, t } = useT();
   const { toast } = useToast();
   const user = useAppUser();
   const [confirmText, setConfirmText] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [showDangerZone, setShowDangerZone] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [notifyPermission, setNotifyPermission] =
+    useState<BrowserNotificationPermission>("default");
+  const [notifyEnabled, setNotifyEnabled] = useState(false);
+  const [notifyBusy, setNotifyBusy] = useState(false);
+
+  useEffect(() => {
+    // Read browser-only state after mount to avoid hydration mismatches.
+    setNotifyPermission(getNotificationPermission());
+    let active = true;
+    void getBrowserPushSubscription()
+      .then((subscription) => {
+        if (!active) return;
+        const enabled =
+          Boolean(subscription) && hasBrowserNotificationsPreference(user.id);
+        setNotifyEnabled(enabled);
+        if (!subscription) {
+          setBrowserNotificationsPreference(false, user.id);
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setNotifyEnabled(false);
+          setBrowserNotificationsPreference(false, user.id);
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, [user.id]);
+
+  const toggleNotifications = async () => {
+    if (notifyBusy) return;
+    setNotifyBusy(true);
+    try {
+      if (notifyEnabled) {
+        const subscription = await getBrowserPushSubscription();
+        if (subscription) {
+          await apiClient.deletePushSubscription(subscription.endpoint);
+          await subscription.unsubscribe();
+        }
+        setBrowserNotificationsPreference(false, user.id);
+        setNotifyEnabled(false);
+        return;
+      }
+
+      const result = await requestBrowserNotifications();
+      setNotifyPermission(result);
+      if (result !== "granted") return;
+
+      const { public_key: publicKey } = await apiClient.getVapidPublicKey();
+      const subscription = await registerBrowserPushSubscription(publicKey);
+      const serialized = subscription.toJSON();
+      if (!serialized.endpoint || !serialized.keys?.p256dh || !serialized.keys.auth) {
+        throw new Error("The browser returned an incomplete push subscription");
+      }
+      await apiClient.savePushSubscription(
+        {
+          endpoint: serialized.endpoint,
+          keys: {
+            p256dh: serialized.keys.p256dh,
+            auth: serialized.keys.auth,
+          },
+        },
+        locale
+      );
+      setBrowserNotificationsPreference(true, user.id);
+      setNotifyEnabled(true);
+    } catch (error) {
+      console.warn(
+        "[Browser Push Setup Error]:",
+        error instanceof Error ? error.name : "UnknownError"
+      );
+      setNotifyPermission(getNotificationPermission());
+      toast("error", t("account.notifyTitle"), t("account.notifyError"));
+    } finally {
+      setNotifyBusy(false);
+    }
+  };
 
   const isConfirmValid = (text: string) => {
     const trimmed = text.trim();
@@ -128,6 +216,61 @@ export default function AccountPage() {
                   <span>{t("account.signOut", {}, "ออกจากระบบ")}</span>
                 </Button>
               </form>
+            </div>
+          </section>
+
+          {/* Browser notifications */}
+          <section className="ui-panel rounded-3xl border border-border bg-bg-surface/70 p-5 shadow-none sm:p-6 backdrop-blur-md">
+            <div className="flex items-center justify-between gap-4">
+              <div className="min-w-0">
+                <h2 className="flex items-center gap-2 text-base font-semibold text-text">
+                  <Bell className="size-4" />
+                  {t("account.notifyTitle", {}, "แจ้งเตือนบนเบราว์เซอร์")}
+                </h2>
+                <p className="mt-1 text-xs leading-relaxed text-text-muted">
+                  {notifyPermission === "unsupported"
+                    ? t(
+                        "account.notifyUnsupported",
+                        {},
+                        "เบราว์เซอร์นี้ไม่รองรับการแจ้งเตือน"
+                      )
+                    : notifyPermission === "denied"
+                      ? t(
+                          "account.notifyDenied",
+                          {},
+                          "การแจ้งเตือนถูกบล็อก เปิดได้ที่การตั้งค่าเว็บไซต์ของเบราว์เซอร์"
+                        )
+                      : notifyPermission === "install-required"
+                        ? t(
+                            "account.notifyInstallRequired",
+                            {},
+                            "บน iPhone/iPad เปิดใน Safari เลือก แชร์ > เพิ่มไปยังหน้าจอโฮม แล้วเปิดจากไอคอนก่อนตั้งค่าการแจ้งเตือน"
+                          )
+                        : t(
+                            "account.notifyDesc",
+                            {},
+                          "แจ้งเตือนสถานะงานของบัญชีนี้เมื่อสำเร็จ ล้มเหลว หรือถูกบล็อก แม้ปิดเว็บแอปแล้ว"
+                          )}
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={
+                  notifyBusy ||
+                  (!notifyEnabled &&
+                    (notifyPermission === "unsupported" ||
+                      notifyPermission === "install-required" ||
+                      notifyPermission === "denied"))
+                }
+                onClick={() => void toggleNotifications()}
+                className="h-9 shrink-0 cursor-pointer rounded-lg text-xs font-semibold"
+              >
+                {notifyEnabled
+                  ? t("account.notifyDisable", {}, "ปิด")
+                  : t("account.notifyEnable", {}, "เปิด")}
+              </Button>
             </div>
           </section>
 

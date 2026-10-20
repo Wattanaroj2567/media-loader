@@ -22,10 +22,13 @@ import {
   getPendingDownload,
 } from "@/lib/download-coordinator";
 import { useJobPolling } from "@/components/job-polling-provider";
+import { areBrowserNotificationsEnabled } from "@/lib/browser-notifications";
+import { useAppUser } from "@/components/app-user-context";
 
 export function GlobalJobNotifier() {
   const { toast } = useToast();
   const { t } = useT();
+  const user = useAppUser();
   const { jobs } = useJobPolling();
   const prevJobsRef = useRef<Record<string, string>>({}); // maps jobId -> status
   const [choice, setChoice] = useState<FileShareRequest | null>(null);
@@ -162,23 +165,26 @@ export function GlobalJobNotifier() {
             if (wasActive && isTerminal) {
               changed = true;
               const title = job.title || job.output_filename || job.original_url;
+              const browserPushEnabled =
+                areBrowserNotificationsEnabled(user.id) &&
+                document.visibilityState !== "visible";
 
               if (handledPendingDownload) {
                 // The pending download path already announced this outcome.
-              } else if (job.status === "COMPLETED") {
+              } else if (job.status === "COMPLETED" && !browserPushEnabled) {
                 toast(
                   "success",
                   t("queue.completedToastTitle", {}, "ดาวน์โหลดสำเร็จแล้ว"),
                   title
                 );
-              } else if (job.status === "FAILED") {
+              } else if (job.status === "FAILED" && !browserPushEnabled) {
                 forgetPendingDownload(job.id);
                 toast(
                   "error",
                   t("queue.failedToastTitle", {}, "ดาวน์โหลดล้มเหลว"),
                   title
                 );
-              } else if (job.status === "BLOCKED") {
+              } else if (job.status === "BLOCKED" && !browserPushEnabled) {
                 forgetPendingDownload(job.id);
                 toast(
                   "error",
@@ -219,7 +225,7 @@ export function GlobalJobNotifier() {
     return () => {
       dead = true;
     };
-  }, [jobs, toast, t]);
+  }, [jobs, toast, t, user.id]);
 
   return <FileShareFlow request={choice} onDone={handleChoiceDone} />;
 }

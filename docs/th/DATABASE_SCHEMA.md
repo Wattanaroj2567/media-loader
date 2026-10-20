@@ -85,6 +85,25 @@ URL ให้เจ้าของงานที่มีสิทธิ์ แ
 
 ---
 
+## 4. ตาราง `push_subscriptions`
+
+เก็บ Web Push endpoint ของบัญชีที่เข้าสู่ระบบ ข้อมูล endpoint และ key เป็น
+credential ส่วนตัว ระบบให้ FastAPI และ Worker เข้าถึงผ่าน service role เท่านั้น
+Browser client ไม่อ่านตารางนี้โดยตรง
+
+| คอลัมน์ (Column) | ประเภท (Type) | คำอธิบาย (Notes) |
+|---|---|---|
+| `id` | uuid | Primary key |
+| `user_id` | uuid | เจ้าของ; อ้างอิง `auth.users(id)` และลบตามบัญชี |
+| `endpoint` | text | URL ของ push service; unique และห้ามบันทึกลง log |
+| `p256dh` | text | Public key ของ browser subscription; จัดการฝั่ง server |
+| `auth` | text | Secret สำหรับยืนยัน subscription; จัดการฝั่ง server |
+| `locale` | text | ภาษาแจ้งเตือน `th` หรือ `en` |
+| `created_at` | timestamptz | เวลาสร้าง |
+| `updated_at` | timestamptz | เวลาอัปเดต subscription ล่าสุด |
+
+---
+
 ## ยุทธศาสตร์การจัดการฐานข้อมูลแบบสองชั้น (Dual-Layer Database Strategy)
 
 ทุกการดำเนินการกับฐานข้อมูลต้องปฏิบัติตามกฎสองชั้นนี้เสมอ:

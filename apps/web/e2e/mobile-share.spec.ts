@@ -573,6 +573,7 @@ test("history secondary text meets the readable contrast token", async ({
 });
 
 test("dashboard prioritizes the analyzed thumbnail", async ({ page, context }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
   await seedAuth(context);
   await mockApi(page, { jobs: () => [] });
   const thumbnailUrl = `${APP_ORIGIN}/test-assets/dashboard-thumbnail.svg`;
@@ -603,6 +604,25 @@ test("dashboard prioritizes the analyzed thumbnail", async ({ page, context }) =
   await expect(thumbnail).toBeVisible({ timeout: 20000 });
   await expect(thumbnail).toHaveAttribute("loading", "eager");
   await expect(thumbnail).toHaveAttribute("fetchpriority", "high");
+
+  await thumbnail.click();
+  const viewer = page.getByTestId("media-viewer-lightbox");
+  const closeButton = viewer.getByTestId("media-viewer-close");
+  const downloadButton = viewer.getByTestId("media-viewer-download");
+  await expect(viewer).toBeVisible();
+  const [viewerBounds, closeBounds, downloadBounds] = await Promise.all([
+    viewer.boundingBox(),
+    closeButton.boundingBox(),
+    downloadButton.boundingBox(),
+  ]);
+
+  expect(viewerBounds).not.toBeNull();
+  expect(closeBounds).not.toBeNull();
+  expect(downloadBounds).not.toBeNull();
+  expect(closeBounds!.y).toBeLessThan(downloadBounds!.y);
+  expect(closeBounds!.x + closeBounds!.width).toBeGreaterThan(
+    viewerBounds!.x + viewerBounds!.width - 64
+  );
 });
 
 test("settings reuses the server-verified user", async ({ page, context }) => {

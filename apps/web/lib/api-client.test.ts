@@ -33,6 +33,66 @@ test("ApiClient attaches the current Supabase access token", async () => {
   );
 });
 
+test("ApiClient manages authenticated Web Push subscriptions", async () => {
+  const requests: { url: string; method: string; body: unknown }[] = [];
+  const client = new ApiClient(
+    "http://api.test",
+    async () => "access-token",
+    async (url, init) => {
+      const request = {
+        url: String(url),
+        method: init?.method ?? "GET",
+        body: init?.body ? JSON.parse(String(init.body)) : null,
+      };
+      requests.push(request);
+      const data =
+        request.method === "DELETE"
+          ? { deleted: true }
+          : request.method === "POST"
+            ? { subscribed: true }
+            : { public_key: "public-vapid-key" };
+      return Response.json({ ok: true, data, error: null });
+    }
+  );
+
+  assert.deepEqual(await client.getVapidPublicKey(), {
+    public_key: "public-vapid-key",
+  });
+  assert.deepEqual(
+    await client.savePushSubscription(
+      {
+        endpoint: "https://fcm.googleapis.com/push/subscription-token",
+        keys: { p256dh: "public-subscription-key", auth: "subscription-auth" },
+      },
+      "en"
+    ),
+    { subscribed: true }
+  );
+  assert.deepEqual(
+    await client.deletePushSubscription(
+      "https://fcm.googleapis.com/push/subscription-token"
+    ),
+    { deleted: true }
+  );
+
+  assert.deepEqual(
+    requests.map(({ url, method }) => ({ url, method })),
+    [
+      { url: "http://api.test/notifications/vapid-public-key", method: "GET" },
+      { url: "http://api.test/notifications/subscriptions", method: "POST" },
+      { url: "http://api.test/notifications/subscriptions", method: "DELETE" },
+    ]
+  );
+  assert.deepEqual(requests[1].body, {
+    endpoint: "https://fcm.googleapis.com/push/subscription-token",
+    keys: { p256dh: "public-subscription-key", auth: "subscription-auth" },
+    locale: "en",
+  });
+  assert.deepEqual(requests[2].body, {
+    endpoint: "https://fcm.googleapis.com/push/subscription-token",
+  });
+});
+
 test("ApiClient sends the confirmed rights flag and selected format", async () => {
   let body = "";
   const client = new ApiClient(

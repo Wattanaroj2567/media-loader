@@ -83,6 +83,39 @@ LOG_LEVEL=info
   address (`pnpm dev:proxy` starts it alone). Deployments outside Compose must
   provide an equivalent DNS-validating proxy and prevent direct egress around it.
 
+### Web Push notifications
+
+These optional server-side settings enable notifications when a browser tab is
+closed or suspended. Keep one VAPID key pair stable across deployments. The API
+uses the public key to create subscriptions; the worker uses the matching
+public/private pair to send pushes through `MEDIA_EGRESS_PROXY`.
+
+```env
+VAPID_PUBLIC_KEY=
+VAPID_PRIVATE_KEY=
+VAPID_SUBJECT=mailto:push-operations@example.com
+```
+
+Use URL-safe Base64 VAPID key values. The public key must decode to an
+uncompressed 65-byte P-256 key; the private key must decode to its 32-byte
+scalar. Keep `VAPID_PRIVATE_KEY` only in trusted worker deployment secrets,
+never in `NEXT_PUBLIC_` variables. Set `VAPID_PUBLIC_KEY` on the API and worker;
+set `VAPID_PRIVATE_KEY` and `VAPID_SUBJECT` on the worker only. Docker Compose
+masks the private key from the API container even though both services use the
+same environment file. The subject is a contact URI such as
+`mailto:push-operations@example.com`. Keep the key pair stable; users must
+subscribe again if it changes. Leave these settings empty to disable Web Push.
+
+Before enabling push in a deployment, apply the generated Drizzle migration for
+`push_subscriptions` and the RLS change in `supabase/rls_policies.sql`. The API
+and worker use the service role to manage subscription rows; browser clients
+have no direct table policy.
+
+On iPhone or iPad, open Media Loader in Safari, choose **Share → Add to Home
+Screen**, then open the installed app and enable notifications there. Web Push
+requires the app manifest, Push API, Notifications API, and service worker; a
+normal Safari tab cannot receive reliable notifications while suspended.
+
 ### Migrate existing URL rows
 
 Deploy the new worker first, then the API, with the same encryption key on both.

@@ -89,6 +89,13 @@ Proxy ตรวจ DNS ในจังหวะเชื่อมต่อแล
 หาก deploy นอก Compose ต้องแน่ใจว่า API และ Worker ไม่มีทางเชื่อมต่อ URL ของผู้ใช้
 โดยหลบ proxy ที่กำหนดไว้
 
+## ความปลอดภัยของ Web Push
+
+- รับ subscription endpoint เฉพาะ HTTPS จาก FCM, Mozilla, Apple และ Windows push service ที่รองรับ
+- Worker ตรวจ endpoint ซ้ำและส่งผ่าน egress proxy ที่ตรวจ DNS; ห้ามส่งไปยัง host อื่นตามค่าที่ผู้ใช้ส่งมา
+- เก็บ endpoint และ browser key ในตาราง `push_subscriptions` ที่มี RLS และให้ server จัดการเท่านั้น ห้าม log หรือส่งค่ากลับให้ browser
+- เก็บ VAPID private key ใน secret ของ API/Worker และห้ามใส่ใน frontend bundle
+
 หากไม่แน่ใจ ให้ตอบ `needs_confirmation` หรือ `blocked` แทน `allowed`
 
 ## โหมดจำกัดการทำงานของ yt-dlp

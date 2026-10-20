@@ -81,6 +81,36 @@ LOG_LEVEL=info
   (`pnpm dev:proxy` เปิดเฉพาะ proxy) การ deploy นอก Compose ต้องมี proxy
   ที่ตรวจ DNS แบบเทียบเท่าและป้องกันการเชื่อมต่อออกโดยตรงที่หลบ proxy
 
+### การแจ้งเตือน Web Push
+
+ตั้งค่าตัวแปรฝั่ง server ต่อไปนี้เพื่อส่งแจ้งเตือนแม้ปิดหรือพักแท็บ เว็บแอปใช้
+public key เพื่อสมัครรับการแจ้งเตือน ส่วน Worker ใช้ key คู่เดียวกันส่งผ่าน
+`MEDIA_EGRESS_PROXY`
+
+```env
+VAPID_PUBLIC_KEY=
+VAPID_PRIVATE_KEY=
+VAPID_SUBJECT=mailto:push-operations@example.com
+```
+
+ใช้ key VAPID แบบ URL-safe Base64 โดย public key ต้องถอดรหัสเป็น P-256 key แบบ
+uncompressed ขนาด 65 ไบต์ และ private key เป็น scalar ขนาด 32 ไบต์ เก็บ
+`VAPID_PRIVATE_KEY` ใน secret ของ Worker เท่านั้น ห้ามใส่ในตัวแปร `NEXT_PUBLIC_`
+กำหนด `VAPID_PUBLIC_KEY` ให้ API และ Worker ส่วน `VAPID_PRIVATE_KEY` กับ
+`VAPID_SUBJECT` กำหนดให้ Worker เท่านั้น Docker Compose จะลบ private key ออกจาก
+environment ของ API แม้ทั้งสอง service ใช้ไฟล์ environment เดียวกัน Subject เป็น
+URI สำหรับติดต่อ เช่น `mailto:push-operations@example.com` ให้ใช้ key pair ชุดเดิม
+เสมอ หากเปลี่ยน key ผู้ใช้ต้องสมัครรับแจ้งเตือนใหม่ หากเว้นค่าว่าง Web Push จะปิดอยู่
+
+ก่อนเปิดใช้ Web Push ใน deployment ให้ apply Drizzle migration ที่สร้างตาราง
+`push_subscriptions` และ apply RLS ใน `supabase/rls_policies.sql` API กับ Worker
+จัดการแถวด้วย service role; browser ไม่มี policy ให้อ่านตารางโดยตรง
+
+บน iPhone/iPad ให้เปิด Media Loader ใน Safari เลือก **แชร์ → เพิ่มไปยังหน้าจอโฮม**
+แล้วเปิดจากไอคอนที่ติดตั้งก่อนอนุญาตการแจ้งเตือน Web Push ใช้ manifest, Push API,
+Notifications API และ Service Worker; แท็บ Safari ปกติแจ้งเตือนได้ไม่แน่นอนเมื่อ
+ระบบพักแท็บ
+
 ### ย้าย URL แถวเดิม
 
 Deploy Worker เวอร์ชันใหม่ก่อน แล้วจึง deploy API โดยตั้ง encryption key

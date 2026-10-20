@@ -9,10 +9,12 @@ from datetime import datetime, timezone
 from typing import Any
 
 from worker.config import get_settings
+from worker.push_notifications import send_terminal_job_notification
 from worker.supabase_client import get_supabase_client
 from worker.url_storage import redact_stored_url
 
 logger = logging.getLogger("media_loader_worker.job_queue")
+TERMINAL_JOB_STATUSES = {"COMPLETED", "FAILED", "BLOCKED", "CANCELLED"}
 
 
 def poll_queued_job() -> dict | None:
@@ -110,20 +112,38 @@ def update_job_status(
         "updated_at": now.isoformat(),
     }
 
-    if status in {"COMPLETED", "FAILED", "BLOCKED", "CANCELLED"}:
+    notification_context = None
+    if status in TERMINAL_JOB_STATUSES:
         try:
             url_result = (
                 supabase.table("download_jobs")
-                .select("original_url")
+                .select("original_url,status,user_id,title")
                 .eq("id", job_id)
                 .limit(1)
                 .execute()
             )
-            stored_url = (
-                url_result.data[0].get("original_url") if url_result.data else None
-            )
+            previous_job = url_result.data[0] if url_result.data else None
+            stored_url = previous_job.get("original_url") if previous_job else None
             if isinstance(stored_url, str):
                 update_data["original_url"] = redact_stored_url(stored_url)
+            if previous_job:
+                notification_context = {
+                    "previous_status": previous_job.get("status"),
+                    "user_id": previous_job.get("user_id"),
+                    "title": previous_job.get("title"),
+                }
+                previous_status = notification_context["previous_status"]
+                if (
+                    previous_status in TERMINAL_JOB_STATUSES
+                    and previous_status != status
+                ):
+                    logger.info(
+                        "Skipped terminal status change for job %s from %s to %s",
+                        job_id,
+                        previous_status,
+                        status,
+                    )
+                    return False
         except Exception as error:
             logger.error(
                 "Could not prepare URL redaction for job %s: %s",
@@ -144,9 +164,14 @@ def update_job_status(
             logger.info("Skipped status %s for cancelled job %s", status, job_id)
             return False
         query = supabase.table("download_jobs").update(update_data).eq("id", job_id)
+        if notification_context and notification_context["previous_status"] is not None:
+            query = query.eq("status", notification_context["previous_status"])
         if expected_status is not None:
             query = query.eq("status", expected_status)
         result = query.execute()
+        if notification_context and not result.data:
+            logger.info("Skipped stale terminal status update for job %s", job_id)
+            return False
         if expected_status is not None and not result.data:
             logger.info(
                 "Skipped stale status update for job %s; expected %s",
@@ -155,6 +180,22 @@ def update_job_status(
             )
             return False
         logger.info("Updated job %s to status %s", job_id, status)
+        if (
+            notification_context
+            and notification_context["previous_status"] != status
+            and status in {"COMPLETED", "FAILED", "BLOCKED"}
+        ):
+            try:
+                send_terminal_job_notification(
+                    job_id=job_id,
+                    user_id=notification_context["user_id"],
+                    status=status,
+                    title=notification_context["title"],
+                )
+            except Exception as error:
+                logger.warning(
+                    "Push notification hook failed: %s", type(error).__name__
+                )
         return True
     except Exception as error:
         logger.error("Failed to update job %s: %s", job_id, type(error).__name__)

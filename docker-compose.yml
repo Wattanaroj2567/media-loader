@@ -56,6 +56,8 @@ services:
     environment:
       TEMP_DIR: /app/tmp/media-loader
       MEDIA_EGRESS_PROXY: http://ssrf-proxy:3128
+      VAPID_PRIVATE_KEY: ""
+      VAPID_SUBJECT: ""
       HTTP_PROXY: http://ssrf-proxy:3128
       HTTPS_PROXY: http://ssrf-proxy:3128
       http_proxy: http://ssrf-proxy:3128

@@ -13,6 +13,8 @@ dependencies = [
     "curl_cffi>=0.6.0,<0.16.0",
     "imageio-ffmpeg>=0.6.0",
     "cryptography>=44.0.0",
+    "pywebpush>=2.5,<3",
+    "requests>=2.32,<3",
 ]
 
 [tool.setuptools]
