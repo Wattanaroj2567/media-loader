@@ -8,7 +8,6 @@ import {
   useCallback,
   ReactNode,
 } from "react";
-import { createClient } from "@/lib/supabase/client";
 import { Locale, defaultLocale } from "./config";
 import thMessages from "./messages/th.json";
 import enMessages from "./messages/en.json";
@@ -74,6 +73,7 @@ export function I18nProvider({
 
     const syncAccountLanguage = async () => {
       try {
+        const { createClient } = await import("@/lib/supabase/client");
         const supabase = createClient();
         const { data, error } = await supabase.auth.getSession();
         if (error || !data.session || data.session.user.user_metadata.language === l) {

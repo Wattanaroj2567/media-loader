@@ -1064,9 +1064,9 @@ export function MediaAnalyzer() {
                     type="button"
                     onClick={() => setShowLightbox(false)}
                     aria-label={t("common.close", {}, "ปิด")}
-                    className="grid size-8 place-items-center rounded-lg bg-transparent text-text-muted transition-colors hover:bg-bg-surface hover:text-text outline-none focus-visible:outline-2 focus-visible:outline-primary cursor-pointer"
+                    className="grid size-11 shrink-0 place-items-center rounded-full border border-border/70 bg-bg-base/70 text-text shadow-sm transition-colors hover:bg-bg-surface active:scale-95 outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary cursor-pointer sm:size-9 sm:rounded-lg sm:border-transparent sm:bg-transparent sm:text-text-muted sm:shadow-none"
                   >
-                    <X className="size-4" />
+                    <X className="size-5 sm:size-4" />
                   </button>
                 </div>
               </div>

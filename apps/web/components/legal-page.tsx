@@ -446,13 +446,11 @@ function PolicyTableView({
   captionId,
   isThai,
   contentLanguage,
-  thaiJustification,
 }: {
   table: PolicyTable;
   captionId: string;
   isThai: boolean;
   contentLanguage: "th" | "en";
-  thaiJustification: string;
 }) {
   const locale = isThai ? "th" : "en";
 
@@ -511,7 +509,7 @@ function PolicyTableView({
                     <td
                       key={column.en}
                       lang={contentLanguage}
-                      className={`wrap-break-word px-4 py-3 leading-7 text-text-muted ${thaiJustification}`}
+                      className="wrap-break-word px-4 py-3 leading-7 text-text-muted"
                     >
                       {cell[locale]}
                     </td>
@@ -535,7 +533,6 @@ export function LegalPage({ kind }: { kind: PolicyKind }) {
   const Icon = kind === "privacy" ? ShieldCheck : FileText;
   const otherKind: PolicyKind = kind === "privacy" ? "terms" : "privacy";
   const contentLanguage = isThai ? "th" : "en";
-  const thaiJustification = isThai ? "thai-distributed" : "";
   const sectionTitle = (section: PolicySection) => section.title[isThai ? "th" : "en"];
 
   useEffect(() => {
@@ -660,16 +657,16 @@ export function LegalPage({ kind }: { kind: PolicyKind }) {
               <span className="mt-1 flex size-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary ring-1 ring-primary/15">
                 <Icon aria-hidden="true" className="size-5" />
               </span>
-              <div>
+              <div className="min-w-0">
                 <p className="mb-2 text-xs font-semibold tracking-[0.14em] text-primary uppercase">
                   Media Loader
                 </p>
-                <h1 className="font-heading text-2xl font-bold tracking-tight sm:text-3xl">
+                <h1 className="font-heading text-balance text-2xl font-bold tracking-tight sm:text-3xl">
                   {content.title[isThai ? "th" : "en"]}
                 </h1>
                 <p
                   lang={contentLanguage}
-                  className={`mt-3 max-w-2xl text-sm leading-7 text-text-muted sm:text-base ${thaiJustification}`}
+                  className="mt-3 max-w-2xl text-pretty text-sm leading-7 text-text-muted sm:text-base"
                 >
                   {content.intro[isThai ? "th" : "en"]}
                 </p>
@@ -722,7 +719,7 @@ export function LegalPage({ kind }: { kind: PolicyKind }) {
                       <p
                         key={paragraph.en}
                         lang={contentLanguage}
-                        className={`mt-3 max-w-prose text-sm leading-7 text-text-muted first:mt-0 sm:text-[15px] sm:leading-8 ${thaiJustification}`}
+                        className="mt-3 max-w-prose text-pretty text-sm leading-7 text-text-muted first:mt-0 sm:text-[15px] sm:leading-8"
                       >
                         {paragraph[isThai ? "th" : "en"]}
                       </p>
@@ -733,14 +730,13 @@ export function LegalPage({ kind }: { kind: PolicyKind }) {
                         captionId={getPolicyTableCaptionId(kind, index)}
                         isThai={isThai}
                         contentLanguage={contentLanguage}
-                        thaiJustification={thaiJustification}
                       />
                     )}
                     {section.afterTableParagraphs?.map((paragraph) => (
                       <p
                         key={paragraph.en}
                         lang={contentLanguage}
-                        className={`mt-3 max-w-prose text-sm leading-7 text-text-muted sm:text-[15px] sm:leading-8 ${thaiJustification}`}
+                        className="mt-3 max-w-prose text-pretty text-sm leading-7 text-text-muted sm:text-[15px] sm:leading-8"
                       >
                         {paragraph[isThai ? "th" : "en"]}
                       </p>
@@ -758,11 +754,7 @@ export function LegalPage({ kind }: { kind: PolicyKind }) {
                     {section.bullets && (
                       <ul className="mt-3 max-w-prose list-disc space-y-2.5 pl-5 text-sm leading-7 text-text-muted marker:text-primary sm:text-[15px] sm:leading-8">
                         {section.bullets.map((bullet) => (
-                          <li
-                            key={bullet.en}
-                            lang={contentLanguage}
-                            className={`pl-1 ${thaiJustification}`}
-                          >
+                          <li key={bullet.en} lang={contentLanguage} className="pl-1">
                             {bullet.label && (
                               <span className="font-semibold text-text">
                                 {bullet.label[isThai ? "th" : "en"]}—{" "}
