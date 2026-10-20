@@ -1,5 +1,5 @@
 from worker.config import Settings
-from worker.job_queue import poll_queued_job, update_job_progress
+from worker.job_queue import poll_queued_job, update_job_progress, update_job_status
 
 
 class FakeResult:
@@ -10,13 +10,23 @@ class FakeResult:
 class FakeDownloadJobsQuery:
     def __init__(self):
         self.mode = "select"
+        self.selected_columns = "*"
         self.filters: list[tuple[str, object]] = []
         self.select_filters: list[tuple[str, object]] = []
         self.update_filters: list[tuple[str, object]] = []
         self.update_data: dict = {}
+        self.row = {
+            "id": "job-1",
+            "status": "QUEUED",
+            "locked_by": "pool:local",
+            "user_id": "user-1",
+            "title": "A test clip",
+            "original_url": None,
+        }
 
-    def select(self, _columns):
+    def select(self, columns):
         self.mode = "select"
+        self.selected_columns = columns
         self.filters = []
         return self
 
@@ -39,19 +49,14 @@ class FakeDownloadJobsQuery:
     def execute(self):
         if self.mode == "select":
             self.select_filters = list(self.filters)
-            return FakeResult(
-                [{"id": "job-1", "status": "QUEUED", "locked_by": "pool:local"}]
-            )
+            if any(self.row.get(field) != value for field, value in self.filters):
+                return FakeResult([])
+            return FakeResult([dict(self.row)])
         self.update_filters = list(self.filters)
-        return FakeResult(
-            [
-                {
-                    "id": "job-1",
-                    "status": self.update_data["status"],
-                    "locked_by": self.update_data.get("locked_by"),
-                }
-            ]
-        )
+        if any(self.row.get(field) != value for field, value in self.filters):
+            return FakeResult([])
+        self.row.update(self.update_data)
+        return FakeResult([dict(self.row)])
 
 
 class FakeSupabase:
@@ -82,6 +87,7 @@ def test_worker_only_claims_jobs_routed_to_its_pool(monkeypatch):
 
 def test_progress_update_only_applies_to_an_active_download(monkeypatch):
     database = FakeSupabase()
+    database.query.row["status"] = "DOWNLOADING"
     monkeypatch.setattr("worker.job_queue.get_supabase_client", lambda: database)
     monkeypatch.setattr("worker.job_queue.is_job_cancelled", lambda _job_id: False)
 
@@ -95,3 +101,53 @@ def test_progress_update_only_applies_to_an_active_download(monkeypatch):
     assert database.query.update_data["progress"] == 42
     assert database.query.update_data["total_bytes_estimate"] == 10485760
     assert "file_size" not in database.query.update_data
+
+
+def test_terminal_job_transition_sends_one_push_notification(monkeypatch):
+    database = FakeSupabase()
+    notifications = []
+    monkeypatch.setattr("worker.job_queue.get_supabase_client", lambda: database)
+    monkeypatch.setattr("worker.job_queue.is_job_cancelled", lambda _job_id: False)
+    monkeypatch.setattr(
+        "worker.job_queue.send_terminal_job_notification",
+        lambda **details: notifications.append(details),
+    )
+
+    assert update_job_status("job-1", "COMPLETED") is True
+    assert update_job_status("job-1", "COMPLETED") is True
+
+    assert notifications == [
+        {
+            "job_id": "job-1",
+            "user_id": "user-1",
+            "status": "COMPLETED",
+            "title": "A test clip",
+        }
+    ]
+
+    assert update_job_status("job-1", "FAILED") is False
+    assert database.query.row["status"] == "COMPLETED"
+    assert len(notifications) == 1
+
+
+def test_stale_terminal_transition_does_not_overwrite_or_notify(monkeypatch):
+    database = FakeSupabase()
+    database.query.row["status"] = "DOWNLOADING"
+    notifications = []
+
+    def simulate_competing_transition(_job_id):
+        database.query.row["status"] = "FAILED"
+        return False
+
+    monkeypatch.setattr("worker.job_queue.get_supabase_client", lambda: database)
+    monkeypatch.setattr(
+        "worker.job_queue.is_job_cancelled", simulate_competing_transition
+    )
+    monkeypatch.setattr(
+        "worker.job_queue.send_terminal_job_notification",
+        lambda **details: notifications.append(details),
+    )
+
+    assert update_job_status("job-1", "COMPLETED") is False
+    assert database.query.row["status"] == "FAILED"
+    assert notifications == []

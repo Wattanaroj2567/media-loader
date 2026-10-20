@@ -26,6 +26,9 @@ class Settings(BaseSettings):
     supabase_service_role_key: str = ""
     media_url_encryption_key: str = ""
     media_egress_proxy: str = "http://127.0.0.1:3128"
+    vapid_public_key: str = ""
+    vapid_private_key: str = ""
+    vapid_subject: str = ""
 
     # Worker identity
     worker_id: str = "local-worker-1"
