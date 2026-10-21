@@ -121,6 +121,13 @@ body {
   width: 100%;
 }
 
+@media (max-width: 1023px) {
+  html,
+  body {
+    overscroll-behavior-y: none;
+  }
+}
+
 :root {
   color-scheme: light;
   /* 

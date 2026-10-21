@@ -309,7 +309,7 @@ function LandingPageContent() {
   );
 
   return (
-    <main className="relative min-h-dvh w-full bg-bg-base text-foreground flex flex-col justify-start items-center overflow-x-clip">
+    <main className="relative min-h-dvh w-full bg-bg-base pt-[calc(3.375rem+env(safe-area-inset-top))] text-foreground flex flex-col justify-start items-center overflow-x-clip sm:pt-[calc(3.5rem+env(safe-area-inset-top))] lg:pt-0">
       {/* Soft ambient light behind the hero. */}
       <div
         aria-hidden="true"
@@ -321,13 +321,13 @@ function LandingPageContent() {
       </div>
 
       {/* ─── Top Header Navigation ─────────────────────────────────────── */}
-      <header className="sticky top-0 z-50 w-full shrink-0 transition-all duration-300 lg:py-3 lg:px-8">
+      <header className="fixed inset-x-0 top-0 z-50 w-full shrink-0 pt-[env(safe-area-inset-top)] transition-all duration-300 lg:sticky lg:inset-auto lg:top-0 lg:pt-0 lg:py-3 lg:px-8">
         <div
           data-testid="landing-topbar"
           className={cn(
             "mx-auto flex h-13.5 w-full items-center justify-between gap-2 px-3.5 transition-all duration-300 sm:h-14 sm:px-6 lg:h-auto lg:max-w-272 lg:rounded-full lg:p-2 lg:pl-5",
             isScrolled
-              ? "border-b border-border/40 bg-white/70 backdrop-blur-xl backdrop-saturate-150 lg:border lg:border-border/60 lg:bg-white/60 lg:shadow-md lg:shadow-black/5 dark:border-border/60 dark:bg-bg-base/70 dark:lg:border-white/12 dark:lg:bg-[#16181f]/60 dark:lg:shadow-black/30"
+              ? "border-b border-border/40 bg-white/70 shadow-sm shadow-black/5 backdrop-blur-xl backdrop-saturate-150 lg:border lg:border-border/60 lg:bg-white/60 lg:shadow-md dark:border-border/60 dark:bg-bg-base/70 dark:shadow-black/20 dark:lg:border-white/12 dark:lg:bg-[#16181f]/60 dark:lg:shadow-black/30"
               : "border-b border-transparent bg-transparent shadow-none lg:border lg:border-transparent lg:bg-transparent lg:shadow-none dark:border-transparent dark:bg-transparent"
           )}
         >

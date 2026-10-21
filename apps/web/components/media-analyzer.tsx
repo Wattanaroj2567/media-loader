@@ -44,6 +44,9 @@ import { validateUrl } from "@/lib/url-validation";
 type AnalyzerState = "idle" | "analyzing" | "ready" | "blocked" | "error";
 type FormatTab = "video" | "audio" | "gif";
 
+const ANALYSIS_SESSION_TIMESTAMP_KEY = "media_loader_analyzer_analysis_timestamp";
+const ANALYSIS_SESSION_MAX_AGE_MS = 15 * 60 * 1000;
+
 function formatDuration(seconds?: number | null) {
   if (!seconds || seconds < 0) return null;
   const hours = Math.floor(seconds / 3600);
@@ -410,6 +413,9 @@ export function MediaAnalyzer() {
       );
       const savedState = sessionStorage.getItem("media_loader_analyzer_state");
       const savedAnalysis = sessionStorage.getItem("media_loader_analyzer_analysis");
+      const savedAnalysisTimestamp = Number(
+        sessionStorage.getItem(ANALYSIS_SESSION_TIMESTAMP_KEY)
+      );
       const savedSelectedFormatId = sessionStorage.getItem(
         "media_loader_analyzer_selected_format_id"
       );
@@ -417,9 +423,23 @@ export function MediaAnalyzer() {
       const normalizedSavedUrl = normalizeInputUrl(savedUrl || "");
       const savedAnalysisMatchesUrl =
         Boolean(savedAnalyzedUrl) && normalizedSavedUrl === savedAnalyzedUrl;
+      const savedAnalysisAge = Date.now() - savedAnalysisTimestamp;
+      const savedAnalysisIsFresh =
+        Number.isFinite(savedAnalysisTimestamp) &&
+        savedAnalysisTimestamp > 0 &&
+        savedAnalysisAge >= 0 &&
+        savedAnalysisAge < ANALYSIS_SESSION_MAX_AGE_MS;
 
       if (savedUrl) setUrl(savedUrl);
       if (savedAnalysisMatchesUrl && savedAnalyzedUrl) {
+        if (
+          (savedState === "ready" || savedState === "analyzing") &&
+          (!savedAnalysis || !savedAnalysisIsFresh)
+        ) {
+          setRequestedAnalysisUrl(savedUrl || "");
+          return;
+        }
+
         setAnalyzedUrl(savedAnalyzedUrl);
         if (savedState && savedState !== "analyzing") {
           setState(savedState as AnalyzerState);
@@ -453,7 +473,10 @@ export function MediaAnalyzer() {
           "media_loader_analyzer_analysis",
           JSON.stringify(analysis)
         );
-      else sessionStorage.removeItem("media_loader_analyzer_analysis");
+      else {
+        sessionStorage.removeItem("media_loader_analyzer_analysis");
+        sessionStorage.removeItem(ANALYSIS_SESSION_TIMESTAMP_KEY);
+      }
 
       if (selectedFormatId)
         sessionStorage.setItem(
@@ -569,6 +592,7 @@ export function MediaAnalyzer() {
       sessionStorage.removeItem("media_loader_analyzer_analyzed_url");
       sessionStorage.removeItem("media_loader_analyzer_state");
       sessionStorage.removeItem("media_loader_analyzer_analysis");
+      sessionStorage.removeItem(ANALYSIS_SESSION_TIMESTAMP_KEY);
       sessionStorage.removeItem("media_loader_analyzer_selected_format_id");
       sessionStorage.removeItem("media_loader_analyzer_active_tab");
     }
@@ -605,6 +629,11 @@ export function MediaAnalyzer() {
 
         if (result) {
           setAnalysis(result);
+          try {
+            sessionStorage.setItem(ANALYSIS_SESSION_TIMESTAMP_KEY, String(Date.now()));
+          } catch {
+            // Freshness metadata is optional when session storage is unavailable.
+          }
           const hasFormats = result.formats && result.formats.length > 0;
           if (result.policy.decision === "blocked") {
             setState("blocked");

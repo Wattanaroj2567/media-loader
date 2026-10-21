@@ -212,7 +212,7 @@ export function AppShell({ children, user }: AppShellProps) {
           <header
             data-testid="app-mobile-header"
             data-scroll-state="visible"
-            className="sticky top-0 z-30 flex h-13.5 items-center border-b border-border bg-bg-elevated px-3.5 shadow-md shadow-slate-900/10 sm:h-14 sm:px-6 dark:border-white/15 dark:bg-bg-base/40 dark:shadow-black/30 dark:backdrop-blur-xl dark:backdrop-saturate-150 lg:hidden"
+            className="fixed inset-x-0 top-0 z-30 flex min-h-[calc(3.375rem+env(safe-area-inset-top))] items-center border-b border-border bg-bg-elevated px-3.5 pt-[env(safe-area-inset-top)] shadow-md shadow-slate-900/10 sm:min-h-[calc(3.5rem+env(safe-area-inset-top))] sm:px-6 dark:border-white/15 dark:bg-bg-base/40 dark:shadow-black/30 dark:backdrop-blur-xl dark:backdrop-saturate-150 lg:hidden"
           >
             <Link
               href="/dashboard"
@@ -259,7 +259,7 @@ export function AppShell({ children, user }: AppShellProps) {
       {/* ─── Main Content (Full Desktop Width / No Sidebar Offset) ──── */}
       <main
         id="main-content"
-        className={`flex flex-1 flex-col ${isAccountPage ? "pt-0 pb-8 lg:pb-10" : "pt-0 pb-24 lg:pt-0 lg:pb-0"}`}
+        className={`flex flex-1 flex-col ${isAccountPage ? "pt-0 pb-8 lg:pb-10" : "pt-[calc(3.375rem+env(safe-area-inset-top))] pb-24 sm:pt-[calc(3.5rem+env(safe-area-inset-top))] lg:pt-0 lg:pb-0"}`}
       >
         {children}
         <SiteFooter className="mt-4 px-4 pt-0 pb-6 md:pb-8 lg:mt-auto lg:pt-8" />
