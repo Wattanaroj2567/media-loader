@@ -165,7 +165,7 @@ export function AppShell({ children, user }: AppShellProps) {
                       {/* User Profile Card linking to /settings with Settings gear icon */}
                       <Link
                         href="/settings"
-                        prefetch={false}
+                        prefetch={true}
                         onClick={() => setUserMenuOpen(false)}
                         className="group flex items-center gap-3 rounded-xl p-2.5 transition-colors duration-150 outline-none hover:bg-bg-surface dark:hover:bg-white/6"
                       >
@@ -230,7 +230,7 @@ export function AppShell({ children, user }: AppShellProps) {
               trailing={
                 <Link
                   href="/settings"
-                  prefetch={false}
+                  prefetch={true}
                   aria-label={t("nav.account")}
                   className="shrink-0 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
                 >

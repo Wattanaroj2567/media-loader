@@ -152,15 +152,17 @@ export default function AccountPage() {
       data-testid="account-page-content"
       className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 sm:py-12"
     >
-      <Link
-        href="/dashboard"
-        prefetch={true}
-        aria-label={t("common.back", {}, "กลับ")}
-        className="mb-6 inline-flex min-h-10 items-center gap-2 rounded-lg text-xs font-medium text-text-muted transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:text-sm"
-      >
-        <ArrowLeft aria-hidden="true" className="size-4 shrink-0" />
-        <span>{t("common.back", {}, "กลับ")}</span>
-      </Link>
+      <div className="sticky top-0 z-40 -mx-4 mb-6 border-b border-border/60 bg-bg-base px-4 pt-[env(safe-area-inset-top)] sm:static sm:mx-0 sm:mb-6 sm:border-0 sm:bg-transparent sm:px-0 sm:pt-0">
+        <Link
+          href="/dashboard"
+          prefetch={true}
+          aria-label={t("common.back", {}, "กลับ")}
+          className="inline-flex min-h-10 items-center gap-2 rounded-lg text-xs font-medium text-text-muted transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:text-sm"
+        >
+          <ArrowLeft aria-hidden="true" className="size-4 shrink-0" />
+          <span>{t("common.back", {}, "กลับ")}</span>
+        </Link>
+      </div>
       <div className="mb-6 sm:mb-8">
         <p className="ui-kicker mb-2">{t("account.kicker", {}, "ข้อมูลบัญชีของคุณ")}</p>
         <h1 className="ui-page-title">{t("account.title", {}, "บัญชีผู้ใช้")}</h1>
