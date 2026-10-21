@@ -169,8 +169,8 @@ export function HeaderUtilityControls({
           onClick={() => setIsMoreOpen((prev) => !prev)}
           className={cn(
             "flex size-8 cursor-pointer items-center justify-center rounded-full border text-text-muted transition-all duration-200 outline-none select-none",
-            "border-border/70 bg-bg-surface/50 backdrop-blur-sm shadow-2xs",
-            "dark:border-white/12 dark:bg-white/6",
+            "border-border bg-bg-surface shadow-none",
+            "dark:border-white/12 dark:bg-bg-elevated",
             "hover:border-border hover:bg-bg-surface hover:text-text",
             "dark:hover:border-white/20 dark:hover:bg-white/10 dark:hover:text-text",
             "focus-visible:ring-2 focus-visible:ring-primary/40",

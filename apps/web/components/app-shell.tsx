@@ -212,7 +212,7 @@ export function AppShell({ children, user }: AppShellProps) {
           <header
             data-testid="app-mobile-header"
             data-scroll-state="visible"
-            className="fixed inset-x-0 top-0 z-30 flex min-h-[calc(3.375rem+env(safe-area-inset-top))] items-center border-b border-border bg-bg-elevated px-3.5 pt-[env(safe-area-inset-top)] shadow-md shadow-slate-900/10 sm:min-h-[calc(3.5rem+env(safe-area-inset-top))] sm:px-6 dark:border-white/15 dark:bg-bg-base/40 dark:shadow-black/30 dark:backdrop-blur-xl dark:backdrop-saturate-150 lg:hidden"
+            className="fixed inset-x-0 top-0 z-30 flex min-h-[calc(3.375rem+env(safe-area-inset-top))] items-center border-b border-border bg-bg-elevated px-3.5 pt-[env(safe-area-inset-top)] shadow-md shadow-slate-900/10 sm:min-h-[calc(3.5rem+env(safe-area-inset-top))] sm:px-6 dark:border-white/15 dark:bg-bg-base dark:shadow-black/30 lg:hidden"
           >
             <Link
               href="/dashboard"

@@ -321,14 +321,14 @@ function LandingPageContent() {
       </div>
 
       {/* ─── Top Header Navigation ─────────────────────────────────────── */}
-      <header className="fixed inset-x-0 top-0 z-50 w-full shrink-0 pt-[env(safe-area-inset-top)] transition-all duration-300 lg:sticky lg:inset-auto lg:top-0 lg:pt-0 lg:py-3 lg:px-8">
+      <header className="fixed inset-x-0 top-0 z-50 w-full shrink-0 pt-[env(safe-area-inset-top)] transition-none lg:sticky lg:inset-auto lg:top-0 lg:pt-0 lg:py-3 lg:px-8 lg:transition-all lg:duration-300">
         <div
           data-testid="landing-topbar"
           className={cn(
-            "mx-auto flex h-13.5 w-full items-center justify-between gap-2 px-3.5 transition-all duration-300 sm:h-14 sm:px-6 lg:h-auto lg:max-w-272 lg:rounded-full lg:p-2 lg:pl-5",
+            "mx-auto flex h-13.5 w-full items-center justify-between gap-2 border-b border-border/60 bg-bg-base px-3.5 transition-[background-color,border-color,box-shadow] duration-300 sm:h-14 sm:px-6 lg:h-auto lg:max-w-272 lg:rounded-full lg:border-0 lg:bg-transparent lg:p-2 lg:pl-5",
             isScrolled
-              ? "border-b border-border/40 bg-white/70 shadow-sm shadow-black/5 backdrop-blur-xl backdrop-saturate-150 lg:border lg:border-border/60 lg:bg-white/60 lg:shadow-md dark:border-border/60 dark:bg-bg-base/70 dark:shadow-black/20 dark:lg:border-white/12 dark:lg:bg-[#16181f]/60 dark:lg:shadow-black/30"
-              : "border-b border-transparent bg-transparent shadow-none lg:border lg:border-transparent lg:bg-transparent lg:shadow-none dark:border-transparent dark:bg-transparent"
+              ? "shadow-none lg:border lg:border-border/60 lg:bg-white/60 lg:shadow-md lg:shadow-black/5 lg:backdrop-blur-xl lg:backdrop-saturate-150 dark:lg:border-white/12 dark:lg:bg-[#16181f]/60 dark:lg:shadow-black/30"
+              : "shadow-none lg:border-transparent lg:bg-transparent lg:shadow-none dark:lg:border-transparent dark:lg:bg-transparent"
           )}
         >
           <Link
@@ -346,7 +346,7 @@ function LandingPageContent() {
                 type="button"
                 size="sm"
                 onClick={() => openAuth()}
-                className="h-8 shrink-0 gap-2 rounded-full px-3 text-xs font-semibold shadow-xs transition-[box-shadow,background-color,color,transform] duration-200 hover:shadow-primary/20 active:scale-[0.99] cursor-pointer sm:px-4 lg:h-10 lg:px-5"
+                className="h-8 shrink-0 gap-2 rounded-full px-3 text-xs font-semibold shadow-none transition-[background-color,color,transform] duration-200 active:scale-[0.99] cursor-pointer sm:px-4 lg:h-10 lg:px-5 lg:shadow-xs lg:hover:shadow-primary/20"
               >
                 <span>{t("landing.signInShort")}</span>
               </Button>
