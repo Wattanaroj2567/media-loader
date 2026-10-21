@@ -74,6 +74,16 @@ test("login validates email and password before contacting auth", async ({ page 
   await expect(
     page.getByRole("heading", { name: "Sign in", exact: true })
   ).toBeVisible();
+  const email = page.getByLabel("Email", { exact: true });
+  await email.focus();
+  await email.evaluate((element) => (element as HTMLInputElement).blur());
+  await expect(email).not.toHaveAttribute("aria-invalid", "true");
+  await expect(page.locator("#auth-email-error")).toBeEmpty();
+  const password = page.getByLabel("Password", { exact: true });
+  await password.focus();
+  await password.evaluate((element) => (element as HTMLInputElement).blur());
+  await expect(password).not.toHaveAttribute("aria-invalid", "true");
+  await expect(page.locator("#auth-password-error")).toBeEmpty();
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
   await expect(page.locator("#auth-email-error")).toHaveText("Enter your email.");
   await page.getByLabel("Email", { exact: true }).fill("invalid");
@@ -116,22 +126,29 @@ test("registration validates passwords and sends optional display name metadata"
   page,
 }) => {
   await page.goto("/auth/register");
+  const password = page.getByLabel("Password", { exact: true });
+  const confirmation = page.getByLabel("Confirm password", { exact: true });
+  await password.focus();
+  await password.evaluate((element) => (element as HTMLInputElement).blur());
+  await expect(password).not.toHaveAttribute("aria-invalid", "true");
+  await confirmation.focus();
+  await confirmation.evaluate((element) => (element as HTMLInputElement).blur());
+  await expect(confirmation).not.toHaveAttribute("aria-invalid", "true");
+  await expect(page.locator("#auth-confirm-status")).toBeEmpty();
   await page.getByLabel("Email", { exact: true }).fill("new@example.com");
   await page.getByLabel("Display name (optional)").fill("Fixture Member");
-  await page.getByLabel("Password", { exact: true }).fill("short");
-  await page.getByLabel("Confirm password", { exact: true }).fill("different");
+  await password.fill("short");
+  await confirmation.fill("different");
   await page.getByRole("button", { name: "Create account", exact: true }).click();
   await expect(page.locator("#auth-password-error")).toContainText(
     "at least 8 characters"
   );
-  await page.getByLabel("Password", { exact: true }).fill("Fixture-password-123");
+  await password.fill("Fixture-password-123");
   await page.getByRole("button", { name: "Create account", exact: true }).click();
   await expect(page.locator("#auth-confirm-status")).toContainText(
     "Passwords do not match"
   );
-  await page
-    .getByLabel("Confirm password", { exact: true })
-    .fill("Fixture-password-123");
+  await confirmation.fill("Fixture-password-123");
   await page.clock.install();
   // Observe only non-secret registration metadata at the public HTTP boundary.
   const signup = page.waitForRequest((request) =>
@@ -187,7 +204,12 @@ test("registration with an immediate session enters dashboard", async ({ page })
 for (const email of ["tester@example.com", "unknown@example.com", "rate@example.com"]) {
   test(`forgot password is neutral for ${email}`, async ({ page }) => {
     await page.goto("/auth/forgot-password");
-    await page.getByLabel("Email", { exact: true }).fill(email);
+    const emailField = page.getByLabel("Email", { exact: true });
+    await emailField.focus();
+    await emailField.evaluate((element) => (element as HTMLInputElement).blur());
+    await expect(emailField).not.toHaveAttribute("aria-invalid", "true");
+    await expect(page.locator("#auth-email-error")).toBeEmpty();
+    await emailField.fill(email);
     const requestPromise = page.waitForRequest((request) =>
       request.url().includes("/auth/v1/recover")
     );
@@ -222,13 +244,18 @@ test("recovery session updates password and signs out before login", async ({
   ]);
   await page.goto("/auth/callback?code=mock-code&next=/auth/reset-password");
   await expect(page).toHaveURL(/\/auth\/reset-password$/);
-  await expect(page.getByLabel("New password", { exact: true })).toBeEnabled();
-  await page
-    .getByLabel("New password", { exact: true })
-    .fill("Fixture-new-password-123");
-  await page
-    .getByLabel("Confirm password", { exact: true })
-    .fill("Fixture-new-password-123");
+  const newPassword = page.getByLabel("New password", { exact: true });
+  const confirmation = page.getByLabel("Confirm password", { exact: true });
+  await expect(newPassword).toBeEnabled();
+  await newPassword.focus();
+  await newPassword.evaluate((element) => (element as HTMLInputElement).blur());
+  await expect(newPassword).not.toHaveAttribute("aria-invalid", "true");
+  await confirmation.focus();
+  await confirmation.evaluate((element) => (element as HTMLInputElement).blur());
+  await expect(confirmation).not.toHaveAttribute("aria-invalid", "true");
+  await expect(page.locator("#auth-confirm-status")).toBeEmpty();
+  await newPassword.fill("Fixture-new-password-123");
+  await confirmation.fill("Fixture-new-password-123");
   const requests: string[] = [];
   page.on("request", (request) => {
     if (request.method() === "PUT" && request.url().endsWith("/auth/v1/user"))

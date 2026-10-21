@@ -86,7 +86,6 @@ export function AuthForm({
   const [touched, setTouched] = useState({
     email: false,
     password: false,
-    confirm: false,
   });
   const [submitted, setSubmitted] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -138,10 +137,13 @@ export function AuthForm({
           ? "auth.passwordMismatch"
           : "";
   const emailError =
-    (submitted || touched.email || hasUnsupportedEmailCharacters) && emailIssue;
-  const passwordError = (submitted || touched.password) && passwordIssue;
-  const confirmationError =
-    (submitted || touched.confirm || hasConfirmation) && confirmIssue;
+    (submitted ||
+      (touched.email && Boolean(email.trim())) ||
+      hasUnsupportedEmailCharacters) &&
+    emailIssue;
+  const passwordError =
+    (submitted || (touched.password && Boolean(password))) && passwordIssue;
+  const confirmationError = (submitted || hasConfirmation) && confirmIssue;
   const isFormComplete =
     mode === "login"
       ? Boolean(email.trim() && password)
@@ -671,9 +673,6 @@ export function AuthForm({
                       <PasswordInput
                         id="auth-confirm"
                         name="auth-confirm"
-                        onBlur={() =>
-                          setTouched((previous) => ({ ...previous, confirm: true }))
-                        }
                         showLabel={t("auth.showConfirmPassword")}
                         hideLabel={t("auth.hideConfirmPassword")}
                         autoComplete="new-password"
@@ -764,7 +763,7 @@ export function AuthForm({
                       setMessage("");
                       setError("");
                       setSubmitted(false);
-                      setTouched({ email: false, password: false, confirm: false });
+                      setTouched({ email: false, password: false });
                       window.requestAnimationFrame(() =>
                         formPanel.current
                           ?.querySelector<HTMLInputElement>("#auth-email")

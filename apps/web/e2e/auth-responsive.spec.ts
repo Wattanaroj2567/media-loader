@@ -130,6 +130,12 @@ for (const locale of ["th", "en"] as const) {
           path: test.info().outputPath(`login-${screen.name}.png`),
         });
       }
+      await modal.getByRole("heading").click();
+      await expect(modal.locator("#auth-email")).not.toHaveAttribute(
+        "aria-invalid",
+        "true"
+      );
+      await expect(modal.locator("#auth-email-error")).toBeEmpty();
       await modal.getByRole("link", { name: labels.register, exact: true }).click();
       await expect(modal).toHaveAccessibleName(labels.register);
       await checkLayout(page);
