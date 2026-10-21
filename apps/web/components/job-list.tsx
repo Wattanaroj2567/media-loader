@@ -314,7 +314,7 @@ function JobCard({
           : "sm:flex-row sm:items-center"
       } ${selectionMode ? "cursor-pointer select-none" : ""} ${
         selected
-          ? "border-border bg-bg-elevated/65 sm:border-primary sm:bg-primary/10 sm:ring-2 sm:ring-primary/30 sm:shadow-md"
+          ? "border-primary bg-primary/10 ring-2 ring-primary/30 shadow-md"
           : "border-border bg-bg-elevated/65 hover:border-primary/40 hover:bg-bg-elevated/85"
       }`}
     >
@@ -331,10 +331,8 @@ function JobCard({
       >
         {selectionMode && (
           <div
-            className={`z-10 flex size-9 shrink-0 items-center justify-center border border-border/80 bg-bg-base/85 shadow-md backdrop-blur-md sm:static sm:min-h-11 sm:w-auto sm:rounded-none sm:border-0 sm:bg-transparent sm:px-1 sm:shadow-none sm:backdrop-blur-none ${
-              mode === "history"
-                ? "self-start rounded-lg"
-                : "absolute left-5 top-5 rounded-xl"
+            className={`z-10 flex min-h-11 w-auto shrink-0 items-center justify-center px-1 ${
+              mode === "history" ? "self-start" : "absolute left-5 top-5 rounded-xl"
             }`}
           >
             <Checkbox
