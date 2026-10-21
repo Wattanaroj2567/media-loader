@@ -20,6 +20,7 @@ import { getGuestJobIds } from "@/lib/guest-session";
 interface JobPollingContextValue {
   jobs: Job[];
   loading: boolean;
+  retrying: boolean;
   error: string;
   refreshJobs: (silent?: boolean) => Promise<void>;
   updateJob: (job: Job) => void;
@@ -30,6 +31,7 @@ const JobPollingContext = createContext<JobPollingContextValue | null>(null);
 export function JobPollingProvider({ children }: { children: ReactNode }) {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
+  const [retrying, setRetrying] = useState(false);
   const [error, setError] = useState("");
   const mountedRef = useRef(false);
   const unauthorizedRef = useRef(false);
@@ -52,14 +54,20 @@ export function JobPollingProvider({ children }: { children: ReactNode }) {
       return Promise.resolve();
     }
 
+    if (!silent && mountedRef.current) {
+      setError("");
+      setLoading(true);
+      setRetrying(false);
+    } else if (silent && mountedRef.current && consecutiveFailuresRef.current > 0) {
+      setRetrying(true);
+    }
+
     if (inFlightRef.current) {
       pendingRefreshRef.current = true;
       return inFlightRef.current;
     }
 
     const request = (async () => {
-      if (!silent && mountedRef.current) setError("");
-
       if (unauthorizedRef.current) {
         const guestJobIds = getGuestJobIds();
         if (guestJobIds.length > 0) {
@@ -88,7 +96,10 @@ export function JobPollingProvider({ children }: { children: ReactNode }) {
         } else {
           setJobs([]);
         }
-        if (mountedRef.current) setLoading(false);
+        if (mountedRef.current && !pendingRefreshRef.current) {
+          setLoading(false);
+        }
+        if (mountedRef.current) setRetrying(false);
         return;
       }
 
@@ -144,7 +155,10 @@ export function JobPollingProvider({ children }: { children: ReactNode }) {
           setError(message);
         }
       } finally {
-        if (mountedRef.current) setLoading(false);
+        if (mountedRef.current) setRetrying(false);
+        if (mountedRef.current && !pendingRefreshRef.current) {
+          setLoading(false);
+        }
       }
     })().finally(() => {
       if (inFlightRef.current === request) inFlightRef.current = null;
@@ -225,8 +239,8 @@ export function JobPollingProvider({ children }: { children: ReactNode }) {
   }, [refreshJobs]);
 
   const value = useMemo(
-    () => ({ jobs, loading, error, refreshJobs, updateJob }),
-    [error, jobs, loading, refreshJobs, updateJob]
+    () => ({ jobs, loading, retrying, error, refreshJobs, updateJob }),
+    [error, jobs, loading, refreshJobs, retrying, updateJob]
   );
 
   return (

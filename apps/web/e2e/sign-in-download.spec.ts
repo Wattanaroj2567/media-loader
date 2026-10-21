@@ -211,8 +211,10 @@ test("keeps the pending link while changing to registration and signing in with 
   page,
 }) => {
   const calls = await mockMediaApi(page);
+  const trackedInstagramLink =
+    "https://www.instagram.com/reel/Det4RliTBfI/?utm_source=ig_web_copy_link&obrf=NTc4MTIwNjQ2YQ==";
   await page.goto("/");
-  await page.getByPlaceholder("https://...").fill(source);
+  await page.getByPlaceholder("https://...").fill(trackedInstagramLink);
   await page.getByPlaceholder("https://...").press("Enter");
   await expect(page).toHaveURL(/\/$/);
   await expect(
@@ -227,7 +229,7 @@ test("keeps the pending link while changing to registration and signing in with 
   await expect(page).toHaveURL(/\/dashboard$/);
   await expect(page.getByText("Saved link fixture", { exact: true })).toBeVisible();
   expect(calls.analysis).toHaveLength(1);
-  expect(calls.analysis[0].url).toBe(source);
+  expect(calls.analysis[0].url).toBe(trackedInstagramLink);
   expect(calls.jobs).toHaveLength(0);
 });
 

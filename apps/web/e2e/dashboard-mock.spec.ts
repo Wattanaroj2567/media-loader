@@ -188,6 +188,9 @@ test.describe("Mocked Dashboard Workflow", () => {
       name: /confirm rights and download|ยืนยันสิทธิ์และดาวน์โหลด/i,
     });
     await expect(confirmAndDownload).toBeVisible();
+    await expect(page.getByTestId("download-processing-flow")).toContainText(
+      /Fetch source to the server|รับต้นฉบับเข้าเซิร์ฟเวอร์/i
+    );
     await expect(page.getByRole("button", { name: "GIF", exact: true })).toHaveCount(0);
     await expect(page.getByText("35,000 reactions", { exact: true })).toBeVisible();
     await confirmAndDownload.click();
@@ -224,13 +227,25 @@ test.describe("Mocked Dashboard Workflow", () => {
       "1"
     );
 
+    await urlInput.fill("https://youtu.be/DWobDpsgQUc?si=test");
+    await expect(page.getByText("35,000 reactions", { exact: true })).toHaveCount(0);
+    await expect(confirmAndDownload).toHaveCount(0);
+    await expect
+      .poll(() =>
+        page.evaluate(() => sessionStorage.getItem("media_loader_analyzer_analysis"))
+      )
+      .toBe(null);
+    await page.reload();
+    await expect(urlInput).toHaveValue("https://youtu.be/DWobDpsgQUc?si=test");
+    await expect(page.getByText("35,000 reactions", { exact: true })).toHaveCount(0);
+
     // Clicking Clear (the X button in the input bar) resets the analyzer
     await page.getByRole("button", { name: "Clear", exact: true }).click();
     await expect(urlInput).toHaveValue("");
     await expect(page.getByText("35,000 reactions", { exact: true })).toHaveCount(0);
   });
 
-  test("shows an in-app alert when an active job completes without push alerts", async ({
+  test("keeps in-app job alerts when browser notifications are disabled", async ({
     context,
     page,
   }) => {
@@ -239,6 +254,14 @@ test.describe("Mocked Dashboard Workflow", () => {
     await context.addCookies([
       { name: "media-loader-locale", value: "en", url: appOrigin },
     ]);
+    await page.addInitScript(() => {
+      Object.defineProperty(Notification, "permission", {
+        configurable: true,
+        get: () => "granted",
+      });
+      localStorage.setItem("media-loader:browser-notifications", "0");
+      localStorage.removeItem("media-loader:browser-notifications-owner");
+    });
     const queuedJob = {
       id: "job-background-notification",
       original_url: "https://example.com/video",
@@ -263,12 +286,14 @@ test.describe("Mocked Dashboard Workflow", () => {
       download_speed: null,
     };
     let shouldComplete = false;
+    let listRequestCount = 0;
     await page.route("**/downloads*", async (route) => {
       if (route.request().method() === "OPTIONS") {
         await route.fulfill({ status: 204, headers: CORS_HEADERS });
         return;
       }
 
+      listRequestCount += 1;
       const job = shouldComplete
         ? {
             ...queuedJob,
@@ -289,11 +314,217 @@ test.describe("Mocked Dashboard Workflow", () => {
 
     await page.goto("/dashboard");
     await expect(page.locator("#download-queue")).toContainText(queuedJob.title);
+    await expect.poll(() => listRequestCount).toBeGreaterThan(0);
+    await page.waitForTimeout(100);
     shouldComplete = true;
+    await page.evaluate(() =>
+      window.dispatchEvent(new Event("media-loader:jobs-changed"))
+    );
+    await expect.poll(() => listRequestCount).toBeGreaterThan(1);
 
-    await expect(page.getByText("Download Completed", { exact: true })).toBeVisible({
-      timeout: 15000,
+    await expect(
+      page.getByRole("status").filter({ hasText: "Download Completed" })
+    ).toBeVisible({ timeout: 15000 });
+  });
+
+  test("keeps the download toast when browser notifications are disabled", async ({
+    context,
+    page,
+  }) => {
+    const appOrigin = new URL(test.info().project.use.baseURL!).origin;
+    await seedAuth(context, appOrigin);
+    await context.addCookies([
+      { name: "media-loader-locale", value: "en", url: appOrigin },
+    ]);
+    await page.addInitScript(() => {
+      Object.defineProperty(Notification, "permission", {
+        configurable: true,
+        get: () => "granted",
+      });
+      localStorage.setItem("media-loader:browser-notifications", "0");
+      localStorage.removeItem("media-loader:browser-notifications-owner");
     });
+    await page.setViewportSize({ width: 1440, height: 900 });
+
+    const sourceUrl = "https://upload.wikimedia.org/wikipedia/commons/test-video.webm";
+    const jobId = "job-desktop-download-hint";
+    let jobCreated = false;
+    let shouldComplete = false;
+    const job = {
+      id: jobId,
+      original_url: sourceUrl,
+      status: "QUEUED",
+      progress: 0,
+      selected_format: "mp4-720p",
+      selected_quality: "720p",
+      output_format: "mp4",
+      media_type: "video",
+      title: "Desktop download hint",
+      uploader: "Wikimedia Commons",
+      platform: "wikimedia",
+      source_domain: "wikimedia.org",
+      thumbnail_url: null,
+      duration_seconds: 10,
+      output_filename: "Desktop download hint.mp4",
+      file_available: true,
+      file_size_mb: 1,
+      error_message: null,
+      created_at: "2026-09-18T12:00:00Z",
+      updated_at: "2026-09-18T12:00:00Z",
+      completed_at: null,
+      download_speed: null,
+    };
+
+    await page.route("**/media/analyze*", async (route) => {
+      if (route.request().method() === "OPTIONS") {
+        await route.fulfill({ status: 204, headers: CORS_HEADERS });
+        return;
+      }
+      await route.fulfill(
+        jsonResponse({
+          ok: true,
+          data: {
+            policy: { decision: "allowed", reason: "Public source" },
+            media: {
+              title: job.title,
+              platform: "wikimedia",
+              thumbnail_url: null,
+              duration_seconds: 10,
+              uploader: "Wikimedia Commons",
+              source_domain: "wikimedia.org",
+              view_count: null,
+              like_count: null,
+              reaction_count: null,
+              is_animated_gif: false,
+            },
+            formats: [
+              {
+                format_id: "mp4-720p",
+                extension: "mp4",
+                type: "video",
+                quality_label: "720p",
+                width: 1280,
+                height: 720,
+                fps: 30,
+                video_codec: "h264",
+                audio_codec: "aac",
+                filesize: 1000000,
+                has_video: true,
+                has_audio: true,
+              },
+            ],
+          },
+          error: null,
+        })
+      );
+    });
+
+    await page.route("**/downloads*", async (route) => {
+      if (route.request().method() === "OPTIONS") {
+        await route.fulfill({ status: 204, headers: CORS_HEADERS });
+        return;
+      }
+      if (route.request().method() === "POST") {
+        jobCreated = true;
+        await route.fulfill(
+          jsonResponse({
+            ok: true,
+            data: { job_id: jobId, status: "QUEUED" },
+            error: null,
+          })
+        );
+        return;
+      }
+      const currentJob = shouldComplete
+        ? {
+            ...job,
+            status: "COMPLETED",
+            progress: 100,
+            updated_at: "2026-09-18T12:01:00Z",
+            completed_at: "2026-09-18T12:01:00Z",
+          }
+        : jobCreated
+          ? job
+          : null;
+      await route.fulfill(
+        jsonResponse({
+          ok: true,
+          data: {
+            jobs: currentJob ? [currentJob] : [],
+            total: currentJob ? 1 : 0,
+            limit: 100,
+            offset: 0,
+          },
+          error: null,
+        })
+      );
+    });
+    await page.route(`**/files/token/${jobId}`, async (route) => {
+      if (route.request().method() === "OPTIONS") {
+        await route.fulfill({ status: 204, headers: CORS_HEADERS });
+        return;
+      }
+      await route.fulfill(
+        jsonResponse({
+          ok: true,
+          data: {
+            job_id: jobId,
+            download_token: "mock-download-token",
+            download_url: `/files/download/${jobId}?token=mock-download-token`,
+            expires_in: 300,
+          },
+          error: null,
+        })
+      );
+    });
+    await page.route(
+      `**/files/download/${jobId}?token=mock-download-token`,
+      async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: "video/mp4",
+          headers: {
+            "content-disposition": 'attachment; filename="Desktop download hint.mp4"',
+          },
+          body: "mock video bytes",
+        });
+      }
+    );
+
+    await page.goto("/dashboard");
+    const urlInput = page.getByRole("textbox", {
+      name: "Paste a clip link, e.g. https://...",
+    });
+    await urlInput.fill(sourceUrl);
+    await urlInput.press("Enter");
+    await page
+      .getByRole("button", {
+        name: /confirm rights and download|ยืนยันสิทธิ์และดาวน์โหลด/i,
+      })
+      .click();
+    await expect(
+      page.getByRole("status").filter({ hasText: "Added to queue" })
+    ).toBeVisible();
+
+    const downloadPromise = page.waitForEvent("download");
+    shouldComplete = true;
+    await page.evaluate(() =>
+      window.dispatchEvent(new Event("media-loader:jobs-changed"))
+    );
+    await downloadPromise;
+
+    const downloadHint = page.getByRole("status").filter({
+      hasText: "Download started",
+    });
+    await expect(downloadHint).toBeVisible();
+    await expect(downloadHint.locator(".download-arrow-nudge")).toBeVisible();
+    await expect(
+      page.getByRole("status").filter({ hasText: "Download Completed" })
+    ).toHaveCount(0);
+    await page.waitForTimeout(4200);
+    await expect(downloadHint).toBeVisible();
+    await downloadHint.getByRole("button", { name: "Close notification" }).click();
+    await expect(downloadHint).toHaveCount(0);
   });
 
   test("shows a localized wait time when download creation is rate limited", async ({
@@ -597,7 +828,8 @@ test.describe("Mocked Dashboard Workflow", () => {
     await page.goto("/dashboard");
     const downloadQueue = page.locator("#download-queue");
     await expect(downloadQueue).toBeVisible();
-    await expect(downloadQueue).toContainText("Downloading");
+    await expect(downloadQueue).toContainText("Fetching source");
+    await expect(downloadQueue).toContainText("Stage 1/3");
     await expect(downloadQueue).not.toContainText("Preparing file");
 
     await page.getByRole("button", { name: "Pause download", exact: true }).click();

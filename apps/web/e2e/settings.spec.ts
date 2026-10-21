@@ -123,17 +123,30 @@ test.describe("Account Settings Page UI", () => {
     context,
   }) => {
     await seedAuth(context);
+    await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto("/settings");
 
     await expect(page.locator("main")).toBeVisible();
+    const accountContent = page.getByTestId("account-page-content");
+    await expect(accountContent).toBeVisible();
 
     const backLink = page.getByRole("link", { name: /back|กลับ/i });
     await expect(backLink).toBeVisible();
     await expect(backLink).toHaveAttribute("href", "/dashboard");
-    await expect(backLink).toHaveClass(/mb-5/);
+    await expect(backLink).toHaveClass(/mb-6/);
+    await expect(backLink.locator("svg.lucide-arrow-left")).toBeVisible();
 
     const mainHeading = page.locator("h1, h2, header").first();
     await expect(mainHeading).toBeVisible();
+
+    const accountWidth = await accountContent.evaluate(
+      (element) => element.getBoundingClientRect().width
+    );
+    await page.goto("/how-it-works");
+    const workflowWidth = await page
+      .locator("main")
+      .evaluate((element) => element.getBoundingClientRect().width);
+    expect(accountWidth).toBe(workflowWidth);
   });
 
   test("subscribes to push alerts and removes the subscription when disabled", async ({
@@ -198,7 +211,8 @@ test.describe("Account Settings Page UI", () => {
     });
 
     let savedSubscription: unknown;
-    let deletedEndpoint: string | undefined;
+    let serverPushEnabled = false;
+    let deleteAllRequested = false;
     await page.route("**/notifications/**", async (route) => {
       const request = route.request();
       if (request.method() === "OPTIONS") {
@@ -224,10 +238,24 @@ test.describe("Account Settings Page UI", () => {
         });
         return;
       }
+      if (request.url().endsWith("/subscriptions/status")) {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            ok: true,
+            data: { enabled: serverPushEnabled },
+            error: null,
+          }),
+        });
+        return;
+      }
       if (request.method() === "POST") {
         savedSubscription = request.postDataJSON();
+        serverPushEnabled = true;
       } else if (request.method() === "DELETE") {
-        deletedEndpoint = request.postDataJSON().endpoint;
+        deleteAllRequested = !request.postDataJSON().endpoint;
+        serverPushEnabled = false;
       }
       await route.fulfill({
         status: 200,
@@ -243,12 +271,14 @@ test.describe("Account Settings Page UI", () => {
 
     await page.goto("/settings");
 
-    const enableButton = page.getByRole("button", { name: "Enable", exact: true });
-    await expect(enableButton).toBeVisible();
-    await enableButton.click();
+    const notificationSwitch = page.getByRole("switch", {
+      name: "Browser notifications",
+    });
+    await expect(notificationSwitch).toBeVisible();
+    await expect(notificationSwitch).toHaveAttribute("aria-checked", "false");
+    await notificationSwitch.click();
 
-    const disableButton = page.getByRole("button", { name: "Disable", exact: true });
-    await expect(disableButton).toBeVisible();
+    await expect(notificationSwitch).toHaveAttribute("aria-checked", "true");
     await expect
       .poll(() =>
         page.evaluate(() => localStorage.getItem("media-loader:browser-notifications"))
@@ -261,20 +291,79 @@ test.describe("Account Settings Page UI", () => {
     });
 
     await page.reload();
-    const persistedDisableButton = page.getByRole("button", {
-      name: "Disable",
-      exact: true,
+    const persistedNotificationSwitch = page.getByRole("switch", {
+      name: "Browser notifications",
     });
-    await expect(persistedDisableButton).toBeVisible();
-    await persistedDisableButton.click();
-    await expect(
-      page.getByRole("button", { name: "Enable", exact: true })
-    ).toBeVisible();
+    await expect(persistedNotificationSwitch).toHaveAttribute("aria-checked", "true");
+    await persistedNotificationSwitch.click();
+    await expect(persistedNotificationSwitch).toHaveAttribute("aria-checked", "false");
     await expect
       .poll(() =>
         page.evaluate(() => localStorage.getItem("media-loader:browser-notifications"))
       )
       .toBe("0");
-    expect(deletedEndpoint).toBe("https://fcm.googleapis.com/push/test-subscription");
+    expect(deleteAllRequested).toBe(true);
+  });
+
+  test("disables account push subscriptions from another app origin", async ({
+    page,
+    context,
+  }) => {
+    await seedAuth(context);
+    await page.addInitScript(() => {
+      class GrantedNotification {
+        static permission: NotificationPermission = "granted";
+      }
+
+      Object.defineProperty(window, "Notification", {
+        configurable: true,
+        value: GrantedNotification,
+      });
+      const registration = {
+        pushManager: { getSubscription: async () => null },
+      };
+      Object.defineProperty(navigator, "serviceWorker", {
+        configurable: true,
+        value: {
+          register: async () => registration,
+          getRegistration: async () => registration,
+          ready: Promise.resolve(registration),
+        },
+      });
+    });
+
+    let deleteAllRequested = false;
+    await page.route("**/notifications/**", async (route) => {
+      const request = route.request();
+      if (request.method() === "OPTIONS") {
+        await route.fulfill({ status: 204 });
+        return;
+      }
+      if (request.url().endsWith("/subscriptions/status")) {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({ ok: true, data: { enabled: true }, error: null }),
+        });
+        return;
+      }
+      if (request.method() === "DELETE") {
+        deleteAllRequested = !request.postDataJSON().endpoint;
+      }
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ ok: true, data: { deleted: true }, error: null }),
+      });
+    });
+
+    await page.goto("/settings");
+    const notificationSwitch = page.getByRole("switch", {
+      name: "Browser notifications",
+    });
+    await expect(notificationSwitch).toHaveAttribute("aria-checked", "true");
+    await notificationSwitch.click();
+    await expect(notificationSwitch).toHaveAttribute("aria-checked", "false");
+    expect(deleteAllRequested).toBe(true);
   });
 });

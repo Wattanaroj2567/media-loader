@@ -46,6 +46,7 @@ _INPUT_PLATFORM_BY_HOST = {
     "instagram.com": "Instagram",
     "tiktok.com": "TikTok",
     "facebook.com": "Facebook",
+    "fbsbx.com": "Facebook",
     "fb.watch": "Facebook",
     "x.com": "X",
     "twitter.com": "X",
@@ -54,6 +55,7 @@ _INPUT_PLATFORM_BY_HOST = {
     "vk.com": "VK Video",
     "vkvideo.ru": "VK Video",
     "giphy.com": "Giphy",
+    "tenor.com": "Tenor",
 }
 
 
@@ -106,7 +108,7 @@ def _is_animated_gif(raw_info: dict[str, Any]) -> bool:
 
     if any(
         urlsplit(str(raw_info.get(key) or "")).path.lower().endswith(".gif")
-        for key in ("original_url", "webpage_url")
+        for key in ("_media_loader_input_url", "original_url", "webpage_url")
     ):
         return True
 
@@ -134,6 +136,10 @@ def _platform_name(raw_info: dict[str, Any]) -> str:
         source_domain == "giphy.com" or source_domain.endswith(".giphy.com")
     ):
         return "Giphy"
+    if platform.lower() == "generic" and (
+        source_domain == "tenor.com" or source_domain.endswith(".tenor.com")
+    ):
+        return "Tenor"
     return platform
 
 
@@ -336,10 +342,11 @@ def _codec_label(codec: str | None) -> str | None:
     return codec.split(".")[0].upper()
 
 
-def _video_preference(raw_format: dict[str, Any]) -> tuple[int, int, int, int]:
+def _video_preference(raw_format: dict[str, Any]) -> tuple[int, int, int, int, int]:
     extension = str(raw_format.get("ext") or "").lower()
     codec = str(raw_format.get("vcodec") or "").lower()
     return (
+        _as_positive_int(raw_format.get("fps")) or 0,
         1 if extension == "mp4" else 0,
         1 if codec.startswith(("avc", "h264", "hev", "h265")) else 0,
         1 if raw_format.get("acodec") in (None, "none") else 0,
@@ -370,9 +377,7 @@ def normalize_extractor_result(
         is_animated_gif=_is_animated_gif(raw_info),
     )
 
-    video_by_quality: dict[
-        tuple[int, int | None], tuple[dict[str, Any], FormatInfo]
-    ] = {}
+    video_by_quality: dict[int | str, tuple[dict[str, Any], FormatInfo]] = {}
     audio_by_quality: dict[tuple[int | None, str | None], FormatInfo] = {}
 
     raw_formats = raw_info.get("formats") or []
@@ -464,7 +469,11 @@ def normalize_extractor_result(
                 has_video=True,
                 has_audio=has_audio,
             )
-            key = (height or 0, fps)
+            # Keep one selectable stream per known display tier. Prefer an
+            # explicit frame rate when extractors return duplicate tiers with
+            # and without FPS metadata; retain no-FPS tiers when no alternative exists.
+            # Unknown-height formats cannot be safely compared, so keep them separate.
+            key = height if height is not None else f"unknown:{format_id}"
             existing = video_by_quality.get(key)
             if existing is None or _video_preference(raw_format) > _video_preference(
                 existing[0]

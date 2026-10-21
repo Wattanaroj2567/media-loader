@@ -60,6 +60,86 @@ test.describe("History Page UI", () => {
     await expect(mainHeading).toBeVisible();
   });
 
+  test("should explain history connection errors and show automatic retry status", async ({
+    page,
+    context,
+  }) => {
+    await seedAuth(context);
+
+    let requestCount = 0;
+    let markBackgroundRetryStarted: () => void = () => {};
+    let releaseBackgroundRetry: () => void = () => {};
+    const backgroundRetryStarted = new Promise<void>((resolve) => {
+      markBackgroundRetryStarted = resolve;
+    });
+    const backgroundRetryResponse = new Promise<void>((resolve) => {
+      releaseBackgroundRetry = resolve;
+    });
+
+    await page.route("**/downloads*", async (route) => {
+      if (route.request().method() === "OPTIONS") {
+        await route.fulfill({ status: 204, headers: CORS_HEADERS });
+        return;
+      }
+
+      requestCount += 1;
+      if (requestCount === 1) {
+        await route.fulfill({
+          status: 503,
+          headers: CORS_HEADERS,
+          contentType: "application/json",
+          body: JSON.stringify({
+            ok: false,
+            error: { message: "Service unavailable" },
+          }),
+        });
+        return;
+      }
+
+      markBackgroundRetryStarted();
+      await backgroundRetryResponse;
+      await route.fulfill({
+        status: 200,
+        headers: CORS_HEADERS,
+        contentType: "application/json",
+        body: JSON.stringify({
+          ok: true,
+          data: { jobs: [], total: 0 },
+          error: null,
+        }),
+      });
+    });
+
+    await page.goto("/history");
+    await expect(
+      page.getByText(/โหลดประวัติไม่สำเร็จ|Couldn't load history/i)
+    ).toBeVisible();
+    await expect(
+      page.getByText(/ประวัติของคุณไม่ได้ถูกลบ|history hasn't been deleted/i)
+    ).toBeVisible();
+    await expect(page.getByRole("button", { name: /ลองอีกครั้ง|Retry/i })).toHaveCount(
+      0
+    );
+
+    await page.evaluate(() => {
+      window.dispatchEvent(new Event("media-loader:jobs-changed"));
+    });
+    await backgroundRetryStarted;
+    await expect(
+      page
+        .getByRole("status")
+        .filter({ hasText: /กำลังลองเชื่อมต่อใหม่|Trying to reconnect/i })
+    ).toBeVisible();
+    await expect(
+      page.getByText(/ยังไม่มีประวัติการดาวน์โหลด|No download history yet\./i)
+    ).toHaveCount(0);
+
+    releaseBackgroundRetry();
+    await expect(
+      page.getByText(/ยังไม่มีประวัติการดาวน์โหลด|No download history yet\./i)
+    ).toBeVisible();
+  });
+
   test("should paginate history list when items exceed 10", async ({
     page,
     context,
@@ -81,7 +161,8 @@ test.describe("History Page UI", () => {
       thumbnail_url: null,
       output_filename: `video-${index + 1}.mp4`,
       file_available: true,
-      file_size_mb: 10.5,
+      file_size_bytes: index === 0 ? 1_447_035 : null,
+      file_size_mb: index === 0 ? 1.4 : 10.5,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       completed_at: new Date().toISOString(),
@@ -112,6 +193,7 @@ test.describe("History Page UI", () => {
     const cards = page.locator("article");
     await expect(cards).toHaveCount(10);
     await expect(cards.first()).toContainText("Completed video item 1");
+    await expect(cards.first()).toContainText("1.38 MB");
     await expect(cards.last()).toContainText("Completed video item 10");
 
     // Pagination navigation should be visible
@@ -142,5 +224,199 @@ test.describe("History Page UI", () => {
     await prevButton.click();
     await expect(cards).toHaveCount(10);
     await expect(cards.first()).toContainText("Completed video item 11");
+  });
+
+  test("should filter history by every supported platform", async ({
+    page,
+    context,
+  }) => {
+    await seedAuth(context);
+
+    const platforms = [
+      { id: "youtube", label: "YouTube", platform: "Youtube", domain: "youtube.com" },
+      { id: "tiktok", label: "TikTok", platform: "TikTok", domain: "tiktok.com" },
+      {
+        id: "facebook",
+        label: "Facebook",
+        platform: "Facebook",
+        domain: "facebook.com",
+      },
+      {
+        id: "instagram",
+        label: "Instagram",
+        platform: "Instagram",
+        domain: "instagram.com",
+      },
+      { id: "x", label: "X", platform: "X", domain: "x.com" },
+      {
+        id: "bilibili",
+        label: "Bilibili",
+        platform: "Bilibili",
+        domain: "bilibili.com",
+      },
+      { id: "vk video", label: "VK Video", platform: "VK Video", domain: "vkvideo.ru" },
+      { id: "giphy", label: "Giphy", platform: "Giphy", domain: "giphy.com" },
+      { id: "tenor", label: "Tenor", platform: "Tenor", domain: "tenor.com" },
+    ];
+    const now = new Date().toISOString();
+    const jobs = platforms.map((item) => ({
+      id: `job-${item.id.replaceAll(" ", "-")}`,
+      original_url: `https://${item.domain}/item`,
+      status: "COMPLETED",
+      progress: 100,
+      selected_format: "720p",
+      output_format: item.id === "giphy" || item.id === "tenor" ? "gif" : "mp4",
+      title: `${item.label} history item`,
+      platform: item.platform,
+      source_domain: item.domain,
+      file_available: false,
+      created_at: now,
+      updated_at: now,
+      completed_at: now,
+    }));
+
+    await page.route("**/downloads*", (route) => {
+      if (route.request().method() === "OPTIONS") {
+        return route.fulfill({ status: 204, headers: CORS_HEADERS });
+      }
+      return route.fulfill({
+        status: 200,
+        headers: CORS_HEADERS,
+        contentType: "application/json",
+        body: JSON.stringify({
+          ok: true,
+          data: { jobs, total: jobs.length },
+          error: null,
+        }),
+      });
+    });
+
+    await page.goto("/history");
+
+    for (const platform of platforms) {
+      const filterButton = page.getByRole("button", {
+        name: platform.label,
+        exact: true,
+      });
+      await expect(filterButton).toBeVisible();
+      await filterButton.click();
+      const cards = page.locator("article");
+      await expect(cards).toHaveCount(1);
+      await expect(cards.first()).toContainText(`${platform.label} history item`);
+    }
+  });
+
+  test("should preserve reusable links and hide actions for redacted legacy links", async ({
+    page,
+    context,
+  }) => {
+    await seedAuth(context);
+    await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+
+    const sourceUrl = "https://www.tiktok.com/@creator/video/1234567890?source=history";
+    const now = new Date().toISOString();
+    const jobs = [
+      {
+        id: "job-with-source-url",
+        original_url: sourceUrl,
+        status: "COMPLETED",
+        progress: 100,
+        selected_format: "mp4-720p",
+        output_format: "mp4",
+        media_type: "video",
+        title: "Reusable TikTok source",
+        platform: "tiktok",
+        source_domain: "www.tiktok.com",
+        file_available: false,
+        created_at: now,
+        updated_at: now,
+        completed_at: now,
+      },
+      {
+        id: "job-with-redacted-source-url",
+        original_url: "https://www.tiktok.com/[redacted]",
+        status: "COMPLETED",
+        progress: 100,
+        selected_format: "mp4-720p",
+        output_format: "mp4",
+        media_type: "video",
+        title: "Older TikTok source",
+        platform: "tiktok",
+        source_domain: "www.tiktok.com",
+        file_available: false,
+        created_at: now,
+        updated_at: now,
+        completed_at: now,
+      },
+    ];
+
+    await page.route("**/downloads*", (route) => {
+      if (route.request().method() === "OPTIONS") {
+        return route.fulfill({ status: 204, headers: CORS_HEADERS });
+      }
+      return route.fulfill({
+        status: 200,
+        headers: CORS_HEADERS,
+        contentType: "application/json",
+        body: JSON.stringify({
+          ok: true,
+          data: { jobs, total: jobs.length },
+          error: null,
+        }),
+      });
+    });
+    await page.route("**/media/analyze*", (route) => {
+      if (route.request().method() === "OPTIONS") {
+        return route.fulfill({ status: 204, headers: CORS_HEADERS });
+      }
+      return route.fulfill({
+        status: 400,
+        headers: CORS_HEADERS,
+        contentType: "application/json",
+        body: JSON.stringify({
+          ok: false,
+          data: null,
+          error: { message: "Test analysis stopped" },
+        }),
+      });
+    });
+
+    await page.goto("/history");
+
+    const reusableCard = page.locator("article").filter({
+      hasText: "Reusable TikTok source",
+    });
+    const copyButton = reusableCard.getByRole("button", {
+      name: /คัดลอกลิงก์|copy link/i,
+    });
+    await expect(copyButton).toBeVisible();
+    await copyButton.click();
+    await expect
+      .poll(() => page.evaluate(() => navigator.clipboard.readText()))
+      .toBe(sourceUrl);
+
+    const legacyCard = page.locator("article").filter({
+      hasText: "Older TikTok source",
+    });
+    await expect(
+      legacyCard.getByText(/ลิงก์เดิมถูกลบ|original link was removed/i)
+    ).toHaveCount(0);
+    await expect(
+      legacyCard.getByRole("button", { name: /คัดลอกลิงก์|copy link/i })
+    ).toHaveCount(0);
+    await expect(
+      legacyCard.getByRole("button", {
+        name: /วิเคราะห์ลิงก์เดิม|analyze original link/i,
+      })
+    ).toHaveCount(0);
+
+    const analysisRequest = page.waitForRequest(
+      (request) =>
+        request.url().includes("/media/analyze") && request.method() === "POST"
+    );
+    await reusableCard
+      .getByRole("button", { name: /วิเคราะห์ลิงก์เดิม|analyze original link/i })
+      .click();
+    expect((await analysisRequest).postDataJSON().url).toBe(sourceUrl);
   });
 });

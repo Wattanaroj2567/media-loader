@@ -105,6 +105,8 @@ def test_progress_update_only_applies_to_an_active_download(monkeypatch):
 
 def test_terminal_job_transition_sends_one_push_notification(monkeypatch):
     database = FakeSupabase()
+    stored_url = "enc:v1:encrypted-original-source"
+    database.query.row["original_url"] = stored_url
     notifications = []
     monkeypatch.setattr("worker.job_queue.get_supabase_client", lambda: database)
     monkeypatch.setattr("worker.job_queue.is_job_cancelled", lambda _job_id: False)
@@ -115,6 +117,8 @@ def test_terminal_job_transition_sends_one_push_notification(monkeypatch):
 
     assert update_job_status("job-1", "COMPLETED") is True
     assert update_job_status("job-1", "COMPLETED") is True
+    assert database.query.row["original_url"] == stored_url
+    assert "original_url" not in database.query.update_data
 
     assert notifications == [
         {

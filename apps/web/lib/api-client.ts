@@ -29,6 +29,7 @@ export interface Job {
   duration_seconds?: number | null;
   output_filename?: string | null;
   file_available?: boolean;
+  file_size_bytes?: number | null;
   file_size_mb?: number | null;
   total_size_mb?: number | null;
   error_message?: string | null;
@@ -460,6 +461,10 @@ export class ApiClient {
     return this.request("/notifications/vapid-public-key", {}, true);
   }
 
+  getPushSubscriptionStatus(): Promise<{ enabled: boolean }> {
+    return this.request("/notifications/subscriptions/status", {}, true);
+  }
+
   savePushSubscription(
     subscription: BrowserPushSubscriptionData,
     locale: "th" | "en"
@@ -474,12 +479,12 @@ export class ApiClient {
     );
   }
 
-  deletePushSubscription(endpoint: string): Promise<{ deleted: boolean }> {
+  deletePushSubscriptions(): Promise<{ deleted: boolean }> {
     return this.request(
       "/notifications/subscriptions",
       {
         method: "DELETE",
-        body: JSON.stringify({ endpoint }),
+        body: JSON.stringify({}),
       },
       true
     );

@@ -20,6 +20,7 @@ import { HeaderUtilityControls } from "@/components/header-utility-controls";
 import { peekRequestedMediaAnalysis } from "@/lib/analyzer-session";
 import { useT } from "@/lib/i18n/context";
 import { createClient } from "@/lib/supabase/client";
+import fieldStyles from "./form-field.module.css";
 import styles from "./auth-form.module.css";
 
 type AuthMode = "login" | "register" | "forgot-password" | "reset-password";
@@ -45,7 +46,8 @@ function PasswordInput({
           if (!hasValue || !event.currentTarget.value) setVisible(false);
           props.onChange?.(event);
         }}
-        className={`${styles.input} ${styles.passwordInput}`}
+        className={`${fieldStyles.field} ${styles.passwordInput}`}
+        data-auth-field="true"
       />
       <button
         type="button"
@@ -438,7 +440,8 @@ export function AuthForm({
                       <Label htmlFor="auth-name">{t("auth.displayName")}</Label>
                       <Input
                         id="auth-name"
-                        className={styles.input}
+                        className={fieldStyles.field}
+                        data-auth-field="true"
                         autoComplete="name"
                         value={name}
                         onChange={(event) => setName(event.target.value)}
@@ -457,7 +460,8 @@ export function AuthForm({
                         onBlur={() =>
                           setTouched((previous) => ({ ...previous, email: true }))
                         }
-                        className={styles.input}
+                        className={fieldStyles.field}
+                        data-auth-field="true"
                         placeholder="you@example.com"
                         type="email"
                         inputMode="email"

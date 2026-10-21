@@ -114,10 +114,20 @@ export function GlobalJobNotifier() {
                   pendingDownload.destination
                 );
                 finishDownloadDelivery(job.id, true);
+                const browserDownloadStarted =
+                  !pendingDownload.destination && !isMobileDevice() && !isIosDevice();
                 toast(
-                  "success",
-                  t("queue.completedToastTitle", {}, "ดาวน์โหลดสำเร็จแล้ว"),
-                  pendingDownload.filename
+                  browserDownloadStarted ? "download" : "success",
+                  browserDownloadStarted
+                    ? t("file.downloadStarted", {}, "เริ่มดาวน์โหลดแล้ว")
+                    : t("queue.completedToastTitle", {}, "ดาวน์โหลดสำเร็จแล้ว"),
+                  browserDownloadStarted
+                    ? t(
+                        "file.downloadStartedDesc",
+                        {},
+                        "ตรวจดูสถานะการดาวน์โหลดได้ที่มุมขวาบนของเบราว์เซอร์"
+                      )
+                    : pendingDownload.filename
                 );
               } catch (err) {
                 finishDownloadDelivery(job.id, false);

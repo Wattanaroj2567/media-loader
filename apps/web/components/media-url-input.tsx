@@ -51,6 +51,7 @@ export function MediaUrlInput({
           <Search className="size-5" />
         </span>
         <input
+          id="media-analyzer-url-input"
           type="url"
           value={value}
           suppressHydrationWarning

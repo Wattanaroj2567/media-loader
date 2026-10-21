@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import { createPortal } from "react-dom";
+import Link from "next/link";
 import {
   AlertCircle,
   CheckCircle2,
@@ -27,12 +28,14 @@ import { ApiError, apiClient, type MediaAnalysis } from "@/lib/api-client";
 import { registerPendingDownload } from "@/lib/download-coordinator";
 import { consumeRequestedMediaAnalysis } from "@/lib/analyzer-session";
 import {
+  estimateOutputSizeBytes,
   formatCardTitle,
   formatLikes,
   formatReactions,
   formatViews,
   getAudioSourceFormats,
   groupFormats,
+  type MediaOutputFormat,
   type MediaFormat,
 } from "@/lib/media-presenters.ts";
 import { useT } from "@/lib/i18n/context";
@@ -77,45 +80,22 @@ function getAudioQualityLabel(
 
 function estimateFilesize(
   format: MediaFormat,
-  durationSeconds?: number | null
+  durationSeconds: number | null | undefined,
+  outputFormat: MediaOutputFormat
 ): string | null {
-  if (format.filesize && format.filesize > 0) {
-    return formatBytes(format.filesize);
-  }
-
-  // Calculate estimated filesize from bitrate & duration
-  if (format.bitrate && format.bitrate > 0 && durationSeconds && durationSeconds > 0) {
-    const approxBytes = (format.bitrate * 1000 * durationSeconds) / 8;
-    return `~${formatBytes(approxBytes)}`;
-  }
-
-  // Estimate from resolution bitrate tier & duration for Reels / Shorts
-  if (durationSeconds && durationSeconds > 0) {
-    const res = Math.min(format.width || 0, format.height || 0) || format.height || 0;
-    let estBitrateKbps = 0;
-    if (res >= 4320) estBitrateKbps = 25000;
-    else if (res >= 2160) estBitrateKbps = 12000;
-    else if (res >= 1440) estBitrateKbps = 6000;
-    else if (res >= 1080) estBitrateKbps = 3200;
-    else if (res >= 720) estBitrateKbps = 1600;
-    else if (res >= 480) estBitrateKbps = 800;
-    else if (res > 0) estBitrateKbps = 400;
-
-    if (estBitrateKbps > 0) {
-      const approxBytes = (estBitrateKbps * 1000 * durationSeconds) / 8;
-      return `~${formatBytes(approxBytes)}`;
-    }
-  }
-
-  return null;
+  const label = formatBytes(
+    estimateOutputSizeBytes(format, durationSeconds, outputFormat)
+  );
+  return label ? `~${label}` : null;
 }
 
 function formatCardMeta(
   format: MediaFormat,
   durationSeconds: number | null | undefined,
+  outputFormat: MediaOutputFormat,
   t: (key: string, vars?: Record<string, string | number>, fallback?: string) => string
 ) {
-  const sizeLabel = estimateFilesize(format, durationSeconds);
+  const sizeLabel = estimateFilesize(format, durationSeconds, outputFormat);
   const pieces = [
     format.type === "video" && format.fps && format.fps > 0
       ? `${format.fps} ${t("download.fps")}`
@@ -182,6 +162,7 @@ function AnalyzerSkeleton() {
 function FormatCard({
   format,
   durationSeconds,
+  outputFormat,
   selected,
   onSelect,
   isBest = false,
@@ -189,6 +170,7 @@ function FormatCard({
 }: {
   format: MediaFormat;
   durationSeconds?: number | null;
+  outputFormat: MediaOutputFormat;
   selected: boolean;
   onSelect: () => void;
   isBest?: boolean;
@@ -196,12 +178,12 @@ function FormatCard({
 }) {
   const { t } = useT();
   const meta = isGif
-    ? estimateFilesize(format, durationSeconds) || "GIF · ภาพเคลื่อนไหว"
-    : formatCardMeta(format, durationSeconds, t) ||
+    ? estimateFilesize(format, durationSeconds, "gif") || "GIF · ภาพเคลื่อนไหว"
+    : formatCardMeta(format, durationSeconds, outputFormat, t) ||
       (format.type === "video"
         ? t("download.videoFormat", {}, "สตรีมมิ่ง HD")
         : t("download.audioFormat", {}, "ไฟล์เสียง MP3"));
-  const title = isGif ? "Original GIF" : formatCardTitle(format);
+  const title = isGif ? t("download.gifOutput", {}, "GIF") : formatCardTitle(format);
 
   return (
     <button
@@ -330,6 +312,11 @@ function tryConvertThaiLayout(text: string): string {
     .join("");
 }
 
+function normalizeInputUrl(text: string): string | null {
+  const validation = validateUrl(tryConvertThaiLayout(text));
+  return validation.valid ? validation.url : null;
+}
+
 function getYouTubeEmbedUrl(url?: string | null): string | null {
   if (!url) return null;
   try {
@@ -370,6 +357,7 @@ export function MediaAnalyzer() {
   const [errorMessage, setErrorMessage] = useState("");
   const [queueing, setQueueing] = useState(false);
   const [justQueued, setJustQueued] = useState(false);
+  const [hasQueuedCurrentMedia, setHasQueuedCurrentMedia] = useState(false);
   const [showLightbox, setShowLightbox] = useState(false);
   const [lightboxTab, setLightboxTab] = useState<"video" | "image">("video");
   const [isVideoLoading, setIsVideoLoading] = useState(true);
@@ -426,13 +414,20 @@ export function MediaAnalyzer() {
         "media_loader_analyzer_selected_format_id"
       );
       const savedActiveTab = sessionStorage.getItem("media_loader_analyzer_active_tab");
+      const normalizedSavedUrl = normalizeInputUrl(savedUrl || "");
+      const savedAnalysisMatchesUrl =
+        Boolean(savedAnalyzedUrl) && normalizedSavedUrl === savedAnalyzedUrl;
 
       if (savedUrl) setUrl(savedUrl);
-      if (savedAnalyzedUrl) setAnalyzedUrl(savedAnalyzedUrl);
-      if (savedState) setState(savedState as AnalyzerState);
-      if (savedAnalysis) setAnalysis(JSON.parse(savedAnalysis));
-      if (savedSelectedFormatId) setSelectedFormatId(savedSelectedFormatId);
-      if (savedActiveTab) setActiveTab(savedActiveTab as FormatTab);
+      if (savedAnalysisMatchesUrl && savedAnalyzedUrl) {
+        setAnalyzedUrl(savedAnalyzedUrl);
+        if (savedState && savedState !== "analyzing") {
+          setState(savedState as AnalyzerState);
+        }
+        if (savedAnalysis) setAnalysis(JSON.parse(savedAnalysis));
+        if (savedSelectedFormatId) setSelectedFormatId(savedSelectedFormatId);
+        if (savedActiveTab) setActiveTab(savedActiveTab as FormatTab);
+      }
     } catch (e) {
       console.warn("Failed to load media analyzer session state", e);
     } finally {
@@ -520,11 +515,33 @@ export function MediaAnalyzer() {
   const handleSelectFormat = useCallback((formatId: string) => {
     setSelectedFormatId(formatId);
     setJustQueued(false);
+    setHasQueuedCurrentMedia(false);
     if (queuedTimerRef.current) {
       clearTimeout(queuedTimerRef.current);
       queuedTimerRef.current = null;
     }
   }, []);
+
+  const handleUrlChange = useCallback(
+    (value: string) => {
+      setUrl(value);
+      if (normalizeInputUrl(value) === analyzedUrl) return;
+      if (!analyzedUrl && !analysis && state === "idle") return;
+
+      abortControllerRef.current?.abort();
+      abortControllerRef.current = null;
+      setState("idle");
+      setAnalysis(null);
+      setAnalyzedUrl("");
+      setSelectedFormatId("");
+      setActiveTab("video");
+      setErrorMessage("");
+      setJustQueued(false);
+      setHasQueuedCurrentMedia(false);
+      setShowLightbox(false);
+    },
+    [analysis, analyzedUrl, state]
+  );
 
   const reset = useCallback(() => {
     // Cancel any pending analysis request
@@ -536,6 +553,7 @@ export function MediaAnalyzer() {
       queuedTimerRef.current = null;
     }
     setJustQueued(false);
+    setHasQueuedCurrentMedia(false);
 
     setUrl("");
     setState("idle");
@@ -575,6 +593,7 @@ export function MediaAnalyzer() {
       setState("analyzing");
       setAnalysis(null);
       setAnalyzedUrl(validation.url);
+      setHasQueuedCurrentMedia(false);
       setSelectedFormatId("");
       setErrorMessage("");
 
@@ -676,6 +695,12 @@ export function MediaAnalyzer() {
       if (job) {
         registerPendingDownload(job.job_id, filename, null);
         setJustQueued(true);
+        setHasQueuedCurrentMedia(true);
+        window.requestAnimationFrame(() => {
+          document
+            .getElementById("media-analyzer-url-input")
+            ?.scrollIntoView({ block: "center", behavior: "smooth" });
+        });
         if (queuedTimerRef.current) {
           clearTimeout(queuedTimerRef.current);
         }
@@ -757,13 +782,13 @@ export function MediaAnalyzer() {
     <div className="w-full">
       <MediaUrlInput
         value={url}
-        onChange={setUrl}
+        onChange={handleUrlChange}
         onClear={reset}
         onSubmit={() => void analyze()}
         analyzing={state === "analyzing"}
         onPaste={(text) => {
           const converted = tryConvertThaiLayout(text);
-          setUrl(converted);
+          handleUrlChange(converted);
           void analyze(converted);
         }}
       />
@@ -925,6 +950,17 @@ export function MediaAnalyzer() {
                 ))}
               </div>
             </div>
+            <p className="-mt-2 mb-3.5 text-[11px] text-text-dim">
+              {t(
+                activeTab === "video"
+                  ? "download.estimatedOutputSize"
+                  : "download.genericSizeEstimate",
+                {},
+                activeTab === "video"
+                  ? "ขนาดไฟล์ผลลัพธ์โดยประมาณ; วิดีโอ MP4 รวมเสียง AAC แล้ว"
+                  : "ขนาดไฟล์ผลลัพธ์เป็นค่าประมาณ อาจเปลี่ยนหลังแปลง"
+              )}
+            </p>
 
             {/* 100% Full-Width Format Grid (Balanced 4-col layout for 8 quality options) */}
             {visibleFormats.length === 0 ? (
@@ -938,6 +974,13 @@ export function MediaAnalyzer() {
                     key={`${format.type}-${format.format_id}`}
                     format={format}
                     durationSeconds={media.duration_seconds}
+                    outputFormat={
+                      activeTab === "video"
+                        ? "mp4"
+                        : activeTab === "audio"
+                          ? "mp3"
+                          : "gif"
+                    }
                     selected={selectedFormatId === format.format_id}
                     onSelect={() => handleSelectFormat(format.format_id)}
                     isBest={index === 0}
@@ -945,6 +988,46 @@ export function MediaAnalyzer() {
                   />
                 ))}
               </div>
+            )}
+
+            {!hasQueuedCurrentMedia && (
+              <section
+                aria-labelledby="download-processing-flow-title"
+                data-testid="download-processing-flow"
+                className="mt-4 rounded-xl border border-primary/20 bg-primary/5 p-3 sm:p-4"
+              >
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                  <h3
+                    id="download-processing-flow-title"
+                    className="text-xs font-semibold text-text sm:text-sm"
+                  >
+                    {t("download.processingFlowTitle")}
+                  </h3>
+                  <Link
+                    href="/how-it-works"
+                    className="text-[11px] font-semibold text-primary underline-offset-4 hover:underline sm:text-xs"
+                  >
+                    {t("download.processingFlowDetails")}
+                  </Link>
+                </div>
+                <ol className="grid gap-3 sm:grid-cols-3 sm:gap-2">
+                  {[1, 2, 3].map((step) => (
+                    <li key={step} className="flex min-w-0 gap-2.5">
+                      <span className="grid size-6 shrink-0 place-items-center rounded-lg border border-primary/20 bg-bg-surface font-mono text-[10px] font-bold text-primary">
+                        {String(step).padStart(2, "0")}
+                      </span>
+                      <div className="min-w-0">
+                        <p className="text-[11px] font-semibold leading-snug text-text">
+                          {t(`download.processingStep${step}Title`)}
+                        </p>
+                        <p className="mt-0.5 text-[10px] leading-relaxed text-text-muted">
+                          {t(`download.processingStep${step}Description`)}
+                        </p>
+                      </div>
+                    </li>
+                  ))}
+                </ol>
+              </section>
             )}
 
             {/* Download Action Footer */}

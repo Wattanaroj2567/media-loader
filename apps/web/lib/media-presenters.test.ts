@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  estimateOutputSizeBytes,
+  formatFileSize,
   formatCalendarDate,
   formatCalendarDateTime,
   formatCardTitle,
@@ -15,6 +17,41 @@ import {
   isActiveStatus,
   isTerminalStatus,
 } from "./media-presenters.ts";
+
+test("formatFileSize keeps two decimal places for file sizes", () => {
+  assert.equal(formatFileSize(1_447_035), "1.38 MB");
+  assert.equal(formatFileSize(2_936_013), "2.80 MB");
+  assert.equal(formatFileSize(512), "512 B");
+  assert.equal(formatFileSize(null), null);
+});
+
+test("MP4 output estimate includes AAC for a video-only source format", () => {
+  const video = {
+    format_id: "144p",
+    type: "video" as const,
+    extension: "mp4",
+    quality_label: "144p",
+    filesize: 1_900_000,
+    has_audio: false,
+  };
+
+  assert.equal(estimateOutputSizeBytes(video, 630, "mp4"), 27_100_000);
+});
+
+test("MP4 output estimate does not add AAC to muxed video or GIF output", () => {
+  const muxedVideo = {
+    format_id: "360p",
+    type: "video" as const,
+    extension: "mp4",
+    quality_label: "360p",
+    filesize: 5_400_000,
+    has_audio: true,
+  };
+  const videoOnly = { ...muxedVideo, has_audio: false };
+
+  assert.equal(estimateOutputSizeBytes(muxedVideo, 630, "mp4"), 5_400_000);
+  assert.equal(estimateOutputSizeBytes(videoOnly, 630, "gif"), 5_400_000);
+});
 
 test("media duration is shown as clip length without date or relative time", () => {
   assert.equal(formatMediaDuration(41), "0:41");

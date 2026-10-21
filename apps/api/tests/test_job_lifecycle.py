@@ -4,7 +4,13 @@ from types import SimpleNamespace
 import pytest
 
 from app.errors import AppError
-from app.job_service import cancel_job, delete_job, get_job, list_jobs
+from app.job_service import (
+    _normalize_job,
+    cancel_job,
+    delete_job,
+    get_job,
+    list_jobs,
+)
 
 
 class Result:
@@ -75,6 +81,13 @@ class InMemorySupabase:
 
     def table(self, table_name):
         return InMemoryQuery(self, table_name)
+
+
+def test_normalize_job_preserves_exact_file_size_bytes():
+    normalized = _normalize_job({"file_size": 1_447_035})
+
+    assert normalized["file_size_bytes"] == 1_447_035
+    assert normalized["file_size_mb"] == 1.38
 
 
 @pytest.fixture
@@ -163,7 +176,7 @@ def test_cancel_job_updates_only_a_cancellable_owned_job(monkeypatch, jobs):
 
     cancelled = cancel_job("job-u1-active", user_id="user-1")
     assert cancelled["status"] == "CANCELLED"
-    assert cancelled["original_url"] == "https://example.com/[redacted]"
+    assert cancelled["original_url"] == "https://example.com/watch/job-u1-active"
     assert get_job("job-u1-active", user_id="user-1")["status"] == "CANCELLED"
 
     with pytest.raises(AppError) as error:

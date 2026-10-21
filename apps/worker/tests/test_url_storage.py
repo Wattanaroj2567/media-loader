@@ -5,7 +5,6 @@ from worker.config import get_settings
 from worker.url_storage import (
     UrlStorageError,
     decrypt_url,
-    redact_stored_url,
     safe_url_reference,
 )
 
@@ -47,27 +46,6 @@ def test_decrypt_fails_closed_without_matching_key(monkeypatch):
     _use_key(monkeypatch, "")
     with pytest.raises(UrlStorageError, match="not configured"):
         decrypt_url(stored)
-
-
-def test_redact_stored_url_reduces_to_origin(monkeypatch):
-    fernet = _use_key(monkeypatch, Fernet.generate_key().decode())
-
-    assert (
-        redact_stored_url(_encrypted(fernet, "https://example.com/watch?v=1"))
-        == "https://example.com/[redacted]"
-    )
-    assert (
-        redact_stored_url("https://example.com:8443/legacy?token=x")
-        == "https://example.com:8443/[redacted]"
-    )
-
-
-def test_redact_keeps_ciphertext_when_it_cannot_be_decrypted(monkeypatch):
-    fernet = _use_key(monkeypatch, Fernet.generate_key().decode())
-    stored = _encrypted(fernet, "https://example.com/secret")
-    _use_key(monkeypatch, Fernet.generate_key().decode())
-
-    assert redact_stored_url(stored) == stored
 
 
 def test_safe_url_reference_rejects_non_http(monkeypatch):

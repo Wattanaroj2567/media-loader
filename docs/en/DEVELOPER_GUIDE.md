@@ -60,6 +60,11 @@ sequenceDiagram
     API->>User: Stream owner-scoped completed file
 ```
 
+When a queued file becomes ready, desktop browsers start its download automatically.
+The web app keeps an animated download hint visible until the user closes it; the
+browser controls the actual file transfer and does not expose its completion state
+to the page.
+
 ---
 
 ## 2. Developer Command Reference

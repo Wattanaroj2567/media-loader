@@ -51,6 +51,13 @@ class FakeQuery:
         self.operation = "delete"
         return self
 
+    def select(self, _columns):
+        self.operation = "select"
+        return self
+
+    def limit(self, _count):
+        return self
+
     def eq(self, field, value):
         self.filters.append((field, value))
         return self
@@ -150,6 +157,30 @@ def test_push_subscription_delete_is_scoped_to_the_authenticated_user(monkeypatc
         ("user_id", "user-123"),
         ("endpoint", "https://fcm.googleapis.com/push/subscription-token"),
     ]
+
+
+def test_push_subscription_status_reports_account_state(monkeypatch):
+    database = FakeSupabase()
+    database.query.payload = {"endpoint": "https://fcm.googleapis.com/push/token"}
+    database.query.execute = lambda: FakeResult([database.query.payload])
+    client = make_client(monkeypatch, database)
+
+    response = client.get("/notifications/subscriptions/status")
+
+    assert response.status_code == 200
+    assert response.json()["data"] == {"enabled": True}
+    assert database.query.filters == [("user_id", "user-123")]
+
+
+def test_push_subscription_delete_without_endpoint_removes_all_for_user(monkeypatch):
+    database = FakeSupabase()
+    client = make_client(monkeypatch, database)
+
+    response = client.request("DELETE", "/notifications/subscriptions", json={})
+
+    assert response.status_code == 200
+    assert response.json()["data"] == {"deleted": True}
+    assert database.query.filters == [("user_id", "user-123")]
 
 
 def test_public_key_endpoint_reports_unconfigured_push(monkeypatch):

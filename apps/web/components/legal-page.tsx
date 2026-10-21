@@ -11,10 +11,9 @@ import {
   ShieldCheck,
 } from "lucide-react";
 
-import { BrandMark } from "@/components/brand-mark";
-import { HeaderUtilityControls } from "@/components/header-utility-controls";
 import { SiteFooter } from "@/components/site-footer";
 import { useT } from "@/lib/i18n/context";
+import { CONTACT_EMAIL } from "@/lib/contact-mailto";
 
 type LocaleCopy = { th: string; en: string };
 type PolicyBullet = LocaleCopy & { label?: LocaleCopy };
@@ -32,6 +31,7 @@ type PolicySection = {
   bullets?: PolicyBullet[];
   contactEmail?: string;
   externalReference?: LocaleCopy;
+  internalReferences?: { href: string; label: LocaleCopy }[];
 };
 type PolicyKind = "privacy" | "terms";
 type PolicyContent = {
@@ -65,11 +65,20 @@ const policyContent: Record<PolicyKind, PolicyContent> = {
     sections: [
       {
         title: { th: "ผู้ดูแลและช่องทางติดต่อ", en: "Controller and contact" },
-        contactEmail: "tawan.wattanaroth@gmail.com",
+        contactEmail: CONTACT_EMAIL,
         paragraphs: [
           {
-            th: "ผู้ดูแล Media Loader คือคุณตะวัน หากมีคำถามหรือประสงค์ใช้สิทธิเกี่ยวกับข้อมูลส่วนบุคคล ติดต่อทางอีเมลได้ที่",
-            en: "Media Loader is operated by Mr. Tawan. For questions or personal data requests, contact him by email at",
+            th: "ผู้ดูแล Media Loader คือคุณตะวัน หากมีคำถามหรือประสงค์ใช้สิทธิเกี่ยวกับข้อมูลส่วนบุคคล ติดต่อทางอีเมลหรือแบบฟอร์มติดต่อได้",
+            en: "Media Loader is operated by Mr. Tawan. For questions or personal data requests, contact him by email or through the contact form.",
+          },
+        ],
+        internalReferences: [
+          {
+            href: "/contact?topic=privacy",
+            label: {
+              th: "เปิดแบบฟอร์มติดต่อเรื่องข้อมูลส่วนบุคคล",
+              en: "Open the contact form for personal data requests",
+            },
           },
         ],
       },
@@ -265,8 +274,8 @@ const policyContent: Record<PolicyKind, PolicyContent> = {
         },
         afterTableParagraphs: [
           {
-            th: "สำหรับงานที่สร้างด้วยระบบรุ่นปัจจุบัน ลิงก์เต็มจะถูกเข้ารหัสก่อนบันทึกในฐานข้อมูลและเก็บไว้เท่าที่จำเป็นต่อการทำงาน เมื่อสถานะงานเป็นเสร็จสิ้น ล้มเหลว ถูกบล็อก หรือยกเลิก ระบบจะเปลี่ยนเป็นข้อมูลอ้างอิงต้นทางที่ตัด path และ query ออก งานสถานะอื่นอาจยังเก็บลิงก์ที่เข้ารหัสไว้จนกว่าจะลบงาน ข้อมูลจากงานหรือบันทึกนโยบายรุ่นเก่าอาจยังต้องรอการย้ายหรือลบโดยผู้ดูแล และอาจมีลิงก์ที่ยังไม่ได้ตัดข้อมูลส่วนเกิน",
-            en: "For jobs created with the current system, the full source link is encrypted before being stored and kept only while needed for processing. When a job is completed, failed, blocked, or cancelled, the system replaces it with a redacted source reference that omits the path and query. Other job states may keep the encrypted link until the job is deleted. Older jobs or policy records may still require migration or cleanup by the operator and may contain links that have not yet been redacted.",
+            th: "ลิงก์ต้นทางของงานจะถูกเข้ารหัสก่อนบันทึกในฐานข้อมูล และเก็บไว้ตราบเท่าที่รายการงานยังอยู่ เพื่อให้คุณคัดลอกลิงก์หรือเริ่มวิเคราะห์ใหม่ได้ เมื่อคุณลบรายการงาน ระบบจะลบลิงก์ที่ผูกกับงานนั้นด้วย ส่วนบันทึกนโยบายเก็บเฉพาะข้อมูลอ้างอิงที่ตัด path และ query ออก งานเก่าที่สร้างก่อนการเปลี่ยนแปลงนี้อาจมีลิงก์ที่ถูกตัดออกแล้ว ซึ่งไม่สามารถกู้คืนจากประวัติได้",
+            en: "A job's source link is encrypted before it is stored in the database and retained while the job record exists so you can copy it or analyze it again. Deleting the job also removes its source link. Policy logs keep only a reference with the path and query removed. Older jobs created before this change may already have a redacted link that cannot be recovered from history.",
           },
         ],
       },
@@ -287,8 +296,8 @@ const policyContent: Record<PolicyKind, PolicyContent> = {
         title: { th: "การเปลี่ยนแปลงประกาศ", en: "Changes to this notice" },
         paragraphs: [
           {
-            th: "เราอาจปรับปรุงประกาศเมื่อการทำงานของบริการเปลี่ยนแปลง วันที่ปรับปรุงล่าสุด: 20 ตุลาคม 2569",
-            en: "We may update this notice when the service changes. Last updated: 20 October 2026.",
+            th: "เราอาจปรับปรุงประกาศเมื่อการทำงานของบริการเปลี่ยนแปลง",
+            en: "We may update this notice when the service changes.",
           },
         ],
       },
@@ -417,18 +426,34 @@ const policyContent: Record<PolicyKind, PolicyContent> = {
         title: { th: "การเปลี่ยนแปลงข้อกำหนด", en: "Changes to these terms" },
         paragraphs: [
           {
-            th: "เราอาจปรับปรุงข้อกำหนดเมื่อบริการหรือกฎหมายเปลี่ยนแปลง โดยจะแสดงวันที่ปรับปรุงล่าสุดไว้ในหน้านี้ วันที่ปรับปรุงล่าสุด: 20 ตุลาคม 2569",
-            en: "We may update these terms when the service or law changes. The latest update date will be shown on this page. Last updated: 20 October 2026.",
+            th: "เราอาจปรับปรุงข้อกำหนดเมื่อบริการหรือกฎหมายเปลี่ยนแปลง",
+            en: "We may update these terms when the service or law changes.",
           },
         ],
       },
       {
         title: { th: "ติดต่อผู้ดูแล", en: "Contact" },
-        contactEmail: "tawan.wattanaroth@gmail.com",
+        contactEmail: CONTACT_EMAIL,
         paragraphs: [
           {
-            th: "หากมีคำถามเกี่ยวกับข้อกำหนด ติดต่อคุณตะวันทางอีเมลได้ที่",
-            en: "For questions about these terms, email Mr. Tawan at",
+            th: "หากมีคำถามเกี่ยวกับข้อกำหนด สิทธิ์การใช้สื่อ หรือข้อมูลส่วนบุคคล ใช้แบบฟอร์มติดต่อเดียวกันและเลือกหัวข้อที่เกี่ยวข้อง",
+            en: "For questions about these terms, media rights, or personal data, use the same contact form and choose the relevant topic.",
+          },
+        ],
+        internalReferences: [
+          {
+            href: "/contact?topic=rights",
+            label: {
+              th: "แบบฟอร์มติดต่อเรื่องข้อกำหนดหรือสิทธิ์การใช้สื่อ",
+              en: "Contact form for terms or media rights",
+            },
+          },
+          {
+            href: "/contact?topic=privacy",
+            label: {
+              th: "แบบฟอร์มติดต่อเรื่องข้อมูลส่วนบุคคล",
+              en: "Contact form for personal data requests",
+            },
           },
         ],
       },
@@ -525,7 +550,7 @@ function PolicyTableView({
 }
 
 export function LegalPage({ kind }: { kind: PolicyKind }) {
-  const { locale, t } = useT();
+  const { locale } = useT();
   const [activeSectionIndex, setActiveSectionIndex] = useState(0);
   const isThai = locale === "th";
   const content = policyContent[kind];
@@ -601,24 +626,6 @@ export function LegalPage({ kind }: { kind: PolicyKind }) {
 
   return (
     <main className="relative flex min-h-dvh flex-col overflow-x-clip bg-bg-base text-text">
-      <div
-        aria-hidden="true"
-        className="pointer-events-none fixed inset-0 bg-[radial-gradient(ellipse_at_50%_0%,color-mix(in_oklab,var(--primary)_10%,transparent),transparent_55%)]"
-      />
-
-      <header className="relative z-20 mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-5 sm:px-6 lg:px-8">
-        <Link
-          href="/"
-          className="flex items-center gap-2.5 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-        >
-          <BrandMark size={36} className="size-9" />
-          <span className="font-heading text-sm font-semibold tracking-tight">
-            {t("app.name")}
-          </span>
-        </Link>
-        <HeaderUtilityControls />
-      </header>
-
       <article className="relative z-10 mx-auto w-full max-w-6xl flex-1 px-4 pb-12 pt-2 sm:px-6 sm:pt-8 lg:px-8">
         <Link
           href="/"
@@ -664,6 +671,15 @@ export function LegalPage({ kind }: { kind: PolicyKind }) {
                 <h1 className="font-heading text-balance text-2xl font-bold tracking-tight sm:text-3xl">
                   {content.title[isThai ? "th" : "en"]}
                 </h1>
+                <p
+                  lang={contentLanguage}
+                  data-testid="legal-last-updated"
+                  className="mt-1 text-xs font-medium text-text-dim sm:text-sm"
+                >
+                  {isThai
+                    ? "ปรับปรุงล่าสุด: 20 ตุลาคม 2569"
+                    : "Last updated: 20 October 2026"}
+                </p>
                 <p
                   lang={contentLanguage}
                   className="mt-3 max-w-2xl text-pretty text-sm leading-7 text-text-muted sm:text-base"
@@ -776,17 +792,21 @@ export function LegalPage({ kind }: { kind: PolicyKind }) {
                         <ArrowUpRight aria-hidden="true" className="size-3.5" />
                       </a>
                     )}
+                    {section.internalReferences?.map((reference) => (
+                      <Link
+                        key={reference.href}
+                        href={reference.href}
+                        className="mt-3 mr-4 inline-flex text-xs font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                      >
+                        {reference.label[isThai ? "th" : "en"]}
+                      </Link>
+                    ))}
                   </div>
                 </section>
               ))}
             </div>
 
-            <div className="mt-9 flex flex-wrap items-center justify-between gap-3 border-t border-border/60 pt-5 text-xs text-text-dim dark:border-white/10">
-              <span>
-                {isThai
-                  ? "ปรับปรุงล่าสุด 20 ตุลาคม 2569"
-                  : "Last updated 20 October 2026"}
-              </span>
+            <div className="mt-9 flex flex-wrap items-center justify-end gap-3 border-t border-border/60 pt-5 text-xs text-text-dim dark:border-white/10">
               <Link
                 href={otherKind === "privacy" ? "/privacy" : "/terms"}
                 className="inline-flex items-center gap-1 font-medium text-primary hover:underline"

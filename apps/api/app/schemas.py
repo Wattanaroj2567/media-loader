@@ -57,7 +57,7 @@ class MediaMetadata(BaseModel):
     )
     is_animated_gif: bool = Field(
         default=False,
-        description="True only when source metadata identifies animated GIF media",
+        description="True when source metadata or the submitted .gif URL identifies animated GIF media",
     )
 
 

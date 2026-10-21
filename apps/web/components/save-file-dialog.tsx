@@ -6,6 +6,7 @@ import { Download, RotateCw, Share2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LoadingIndicator } from "@/components/loading-indicator";
 import { useT } from "@/lib/i18n/context";
+import { formatFileSize } from "@/lib/media-presenters.ts";
 
 type ShareTransferPhase = "idle" | "downloading" | "paused" | "ready";
 
@@ -28,10 +29,6 @@ interface SaveFileDialogProps {
   onShare: () => void;
   onDownload: () => void;
   onDismiss: () => void;
-}
-
-function formatMegabytes(bytes: number) {
-  return (bytes / (1000 * 1000)).toFixed(1);
 }
 
 /**
@@ -210,8 +207,8 @@ export function SaveFileDialog({
               <p>{transferHint}</p>
               <p className="shrink-0 tabular-nums">
                 {total
-                  ? `${formatMegabytes(received)} / ${formatMegabytes(total)} MB`
-                  : `${formatMegabytes(received)} MB`}
+                  ? `${formatFileSize(received)} / ${formatFileSize(total)}`
+                  : formatFileSize(received)}
               </p>
             </div>
           </div>

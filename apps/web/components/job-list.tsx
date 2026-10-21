@@ -29,11 +29,18 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { LoadingIndicator } from "@/components/loading-indicator";
 import { BorderBeam } from "@/components/ui/border-beam";
 import { useToast } from "@/components/toast";
-import { apiClient, canShareFiles, isIosDevice, type Job } from "@/lib/api-client";
+import {
+  apiClient,
+  canShareFiles,
+  isIosDevice,
+  isMobileDevice,
+  type Job,
+} from "@/lib/api-client";
 import { FileShareFlow, type FileShareRequest } from "@/components/file-share-flow";
 import {
   formatCalendarDate,
   formatCalendarDateTime,
+  formatFileSize,
   formatMediaDuration,
   isActiveStatus,
 } from "@/lib/media-presenters.ts";
@@ -88,12 +95,15 @@ function outputLabel(job: Job) {
     job.selected_quality || job.selected_format,
   ];
   // Completed size first, live source estimate while still processing.
+  const exactSize = formatFileSize(job.file_size_bytes);
   const sizeMb = job.file_size_mb ?? job.total_size_mb;
-  if (sizeMb) {
-    if (sizeMb >= 1000) {
-      parts.push(`${(sizeMb / 1000).toFixed(2)} GB`);
+  if (exactSize) {
+    parts.push(exactSize);
+  } else if (sizeMb) {
+    if (sizeMb >= 1024) {
+      parts.push(`${(sizeMb / 1024).toFixed(2)} GB`);
     } else {
-      parts.push(`${sizeMb.toFixed(1)} MB`);
+      parts.push(`${sizeMb.toFixed(2)} MB`);
     }
   }
   return parts.filter(Boolean).join(" · ");
@@ -198,6 +208,19 @@ function getJobETA(job: Job): string {
   return formatETA(etaSeconds);
 }
 
+function hasReusableOriginalUrl(value: string): boolean {
+  if (!value || /\[(?:URL )?redacted\]/i.test(value)) return false;
+
+  try {
+    const parsed = new URL(value);
+    return (
+      (parsed.protocol === "http:" || parsed.protocol === "https:") && !!parsed.hostname
+    );
+  } catch {
+    return false;
+  }
+}
+
 /* ─── Job row card ───────────────────────────────────────────────────── */
 function JobCard({
   job,
@@ -248,8 +271,12 @@ function JobCard({
   const canPause =
     mode === "queue" && (job.status === "DOWNLOADING" || job.status === "CONVERTING");
   const canResume = mode === "queue" && job.status === "PAUSED";
+  const originalUrlAvailable = hasReusableOriginalUrl(job.original_url);
   const canAnalyzeOriginalLink =
-    mode === "history" && job.status === "COMPLETED" && !selectionMode;
+    mode === "history" &&
+    job.status === "COMPLETED" &&
+    originalUrlAvailable &&
+    !selectionMode;
   const canShareFile =
     mode === "history" &&
     job.status === "COMPLETED" &&
@@ -411,6 +438,18 @@ function JobCard({
               <ProgressBar value={job.progress} status={job.status} />
             </div>
           )}
+          {mode === "queue" &&
+            ["QUEUED", "DOWNLOADING", "CONVERTING"].includes(job.status) && (
+              <p className="mt-1.5 text-[10px] leading-relaxed text-text-muted sm:text-[11px]">
+                {t(
+                  job.status === "DOWNLOADING"
+                    ? "queue.sourceTransferHint"
+                    : job.status === "CONVERTING"
+                      ? "queue.outputProcessingHint"
+                      : "queue.waitingForWorkerHint"
+                )}
+              </p>
+            )}
         </div>
       </div>
 
@@ -609,6 +648,11 @@ function HistoryHeader({
               { id: "tiktok", label: "TikTok" },
               { id: "facebook", label: "Facebook" },
               { id: "instagram", label: "Instagram" },
+              { id: "x", label: "X" },
+              { id: "bilibili", label: "Bilibili" },
+              { id: "vk video", label: "VK Video" },
+              { id: "giphy", label: "Giphy" },
+              { id: "tenor", label: "Tenor" },
             ].map((f) => (
               <button
                 key={f.id}
@@ -737,6 +781,11 @@ function EmptyState({
     tiktok: "TikTok",
     facebook: "Facebook",
     instagram: "Instagram",
+    x: "X",
+    bilibili: "Bilibili",
+    "vk video": "VK Video",
+    giphy: "Giphy",
+    tenor: "Tenor",
   };
   const platformLabel = platformNames[platformFilter.toLowerCase()] || platformFilter;
 
@@ -809,13 +858,14 @@ function EmptyState({
 /* ─── Offline notice ─────────────────────────────────────────────────── */
 function OfflineBanner({
   message,
-  onRetry,
+  mode,
+  retrying,
 }: {
   message: string;
-  onRetry: () => Promise<void> | void;
+  mode: JobListMode;
+  retrying: boolean;
 }) {
   const { t } = useT();
-  const [retrying, setRetrying] = useState(false);
 
   // Log detailed error to console for developers, keeping the UI user-friendly
   useEffect(() => {
@@ -824,47 +874,43 @@ function OfflineBanner({
     }
   }, [message]);
 
-  const handleRetry = async () => {
-    setRetrying(true);
-    try {
-      await onRetry();
-    } catch (e) {
-      console.warn("[Retry Action Error]:", e);
-    } finally {
-      // Small artificial delay to let the user see the visual feedback
-      await new Promise((resolve) => setTimeout(resolve, 600));
-      setRetrying(false);
-    }
-  };
+  const title =
+    mode === "history"
+      ? t("history.loadError", {}, "โหลดประวัติไม่สำเร็จ")
+      : t("downloads.loadError", {}, "โหลดคิวงานไม่สำเร็จ");
+  const description =
+    mode === "history"
+      ? t(
+          "history.loadErrorDesc",
+          {},
+          "ขณะนี้เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ ประวัติของคุณไม่ได้ถูกลบ ระบบจะลองเชื่อมต่อใหม่อัตโนมัติ"
+        )
+      : t(
+          "downloads.loadErrorDesc",
+          {},
+          "ขณะนี้เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ งานที่ส่งไปแล้วยังอยู่ ระบบจะลองเชื่อมต่อใหม่อัตโนมัติ"
+        );
 
   return (
-    <div className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-rose-200 bg-rose-50/50 dark:border-rose-500/15 dark:bg-rose-500/6 px-4 py-2.5 shadow-xs">
-      <div className="flex items-center gap-3">
+    <div className="mb-4 flex flex-col gap-3 rounded-xl border border-rose-200 bg-rose-50/50 px-4 py-3 shadow-xs dark:border-rose-500/15 dark:bg-rose-500/6 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex min-w-0 items-start gap-3">
         <AlertCircle className="size-4 shrink-0 text-rose-600 dark:text-rose-400" />
-        <div>
+        <div className="min-w-0">
           <p className="text-xs font-semibold text-rose-800 dark:text-rose-300">
-            {t("common.connectionError", {}, "Could not connect. Please try again.")}
+            {title}
+          </p>
+          <p className="mt-1 text-xs leading-5 text-rose-800/80 dark:text-rose-200/80">
+            {description}
           </p>
         </div>
       </div>
-      <button
-        type="button"
-        onClick={handleRetry}
-        disabled={retrying}
-        className="flex shrink-0 items-center gap-1.5 rounded-lg bg-rose-100 dark:bg-rose-500/10 px-3 py-1.5 text-xs font-semibold text-rose-800 dark:text-rose-300 transition-colors hover:bg-rose-200 dark:hover:bg-rose-500/20 disabled:opacity-60 cursor-pointer disabled:cursor-not-allowed"
-      >
-        {retrying ? (
-          <LoadingIndicator
-            label={t("common.loading", {}, "กำลังโหลด...")}
-            iconClassName="size-3"
-          />
-        ) : (
-          <>
-            <RefreshCw className="size-3" />
-            {t("common.retry", {}, "ลองใหม่")}
-          </>
-        )}
-      </button>
+      {retrying && (
+        <LoadingIndicator
+          label={t("common.retrying", {}, "กำลังลองเชื่อมต่อใหม่...")}
+          iconClassName="size-3"
+          className="shrink-0 text-xs text-rose-700 dark:text-rose-300"
+        />
+      )}
     </div>
   );
 }
@@ -1010,6 +1056,7 @@ export function JobList({ mode, compact = false, onQueueClosed }: JobListProps) 
   const {
     jobs,
     loading,
+    retrying,
     error: loadError,
     refreshJobs: fetchJobs,
     updateJob,
@@ -1269,7 +1316,7 @@ export function JobList({ mode, compact = false, onQueueClosed }: JobListProps) 
   const shareFile = useCallback(
     async (job: Job) => {
       const filename = job.output_filename || job.title || "media";
-      if (canShareFiles()) {
+      if ((isMobileDevice() || isIosDevice()) && canShareFiles()) {
         // Buffer the file with progress in the save dialog, then share it.
         setShareRequest({
           jobId: job.id,
@@ -1284,11 +1331,23 @@ export function JobList({ mode, compact = false, onQueueClosed }: JobListProps) 
       setBusyState({ id: job.id, action: "share" });
       try {
         await apiClient.downloadJobFile(job.id, filename, null);
-        toast(
-          "success",
-          t("queue.completedToastTitle", {}, "ดาวน์โหลดสำเร็จแล้ว"),
-          filename
-        );
+        if (!isMobileDevice() && !isIosDevice()) {
+          toast(
+            "download",
+            t("file.downloadStarted", {}, "เริ่มดาวน์โหลดแล้ว"),
+            t(
+              "file.downloadStartedDesc",
+              {},
+              "ตรวจดูสถานะการดาวน์โหลดได้ที่มุมขวาบนของเบราว์เซอร์"
+            )
+          );
+        } else {
+          toast(
+            "success",
+            t("queue.completedToastTitle", {}, "ดาวน์โหลดสำเร็จแล้ว"),
+            filename
+          );
+        }
       } catch (e) {
         console.warn("[Share File Error]:", e);
         toast(
@@ -1504,7 +1563,7 @@ export function JobList({ mode, compact = false, onQueueClosed }: JobListProps) 
 
       {/* Offline notice */}
       {loadError && !loading && (
-        <OfflineBanner message={loadError} onRetry={fetchJobs} />
+        <OfflineBanner message={loadError} mode={mode} retrying={retrying} />
       )}
 
       {/* List */}

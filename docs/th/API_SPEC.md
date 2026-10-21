@@ -20,8 +20,10 @@ API หลักคือบริการ FastAPI โดยปกติเป�
 environment ลงใน log
 
 URL ต้นทางของงานจะถูกเข้ารหัสในฐานข้อมูลและถอดรหัสส่งกลับให้เจ้าของงานที่มีสิทธิ์
-ส่วน policy log เก็บเฉพาะ source origin ที่ปกปิดแล้ว API access log ตัด query
-values ออก การวิเคราะห์และดาวน์โหลดส่งผ่าน public-IP egress proxy ตามที่ระบุใน
+โดยเก็บไว้ตราบเท่าที่รายการงานยังอยู่เพื่อให้เจ้าของคัดลอกหรือวิเคราะห์ลิงก์ซ้ำได้
+การลบงานจะลบ URL ที่เก็บไว้ด้วย ส่วน policy log เก็บเฉพาะ source origin ที่ปกปิดแล้ว
+API access log ตัด query values ออก การวิเคราะห์และดาวน์โหลดส่งผ่าน public-IP
+egress proxy ตามที่ระบุใน
 [Security and Policy](SECURITY_AND_POLICY.md)
 
 ## Route ยืนยันตัวตนของเว็บ
@@ -124,6 +126,7 @@ FastAPI endpoint ที่ตอบกลับเป็น JSON ใช้โค
 | `DELETE /account` | ต้องใช้ Bearer token |
 | `GET /notifications/vapid-public-key` | ต้องใช้ Bearer token |
 | `POST /notifications/subscriptions` | ต้องใช้ Bearer token |
+| `GET /notifications/subscriptions/status` | ต้องใช้ Bearer token |
 | `DELETE /notifications/subscriptions` | ต้องใช้ Bearer token |
 
 ### GET `/health`
@@ -213,15 +216,25 @@ metadata ของแหล่งต้นทาง หากไม่มีข�
 Instagram สาธารณะ ตัววิเคราะห์อาจอ่าน `video_view_count` จริงจากหน้า embed
 แบบไม่ล็อกอินเมื่อ extractor หลักไม่ส่งค่า โดยไม่ใช้ cookies ของบัญชี
 
-`is_animated_gif` จะเป็น `true` เฉพาะเมื่อ metadata ระบุว่าเป็นสื่อ animated GIF
-รวมถึงโพสต์ X ที่เสิร์ฟไฟล์ MP4 จาก path สาธารณะ `/tweet_video/` และลิงก์ GIF
-ตรงจาก Giphy ที่ redirect ไปยังไฟล์ preview MP4 แบบไม่มีเสียง
+`is_animated_gif` จะเป็น `true` เมื่อ metadata หรือ URL ที่ผู้ใช้ส่งมาระบุว่าเป็นสื่อ
+animated GIF ครอบคลุมโพสต์ X ที่เสิร์ฟไฟล์ MP4 จาก path สาธารณะ `/tweet_video/`
+ลิงก์ GIF ตรงจาก Giphy ที่ redirect ไปยังไฟล์ preview MP4 แบบไม่มีเสียง และลิงก์
+Tenor `.gif` ที่ redirect ไปยังหน้า `/view/` โดย platform และ source domain ยังคง
+อ้างอิง host ที่ผู้ใช้ส่งมา ลิงก์ animated GIF ตรงจาก CDN ของ Facebook เช่น
+`cdn.fbsbx.com` จะระบุเป็นสื่อ Facebook และดาวน์โหลดผ่าน yt-dlp กับ egress proxy
+ตามเส้นทางปกติ
 
 ใน `formats[]` ค่า `height` และ `quality_label` เป็นระดับคุณภาพ (quality tier)
 ตามป้ายของ YouTube ส่วน `resolution` คือขนาดเฟรมจริงของไฟล์ สำหรับเฟรมที่กว้างกว่า
 16:9 ระดับคุณภาพจะคำนวณจากความสูงเทียบเท่า 16:9 ของความกว้าง เช่น วิดีโอ
 1920x960 จะได้ `height` เป็น `1080` และ `quality_label` เป็น `1080p` แต่
 `resolution` ยังเป็น `1920x960` ส่วน `raw_height` คือความสูงเฟรมจริง (`960` ในตัวอย่างนี้)
+
+หาก extractor ส่งวิดีโอหลาย format ที่มีระดับคุณภาพชัดเจน API จะคืนเพียง
+หนึ่งตัวเลือกต่อระดับ ส่วน format ที่ไม่มีความสูงจะคงไว้แยกกันเพราะเปรียบเทียบระดับไม่ได้
+เมื่อระดับเดียวกันซ้ำกัน ระบบเลือก format ที่มีข้อมูล FPS ก่อน และเลือก FPS สูงสุดเมื่อมีหลายค่า
+หากไม่มี format ใดรายงาน FPS ระบบจะเลือกตัวที่เหมาะที่สุดตาม container, codec,
+แทร็กเสียง และ bitrate ส่วน format ที่มีแต่วิดีโอ Worker ยังสามารถประกอบกับแทร็กเสียงแยกได้
 
 หากนโยบายบล็อก URL ระบบจะตอบผลการตัดสินโดยไม่มีรายการ format
 ผู้ใช้ต้องยืนยันสิทธิ์ก่อนส่ง `POST /downloads`
@@ -262,6 +275,8 @@ Query parameters:
 
 Frontend ใช้ Endpoint นี้ดูคิวงานและประวัติที่สิ้นสุดแล้ว
 ผู้เยี่ยมชมดูงานรายรายการผ่าน `GET /downloads/{job_id}`
+ข้อมูลรายการงานมี `file_size_bytes` ซึ่งเป็นขนาดไฟล์ผลลัพธ์จริง ส่วน
+`file_size_mb` เป็นค่า MB ที่ปัดเศษไว้เพื่อความสะดวก
 
 ### GET `/downloads/{job_id}`
 
@@ -359,7 +374,12 @@ endpoint และ subscription keys เป็นข้อมูลส่วน�
 }
 ```
 
-`DELETE /notifications/subscriptions` รับ endpoint ใน request body และลบเฉพาะ
-แถวของบัญชีที่ยืนยันตัวตนแล้ว Worker ส่งการแจ้งเตือนเมื่องานเปลี่ยนเป็น
-`COMPLETED`, `FAILED` หรือ `BLOCKED` และลบ endpoint ที่หมดอายุเมื่อได้รับ
-response `404` หรือ `410`
+`GET /notifications/subscriptions/status` แจ้งว่าบัญชีที่ยืนยันตัวตนแล้วมี
+push endpoint ลงทะเบียนอยู่จาก origin ใดหรือไม่
+
+`DELETE /notifications/subscriptions` รับ endpoint ใน request body แบบไม่บังคับ
+ถ้าระบุ จะลบเฉพาะ endpoint ของบัญชีที่ยืนยันตัวตนแล้ว ถ้าไม่ระบุ จะลบทุก
+endpoint ของบัญชีนั้น เพื่อให้ปิดแจ้งเตือนจาก origin หนึ่งแล้วหยุด push ที่ลงทะเบียน
+จาก origin อื่นด้วย Worker ส่งการแจ้งเตือนเมื่องานเปลี่ยนเป็น `COMPLETED`,
+`FAILED` หรือ `BLOCKED` และลบ endpoint ที่หมดอายุเมื่อได้รับ response `404` หรือ
+`410`

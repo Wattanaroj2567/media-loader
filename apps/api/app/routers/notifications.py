@@ -38,7 +38,7 @@ class PushSubscriptionRequest(BaseModel):
 
 
 class DeletePushSubscriptionRequest(BaseModel):
-    endpoint: str = Field(min_length=20, max_length=4096)
+    endpoint: str | None = Field(default=None, min_length=20, max_length=4096)
 
 
 def _validate_push_endpoint(endpoint: str) -> str:
@@ -155,17 +155,49 @@ async def save_push_subscription(
     return success_response(data={"subscribed": True})
 
 
+@router.get("/subscriptions/status")
+async def get_push_subscription_status(
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    """Report whether the authenticated account has any active push endpoint."""
+    try:
+        result = (
+            _push_database()
+            .table("push_subscriptions")
+            .select("endpoint")
+            .eq("user_id", current_user.id)
+            .limit(1)
+            .execute()
+        )
+    except AppError:
+        raise
+    except Exception as error:
+        raise AppError(
+            500,
+            "PUSH_SUBSCRIPTION_STATUS_FAILED",
+            "อ่านการตั้งค่าแจ้งเตือนไม่สำเร็จ",
+        ) from error
+
+    return success_response(data={"enabled": bool(result.data)})
+
+
 @router.delete("/subscriptions")
 async def delete_push_subscription(
     request: DeletePushSubscriptionRequest,
     current_user: CurrentUser = Depends(get_current_user),
 ):
-    """Remove one endpoint, scoped to the authenticated account."""
-    endpoint = _validate_push_endpoint(request.endpoint)
+    """Remove one endpoint or all endpoints owned by the authenticated account."""
     try:
-        _push_database().table("push_subscriptions").delete().eq(
-            "user_id", current_user.id
-        ).eq("endpoint", endpoint).execute()
+        query = (
+            _push_database()
+            .table("push_subscriptions")
+            .delete()
+            .eq("user_id", current_user.id)
+        )
+        if request.endpoint is not None:
+            endpoint = _validate_push_endpoint(request.endpoint)
+            query = query.eq("endpoint", endpoint)
+        query.execute()
     except AppError:
         raise
     except Exception as error:

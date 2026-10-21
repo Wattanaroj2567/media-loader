@@ -14,6 +14,16 @@ test.describe("Landing Page & Brand UI", () => {
 
     await expect(page.locator("html")).toHaveAttribute("lang", "en");
     await expect(
+      page.getByRole("heading", {
+        name: "Download video and audio from supported public links",
+      })
+    ).toBeVisible();
+    await expect(
+      page.getByText(
+        "Choose MP4 video quality or extract MP3 audio when a clip has audio. GIF is supported only when the system detects GIF media."
+      )
+    ).toBeVisible();
+    await expect(
       page.getByText("Your queue and history, in your account")
     ).toBeVisible();
     await context.close();
@@ -36,8 +46,100 @@ test.describe("Landing Page & Brand UI", () => {
     await page.goto(baseURL);
 
     await expect(page.locator("html")).toHaveAttribute("lang", "th");
+    await expect(
+      page.getByRole("heading", {
+        name: "ดาวน์โหลดวิดีโอและเสียงจากลิงก์สาธารณะที่รองรับ",
+      })
+    ).toBeVisible();
+    await expect(
+      page.getByText(
+        "เลือกคุณภาพวิดีโอ MP4 หรือแยกเสียง MP3 ได้เมื่อคลิปมีเสียง ส่วน GIF รองรับเฉพาะสื่อ GIF ที่ระบบตรวจพบ"
+      )
+    ).toBeVisible();
     await expect(page.getByText("คิวงานและประวัติในบัญชีของคุณ")).toBeVisible();
     await context.close();
+  });
+
+  test("should show simple format summaries and hide technical conversion details", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto("/");
+
+    const section = page.getByTestId("conversion-codec-details");
+    await expect(
+      section.getByText(
+        "สร้าง MP4 ที่เปิดได้กับอุปกรณ์ทั่วไป และคงข้อมูลภาพเดิมไว้เมื่อทำได้"
+      )
+    ).toBeVisible();
+    await expect(
+      section.getByText(
+        "แยกเสียงเป็น MP3 โดยเน้นคุณภาพเสียงสูง ขนาดไฟล์ขึ้นอยู่กับเสียงต้นฉบับ"
+      )
+    ).toBeVisible();
+    await expect(
+      section.getByText("สร้าง GIF สูงสุด 15 ภาพต่อวินาที และกว้างไม่เกิน 960 พิกเซล")
+    ).toBeVisible();
+
+    const cards = section.locator("article");
+    const collapsedCardHeights = await cards.evaluateAll((cards) =>
+      cards.map((card) => card.getBoundingClientRect().height)
+    );
+    expect(
+      Math.max(...collapsedCardHeights) - Math.min(...collapsedCardHeights)
+    ).toBeLessThanOrEqual(1);
+    const detailsTops = await cards.evaluateAll((cards) =>
+      cards.map((card) => card.querySelector("details")!.getBoundingClientRect().top)
+    );
+    expect(Math.max(...detailsTops) - Math.min(...detailsTops)).toBeLessThanOrEqual(1);
+    const detailsMargins = await cards.evaluateAll((cards) =>
+      cards.map((card) => getComputedStyle(card.querySelector("details")!).marginTop)
+    );
+    expect(detailsMargins).toEqual(["12px", "12px", "12px"]);
+
+    const mp4Details = section.locator("details").first();
+    const mp4Summary = mp4Details.locator("summary");
+    const summaryDocumentTop = () =>
+      mp4Summary.evaluate(
+        (summary) => summary.getBoundingClientRect().top + window.scrollY
+      );
+    const summaryTopBeforeToggle = await summaryDocumentTop();
+    await expect(mp4Details.locator("code")).toBeHidden();
+    await mp4Summary.click();
+    await expect(mp4Details.locator("code")).toHaveText(
+      "H.264 (libx264) + AAC · 320 kb/s"
+    );
+    expect(
+      Math.abs((await summaryDocumentTop()) - summaryTopBeforeToggle)
+    ).toBeLessThanOrEqual(1);
+    const expandedCardHeights = await cards.evaluateAll((cards) =>
+      cards.map((card) => card.getBoundingClientRect().height)
+    );
+    expect(expandedCardHeights[0]).toBeGreaterThan(collapsedCardHeights[0]);
+    expect(expandedCardHeights[1]).toBeLessThanOrEqual(collapsedCardHeights[1] + 1);
+    expect(expandedCardHeights[2]).toBeLessThanOrEqual(collapsedCardHeights[2] + 1);
+    await mp4Summary.click();
+    await expect(mp4Details.locator("code")).toBeHidden();
+    expect(
+      Math.abs((await summaryDocumentTop()) - summaryTopBeforeToggle)
+    ).toBeLessThanOrEqual(1);
+  });
+
+  test("should provide only the back-to-top button", async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.goto("/");
+
+    const backToTop = page.getByRole("button", { name: "กลับขึ้นด้านบน" });
+    await expect(backToTop).toBeHidden();
+    await expect(
+      page.getByRole("button", { name: "ไปยังส่วน", exact: true })
+    ).toHaveCount(0);
+
+    await page.getByTestId("conversion-codec-details").scrollIntoViewIfNeeded();
+    await expect(backToTop).toBeVisible();
+    await backToTop.click();
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeLessThan(1);
+    await expect(backToTop).toBeHidden();
   });
 
   test("should open the shared auth modal from the header without a link", async ({
@@ -334,6 +436,7 @@ test.describe("Landing Page & Brand UI", () => {
     await expect(badges.getByText("Instagram", { exact: true })).toBeVisible();
     await expect(badges.getByText("Facebook", { exact: true })).toBeVisible();
     await expect(badges.getByText("Giphy", { exact: true })).toBeVisible();
+    await expect(badges.getByText("Tenor", { exact: true })).toBeVisible();
     await expect(badges.getByText("GIF", { exact: true })).toBeVisible();
 
     await expect(page.getByTestId("platform-badge-list")).toHaveCSS(
@@ -365,7 +468,7 @@ test.describe("Landing Page & Brand UI", () => {
   test("should show platform names without redundant colored tags on mobile and desktop", async ({
     page,
   }) => {
-    const platformIds = [
+    const videoPlatformIds = [
       "youtube",
       "tiktok",
       "instagram",
@@ -373,8 +476,8 @@ test.describe("Landing Page & Brand UI", () => {
       "x",
       "bilibili",
       "vk",
-      "giphy",
     ];
+    const gifPlatformIds = ["giphy", "tenor"];
 
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/");
@@ -385,9 +488,14 @@ test.describe("Landing Page & Brand UI", () => {
       mobilePlatformCard.getByRole("heading", { name: "YouTube" })
     ).toBeVisible();
 
-    for (const platformId of platformIds) {
+    for (const platformId of videoPlatformIds) {
       await expect(
         page.getByTestId(`platform-card-${platformId}`).locator("span.rounded-full")
+      ).toHaveCount(0);
+    }
+    for (const platformId of gifPlatformIds) {
+      await expect(
+        page.getByTestId(`gif-platform-card-${platformId}`).locator("span.rounded-full")
       ).toHaveCount(0);
     }
 
@@ -396,7 +504,7 @@ test.describe("Landing Page & Brand UI", () => {
     await expect(comparisonTable).toBeVisible();
     await expect(comparisonTable.getByRole("row").nth(1)).toContainText("YouTube");
 
-    for (let rowIndex = 1; rowIndex <= platformIds.length; rowIndex += 1) {
+    for (let rowIndex = 1; rowIndex <= videoPlatformIds.length; rowIndex += 1) {
       await expect(
         comparisonTable
           .getByRole("row")
@@ -406,17 +514,47 @@ test.describe("Landing Page & Brand UI", () => {
           .locator("span.rounded-full")
       ).toHaveCount(0);
     }
+
+    const gifTable = page.getByTestId("gif-platform-table");
+    await expect(gifTable.getByRole("row")).toHaveCount(gifPlatformIds.length + 1);
+    await expect(gifTable.getByRole("row").nth(1)).toContainText("Giphy");
+    await expect(gifTable.getByRole("row").nth(2)).toContainText("Tenor");
   });
 
-  test("should render 4-step workflow indicator card", async ({ page }) => {
+  test("should render the full six-step workflow", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
     await page.goto("/");
 
-    // Assert the 4 step indicators exist ("01", "02", "03", "04")
-    const stepOne = page.getByText("01").first();
-    await expect(stepOne).toBeVisible();
+    const workflowTable = page.getByTestId("workflow-table");
+    const workflowRows = workflowTable.locator("tbody tr");
+    await expect(workflowRows).toHaveCount(6);
+    await expect(workflowTable.locator("thead th").first()).toHaveCSS(
+      "text-align",
+      "center"
+    );
+    await expect(workflowRows.first().locator("td").first()).toHaveText("1");
+    await expect(workflowRows.first().locator("td").first()).toHaveCSS(
+      "text-align",
+      "center"
+    );
+    await expect(workflowRows.nth(1).locator("td").first()).toHaveText("2");
+    await expect(workflowRows.nth(3)).toContainText(/เซิร์ฟเวอร์|server/i);
+    await expect(workflowRows.nth(5)).toContainText(/เบราว์เซอร์|browser/i);
+    await expect(
+      page.getByText(/ไม่ได้ถูกดาวน์โหลดลงเครื่องซ้ำ|does not download the file twice/i)
+    ).toBeVisible();
 
-    const stepFour = page.getByText("04").first();
-    await expect(stepFour).toBeVisible();
+    await page.setViewportSize({ width: 390, height: 844 });
+    const mobileSteps = page.getByTestId("workflow-mobile-steps");
+    const firstMobileNumber = mobileSteps
+      .locator(":scope > div")
+      .first()
+      .locator("span");
+    await expect(firstMobileNumber).toHaveText("1");
+    await expect(firstMobileNumber).toHaveCSS("text-align", "center");
+    await expect(mobileSteps.locator(":scope > div").nth(5).locator("span")).toHaveText(
+      "6"
+    );
   });
 
   test("should render clear row and column dividers in desktop tables", async ({
@@ -425,7 +563,7 @@ test.describe("Landing Page & Brand UI", () => {
     await page.setViewportSize({ width: 1280, height: 800 });
     await page.goto("/");
 
-    for (const testId of ["workflow-table", "platform-table"]) {
+    for (const testId of ["workflow-table", "platform-table", "gif-platform-table"]) {
       const table = page.getByTestId(testId);
       await expect(table).toBeVisible();
 
@@ -468,12 +606,41 @@ test.describe("Landing Page & Brand UI", () => {
     const platformTable = page.getByTestId("platform-table");
     await expect(platformTable).toBeVisible();
     await expect(
+      platformTable.getByRole("columnheader", { name: /cover|ภาพปก/i })
+    ).toHaveCount(0);
+    await expect(
+      platformTable.getByRole("columnheader", { name: /preview|ตัวอย่าง/i })
+    ).toHaveCount(0);
+    await expect(
+      platformTable.getByRole("columnheader", { name: /^fps$/i })
+    ).toHaveCount(0);
+    await expect(platformTable.getByRole("columnheader")).toHaveCount(5);
+    await expect(
       platformTable.getByTestId("platform-details-button-youtube")
     ).toHaveAttribute("aria-expanded", "false");
     await platformTable.getByTestId("platform-details-button-youtube").click();
-    await expect(platformTable.getByTestId("platform-details-youtube")).toContainText(
-      /60 เฟรม|60 frames/i
-    );
+    const youtubeDetails = platformTable.getByTestId("platform-details-youtube");
+    await expect(youtubeDetails).toContainText(/cover|ภาพปก/i);
+    await expect(youtubeDetails).toContainText(/preview|ตัวอย่าง/i);
+    await expect(youtubeDetails).toContainText(/FPS/i);
+    await expect(youtubeDetails).not.toContainText(/360p|25 FPS|ผลจากลิงก์ตัวอย่าง/i);
+
+    await platformTable.getByTestId("platform-details-button-youtube").click();
+    await page.setViewportSize({ width: 390, height: 844 });
+    const youtubeCard = page.getByTestId("platform-card-youtube");
+    await expect(youtubeCard).toBeVisible();
+    await expect(youtubeCard.getByText(/^(วิดีโอ|Video)$/i)).toBeVisible();
+    await expect(youtubeCard.getByText(/^(เสียง|Audio)$/i)).toBeVisible();
+    await expect(youtubeCard.getByText(/^GIF$/i)).toBeVisible();
+    await expect(youtubeCard.getByText(/^(ภาพปก|Cover)$/i)).toHaveCount(0);
+    await expect(youtubeCard.getByText(/^(ตัวอย่าง|Preview)$/i)).toHaveCount(0);
+    await expect(youtubeCard.getByText(/^FPS$/i)).toHaveCount(0);
+
+    await youtubeCard.getByTestId("platform-details-button-youtube").click();
+    const mobileYoutubeDetails = youtubeCard.getByTestId("platform-details-youtube");
+    await expect(mobileYoutubeDetails).toContainText(/ภาพปก|cover/i);
+    await expect(mobileYoutubeDetails).toContainText(/ตัวอย่าง|preview/i);
+    await expect(mobileYoutubeDetails).toContainText(/FPS/i);
   });
 
   test("should keep assurance cards display-only", async ({ page }) => {
@@ -516,23 +683,51 @@ test.describe("Landing Page & Brand UI", () => {
       .toEqual(appearanceBeforeHover);
   });
 
-  test("should present GIF as a dedicated capability instead of mixing output formats", async ({
+  test("should separate video platforms from Giphy and Tenor GIF sources", async ({
     page,
   }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.goto("/");
 
-    const table = page.getByTestId("platform-table");
+    const videoGroup = page.getByTestId("video-platforms-group");
+    const table = videoGroup.getByTestId("platform-table");
+    const gifGroup = page.getByTestId("gif-platforms-group");
+    const gifTable = gifGroup.getByTestId("gif-platform-table");
+    const tableTopMargins = await Promise.all(
+      [table, gifTable].map((table) =>
+        table
+          .locator("xpath=..")
+          .evaluate((wrapper) => getComputedStyle(wrapper).marginTop)
+      )
+    );
+    expect(tableTopMargins).toEqual(["12px", "12px"]);
+    await expect(
+      videoGroup.getByRole("heading", {
+        name: /video-media platforms|แพลตฟอร์มสื่อวิดีโอ/i,
+      })
+    ).toBeVisible();
+    await expect(
+      gifGroup.getByRole("heading", { name: /GIF platforms|แพลตฟอร์ม GIF/i })
+    ).toBeVisible();
     await expect(table.getByRole("columnheader", { name: /GIF/i })).toBeVisible();
     await expect(
       table.getByRole("columnheader", { name: /output formats|รูปแบบไฟล์/i })
     ).toHaveCount(0);
+    await expect(table.getByRole("row").filter({ hasText: "Giphy" })).toHaveCount(0);
+    await expect(table.getByRole("row").filter({ hasText: "Tenor" })).toHaveCount(0);
 
-    const giphyRow = table.getByRole("row").filter({ hasText: "Giphy" });
+    const giphyRow = gifTable.getByRole("row").filter({ hasText: "Giphy" });
     await expect(giphyRow).toBeVisible();
-    await giphyRow.getByTestId("platform-details-button-giphy").click();
-    await expect(table.getByTestId("platform-details-giphy")).toContainText(
+    await giphyRow.getByTestId("gif-platform-details-button-giphy").click();
+    await expect(gifTable.getByTestId("gif-platform-details-giphy")).toContainText(
       /original gif|gif ต้นฉบับ/i
+    );
+
+    const tenorRow = gifTable.getByRole("row").filter({ hasText: "Tenor" });
+    await expect(tenorRow).toBeVisible();
+    await tenorRow.getByTestId("gif-platform-details-button-tenor").click();
+    await expect(gifTable.getByTestId("gif-platform-details-tenor")).toContainText(
+      /analyze \.gif|วิเคราะห์ลิงก์ \.gif/i
     );
     await page.setViewportSize({ width: 1280, height: 1400 });
     await page
@@ -540,21 +735,35 @@ test.describe("Landing Page & Brand UI", () => {
       .screenshot({ path: "test-results/platform-table-readable.png" });
   });
 
-  test("should separate MP4, MP3, and GIF capabilities on mobile cards", async ({
-    page,
-  }) => {
+  test("should show GIF services in a separate mobile card group", async ({ page }) => {
     await page.setViewportSize({ width: 400, height: 800 });
     await page.goto("/");
 
-    const giphyCard = page.getByTestId("platform-card-giphy");
-    await giphyCard.scrollIntoViewIfNeeded();
+    const gifGroup = page.getByTestId("gif-platforms-group");
+    const giphyCard = page.getByTestId("gif-platform-card-giphy");
+    const tenorCard = page.getByTestId("gif-platform-card-tenor");
+    const videoCards = page.getByTestId("platform-card-youtube").locator("xpath=..");
+    const gifCards = giphyCard.locator("xpath=..");
+    await gifGroup.scrollIntoViewIfNeeded();
     await expect(giphyCard).toBeVisible();
-    await expect(giphyCard.getByText(/^(วิดีโอ|Video)$/)).toBeVisible();
+    await expect(tenorCard).toBeVisible();
+    const cardGroupTopMargins = await Promise.all(
+      [videoCards, gifCards].map((cards) =>
+        cards.evaluate((element) => getComputedStyle(element).marginTop)
+      )
+    );
+    expect(cardGroupTopMargins).toEqual(["12px", "12px"]);
+    await expect(page.getByTestId("platform-card-giphy")).toHaveCount(0);
+    await expect(page.getByTestId("platform-card-tenor")).toHaveCount(0);
+    await expect(giphyCard.getByText(/^(ไฟล์ GIF|GIF file)$/)).toBeVisible();
     await expect(giphyCard.getByText(/^(เสียง|Audio)$/)).toBeVisible();
-    await expect(giphyCard.getByText("GIF", { exact: true })).toBeVisible();
-    await giphyCard.getByTestId("platform-details-button-giphy").click();
-    await expect(giphyCard.getByTestId("platform-details-giphy")).toContainText(
+    await giphyCard.getByTestId("gif-platform-details-button-giphy").click();
+    await expect(giphyCard.getByTestId("gif-platform-details-giphy")).toContainText(
       /original gif|gif ต้นฉบับ/i
+    );
+    await tenorCard.getByTestId("gif-platform-details-button-tenor").click();
+    await expect(tenorCard.getByTestId("gif-platform-details-tenor")).toContainText(
+      /analyze \.gif|วิเคราะห์ลิงก์ \.gif/i
     );
   });
 
@@ -620,16 +829,39 @@ test.describe("Landing Page & Brand UI", () => {
     expect(order).toBe(true);
   });
 
-  test("should list supported X, Bilibili, and VK platforms with YouTube 4K support", async ({
+  test("should describe source-dependent capabilities for X, Bilibili, and VK", async ({
     page,
   }) => {
     await page.goto("/");
 
     const platformSection = page.getByTestId("platform-capabilities-section");
+    const platformTable = platformSection.getByTestId("platform-table");
     await expect(platformSection).toContainText("X");
     await expect(platformSection).toContainText("Bilibili");
     await expect(platformSection).toContainText("VK Video");
-    await expect(platformSection).toContainText(/4K|2160p/i);
+    await expect(platformSection).toContainText(
+      /GIF เมื่อพบสื่อ GIF ที่รองรับ|GIF options appear when supported GIF media is detected/i
+    );
+    await expect(platformSection).toContainText(
+      /FPS คืออัตราเฟรมที่ต้นทางรายงาน|FPS is the frame rate reported by the source/i
+    );
+    await expect(platformSection).not.toContainText(
+      /ผลตัวอย่างไม่ใช่การรับประกัน|Sample results do not guarantee/i
+    );
+    await platformTable.getByTestId("platform-details-button-vk").click();
+    const vkDetails = platformTable.getByTestId("platform-details-vk");
+    await expect(vkDetails).toContainText(/according to each clip|ตามข้อมูลของคลิป/i);
+    await expect(vkDetails).not.toContainText(/1080p.*25 FPS/i);
+    await platformTable.getByTestId("platform-details-button-bilibili").click();
+    const bilibiliDetails = platformTable.getByTestId("platform-details-bilibili");
+    await expect(bilibiliDetails).toContainText(/account and clip|บัญชีและคลิป/i);
+    await expect(bilibiliDetails).not.toContainText(/720p.*1080p/i);
+    await platformTable.getByTestId("platform-details-button-x").click();
+    const xDetails = platformTable.getByTestId("platform-details-x");
+    await expect(xDetails).toContainText(/public posts|โพสต์สาธารณะ/i);
+    await expect(xDetails).not.toContainText(
+      /480p.*no audio track|480p.*ไม่มีแทร็กเสียง/i
+    );
   });
 
   test("should load and apply IBM Plex Sans Thai", async ({ page }) => {

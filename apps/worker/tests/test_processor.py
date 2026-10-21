@@ -166,6 +166,53 @@ def test_download_media_preserves_direct_giphy_gif(monkeypatch, tmp_path):
     assert result.read_bytes() == payload
 
 
+def test_download_media_uses_egress_proxy_for_facebook_cdn_gif(monkeypatch, tmp_path):
+    source_url = "https://cdn.fbsbx.com/v/t59.2708-21/example.gif?signature=redacted"
+    downloaded_file = tmp_path / "Facebook_Reel_comment_GIF.gif"
+    captured_options = {}
+
+    class FakeYoutubeDL:
+        def __init__(self, options):
+            captured_options.update(options)
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, _exc_type, _exc, _traceback):
+            return False
+
+        def extract_info(self, url, *, download):
+            assert url == source_url
+            assert download is True
+            downloaded_file.write_bytes(b"GIF89a" + b"media")
+            return {"title": "Facebook Reel comment GIF", "ext": "gif"}
+
+        def prepare_filename(self, _info):
+            return str(downloaded_file)
+
+    def unexpected_direct_open(*_args, **_kwargs):
+        raise AssertionError("Facebook CDN GIFs must use yt-dlp through the proxy")
+
+    monkeypatch.setattr(processor.yt_dlp, "YoutubeDL", FakeYoutubeDL)
+    monkeypatch.setattr(processor, "urlopen", unexpected_direct_open, raising=False)
+    monkeypatch.setattr(processor, "is_job_cancelled", lambda _job_id: False)
+
+    result = asyncio.run(
+        download_media(
+            source_url,
+            tmp_path,
+            "0",
+            "job-fbsbx-gif",
+            "gif",
+            selected_has_video=True,
+        )
+    )
+
+    assert result == downloaded_file
+    assert captured_options["proxy"] == processor.settings.media_egress_proxy
+    assert captured_options["format"] == "0"
+
+
 def test_calculate_download_progress_handles_exact_estimated_and_missing_totals():
     assert (
         calculate_download_progress({"downloaded_bytes": 50, "total_bytes": 200}) == 25

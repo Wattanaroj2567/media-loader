@@ -628,6 +628,14 @@ test("dashboard prioritizes the analyzed thumbnail", async ({ page, context }) =
 test("settings reuses the server-verified user", async ({ page, context }) => {
   await seedAuth(context);
   await mockApi(page, { jobs: () => [] });
+  await page.route("**/notifications/subscriptions/status", (route) => {
+    if (route.request().method() === "OPTIONS") {
+      return route.fulfill({ status: 204, headers: CORS_HEADERS });
+    }
+    return route.fulfill(
+      jsonResponse({ ok: true, data: { enabled: false }, error: null })
+    );
+  });
   let browserUserRequests = 0;
   page.on("request", (request) => {
     if (request.url().includes("/auth/v1/user")) browserUserRequests += 1;
@@ -820,6 +828,64 @@ test.describe("Desktop flow (unchanged behavior)", () => {
   });
 });
 
+test.describe("History Save button (desktop)", () => {
+  test("shows the download hint when browser notifications are disabled", async ({
+    page,
+    context,
+  }) => {
+    await seedAuth(context);
+    await page.addInitScript(() => {
+      Object.defineProperty(Notification, "permission", {
+        configurable: true,
+        get: () => "granted",
+      });
+      localStorage.setItem("media-loader:browser-notifications", "0");
+      localStorage.removeItem("media-loader:browser-notifications-owner");
+    });
+    await stubShare(page);
+    await mockApi(page, { jobs: () => [completedJob()] });
+
+    await page.goto("/history");
+    const notificationState = await page.evaluate(() => ({
+      permission: Notification.permission,
+      pushManager: "PushManager" in window,
+      serviceWorker: "serviceWorker" in navigator,
+      preference: localStorage.getItem("media-loader:browser-notifications"),
+      owner: localStorage.getItem("media-loader:browser-notifications-owner"),
+    }));
+    expect(notificationState).toEqual({
+      permission: "granted",
+      pushManager: true,
+      serviceWorker: true,
+      preference: "0",
+      owner: null,
+    });
+
+    const saveButton = page
+      .getByRole("button", { name: /บันทึกลงเครื่อง|save to device/i })
+      .first();
+    await expect(saveButton).toBeVisible({ timeout: 20000 });
+
+    const downloadPromise = page.waitForEvent("download", { timeout: 10000 });
+    await saveButton.click();
+    const downloadHint = page
+      .getByRole("status")
+      .filter({ hasText: /Download started|เริ่มดาวน์โหลดแล้ว/ });
+    await expect(downloadHint).toBeVisible();
+    await expect(downloadHint.locator(".download-arrow-nudge")).toBeVisible();
+    const download = await downloadPromise;
+
+    expect(download.suggestedFilename()).toBe(FILENAME);
+    expect(await page.evaluate(() => window.__sharedPayload)).toBeNull();
+    await expect(page.locator('[role="dialog"]')).toHaveCount(0);
+
+    await page.waitForTimeout(4200);
+    await expect(downloadHint).toBeVisible();
+    await downloadHint.getByRole("button", { name: "Close notification" }).click();
+    await expect(downloadHint).toHaveCount(0);
+  });
+});
+
 test.describe("History Share button (mobile)", () => {
   test.use(iphoneLike);
 
@@ -845,5 +911,6 @@ test.describe("History Share button (mobile)", () => {
     const payload = (await page.evaluate(() => window.__sharedPayload))!;
     expect(payload.files.length).toBe(1);
     expect(payload.files[0].name).toBe(FILENAME);
+    await expect(page.locator(".download-arrow-nudge")).toHaveCount(0);
   });
 });

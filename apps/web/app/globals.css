@@ -338,6 +338,23 @@ select {
   }
 }
 
+@keyframes download-arrow-nudge {
+  0%,
+  100% {
+    transform: translate(0, 0);
+    opacity: 0.75;
+  }
+
+  50% {
+    transform: translate(4px, -4px);
+    opacity: 1;
+  }
+}
+
+.download-arrow-nudge {
+  animation: download-arrow-nudge 900ms ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .hero-ambient-glow {
     animation: none !important;

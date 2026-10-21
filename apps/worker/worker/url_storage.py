@@ -1,4 +1,4 @@
-"""Encryption and redaction helpers for user-submitted source URLs."""
+"""Encryption and safe-reference helpers for user-submitted source URLs."""
 
 from urllib.parse import urlsplit
 
@@ -33,16 +33,6 @@ def decrypt_url(value: str) -> str:
         return _fernet().decrypt(token).decode("utf-8")
     except (InvalidToken, UnicodeDecodeError, UnicodeEncodeError) as error:
         raise UrlStorageError("Stored source URL could not be decrypted") from error
-
-
-def redact_stored_url(value: str) -> str:
-    """Redact a legacy plaintext URL while preserving ciphertext if unavailable."""
-    if value.startswith(_ENCRYPTED_URL_PREFIX):
-        try:
-            return safe_url_reference(decrypt_url(value))
-        except UrlStorageError:
-            return value
-    return safe_url_reference(value)
 
 
 def safe_url_reference(url: str) -> str:

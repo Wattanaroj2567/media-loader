@@ -50,7 +50,9 @@ test("ApiClient manages authenticated Web Push subscriptions", async () => {
           ? { deleted: true }
           : request.method === "POST"
             ? { subscribed: true }
-            : { public_key: "public-vapid-key" };
+            : request.url.endsWith("/subscriptions/status")
+              ? { enabled: true }
+              : { public_key: "public-vapid-key" };
       return Response.json({ ok: true, data, error: null });
     }
   );
@@ -58,6 +60,7 @@ test("ApiClient manages authenticated Web Push subscriptions", async () => {
   assert.deepEqual(await client.getVapidPublicKey(), {
     public_key: "public-vapid-key",
   });
+  assert.deepEqual(await client.getPushSubscriptionStatus(), { enabled: true });
   assert.deepEqual(
     await client.savePushSubscription(
       {
@@ -68,29 +71,29 @@ test("ApiClient manages authenticated Web Push subscriptions", async () => {
     ),
     { subscribed: true }
   );
-  assert.deepEqual(
-    await client.deletePushSubscription(
-      "https://fcm.googleapis.com/push/subscription-token"
-    ),
-    { deleted: true }
-  );
+  assert.deepEqual(await client.deletePushSubscriptions(), { deleted: true });
 
   assert.deepEqual(
     requests.map(({ url, method }) => ({ url, method })),
     [
       { url: "http://api.test/notifications/vapid-public-key", method: "GET" },
+      { url: "http://api.test/notifications/subscriptions/status", method: "GET" },
       { url: "http://api.test/notifications/subscriptions", method: "POST" },
       { url: "http://api.test/notifications/subscriptions", method: "DELETE" },
     ]
   );
-  assert.deepEqual(requests[1].body, {
+  assert.equal(requests[1].body, null);
+  assert.deepEqual(requests[2].body, {
     endpoint: "https://fcm.googleapis.com/push/subscription-token",
     keys: { p256dh: "public-subscription-key", auth: "subscription-auth" },
     locale: "en",
   });
   assert.deepEqual(requests[2].body, {
     endpoint: "https://fcm.googleapis.com/push/subscription-token",
+    keys: { p256dh: "public-subscription-key", auth: "subscription-auth" },
+    locale: "en",
   });
+  assert.deepEqual(requests[3].body, {});
 });
 
 test("ApiClient sends the confirmed rights flag and selected format", async () => {

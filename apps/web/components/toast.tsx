@@ -1,9 +1,9 @@
 "use client";
 
 import { createContext, useContext, useState, useCallback, ReactNode } from "react";
-import { X, CheckCircle2, AlertCircle, Info } from "lucide-react";
+import { X, ArrowUpRight, CheckCircle2, AlertCircle, Info } from "lucide-react";
 
-type ToastType = "success" | "error" | "info";
+type ToastType = "success" | "error" | "info" | "download";
 
 interface Toast {
   id: number;
@@ -33,7 +33,9 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     (type: ToastType, title: string, description?: string) => {
       const id = nextId++;
       setToasts((prev) => [...prev, { id, type, title, description }]);
-      setTimeout(() => removeToast(id), 4000);
+      if (type !== "download") {
+        setTimeout(() => removeToast(id), 4000);
+      }
     },
     [removeToast]
   );
@@ -42,12 +44,19 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     success: <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />,
     error: <AlertCircle className="h-4 w-4 text-rose-400 shrink-0" />,
     info: <Info className="h-4 w-4 text-sky-400 shrink-0" />,
+    download: (
+      <ArrowUpRight
+        aria-hidden="true"
+        className="download-arrow-nudge h-5 w-5 shrink-0 text-primary"
+      />
+    ),
   };
 
   const borderMap: Record<ToastType, string> = {
     success: "border-emerald-500/20",
     error: "border-rose-500/20",
     info: "border-sky-500/20",
+    download: "border-primary/30",
   };
 
   return (

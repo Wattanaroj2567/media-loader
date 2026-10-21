@@ -22,8 +22,9 @@
   หาก deploy นอกเครือข่าย Compose ต้องมี public-IP egress proxy ที่ให้ผลเทียบเท่า
   และปิดทางออกเครือข่ายตรงของ API/Worker
 - ระบบเข้ารหัส `download_jobs.original_url` ด้วย Fernet ก่อนเขียนฐานข้อมูล API
-  และ Worker ต้องใช้ `MEDIA_URL_ENCRYPTION_KEY` ค่าเดียวกัน ส่วน `policy_logs.url`
-  เก็บเฉพาะ origin โดยตัด path และ query ออก
+  และ Worker ต้องใช้ `MEDIA_URL_ENCRYPTION_KEY` ค่าเดียวกัน โดยคงข้อมูลที่เข้ารหัส
+  ไว้ตราบเท่าที่รายการงานยังอยู่เพื่อให้เจ้าของคัดลอกหรือวิเคราะห์ซ้ำได้ เมื่อลบงาน
+  จะลบลิงก์ที่เก็บไว้ด้วย ส่วน `policy_logs.url` เก็บเฉพาะ origin โดยตัด path และ query ออก
 - แถวเก่าที่เป็น plaintext ต้องย้ายด้วยคำสั่งครั้งเดียวใน
   [Environment Variables](ENVIRONMENT_VARIABLES.md) จนกว่าจะรันคำสั่งนี้
   URL เก่าในฐานข้อมูลยังคงเป็น plaintext

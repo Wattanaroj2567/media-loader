@@ -11,7 +11,6 @@ from typing import Any
 from worker.config import get_settings
 from worker.push_notifications import send_terminal_job_notification
 from worker.supabase_client import get_supabase_client
-from worker.url_storage import redact_stored_url
 
 logger = logging.getLogger("media_loader_worker.job_queue")
 TERMINAL_JOB_STATUSES = {"COMPLETED", "FAILED", "BLOCKED", "CANCELLED"}
@@ -117,15 +116,12 @@ def update_job_status(
         try:
             url_result = (
                 supabase.table("download_jobs")
-                .select("original_url,status,user_id,title")
+                .select("status,user_id,title")
                 .eq("id", job_id)
                 .limit(1)
                 .execute()
             )
             previous_job = url_result.data[0] if url_result.data else None
-            stored_url = previous_job.get("original_url") if previous_job else None
-            if isinstance(stored_url, str):
-                update_data["original_url"] = redact_stored_url(stored_url)
             if previous_job:
                 notification_context = {
                     "previous_status": previous_job.get("status"),
@@ -146,7 +142,7 @@ def update_job_status(
                     return False
         except Exception as error:
             logger.error(
-                "Could not prepare URL redaction for job %s: %s",
+                "Could not read previous status for job %s: %s",
                 job_id,
                 type(error).__name__,
             )

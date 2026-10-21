@@ -119,6 +119,13 @@ Middleware redirects anonymous visitors from `/dashboard`, `/history`,
 accessible and callback errors remain visible. Session cookies are preserved on
 middleware redirects.
 
+The public `/contact` page is the single contact form for account and usage
+questions, terms or media rights, and personal data requests. Links from the
+Privacy and Terms pages select the matching topic in advance. The form validates
+the request in the browser and opens the visitor's email app with a prepared
+`mailto:` message; it does not submit the message to the application server.
+The administrator email is also shown as a direct contact option.
+
 In the Supabase dashboard, enable the Email/Password and Google providers and
 allowlist these exact redirect URLs for each web origin (replace the example
 origin with the deployed origin):
@@ -167,6 +174,19 @@ A worker in that pool claims the job
 New jobs are scoped to the verified user's ID. Legacy guest jobs retain
 owner-checked access but cannot resume anonymously. In local-temp mode, queue affinity prevents a worker from
 claiming a job when it cannot share its filesystem with the API.
+
+The video format selector estimates the final output size, not only the source
+video stream. For video-only formats, the estimate includes the 320 kbps AAC
+audio track that the worker merges into MP4; conversion can still change the
+final size. Processing uses two separate data transfers: the worker fetches the
+source media to server-side temporary storage, then the web app transfers the
+finished output to the user's browser once. This is not two browser downloads;
+the source file is not delivered to the user's device first. Some services let
+the browser fetch directly from the source; others proxy the source through a
+server as one stream, so the browser may show only one download. The page alone
+cannot confirm whether a service relays or converts the media. Media Loader lets
+the worker finish preparing the output before delivery, so queued work is
+trackable and the completed file can be retrieved from history.
 
 ### Process job
 

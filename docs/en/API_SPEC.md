@@ -20,9 +20,11 @@ Never log access tokens, download tokens, service-role keys, or environment-file
 values.
 
 Job source URLs are encrypted in database storage and returned to the authorized
-job owner after decryption. Policy logs retain only a redacted source origin.
-API access logs remove query values. Source analysis and downloads use the
-public-IP egress proxy described in [Security and Policy](SECURITY_AND_POLICY.md).
+job owner after decryption. They remain available while the job record exists so
+the owner can copy or analyze the source link again; deleting the job removes
+the stored link. Policy logs retain only a redacted source origin. API access
+logs remove query values. Source analysis and downloads use the public-IP egress
+proxy described in [Security and Policy](SECURITY_AND_POLICY.md).
 
 ## Web authentication routes
 
@@ -128,6 +130,7 @@ response.
 | `DELETE /account` | Bearer token required |
 | `GET /notifications/vapid-public-key` | Bearer token required |
 | `POST /notifications/subscriptions` | Bearer token required |
+| `GET /notifications/subscriptions/status` | Bearer token required |
 | `DELETE /notifications/subscriptions` | Bearer token required |
 
 ### GET `/health`
@@ -220,15 +223,27 @@ some platforms report a combined reaction total. For public Instagram posts,
 the analyzer may read the real `video_view_count` from the logged-out embed page
 when the primary extractor omits it. It does not use account cookies.
 
-`is_animated_gif` is true only when source metadata identifies animated GIF
-media. This also covers X posts served as MP4 from the public `/tweet_video/`
-path and direct Giphy GIF links whose preview redirects to a silent MP4.
+`is_animated_gif` is true when source metadata or the submitted URL identifies
+animated GIF media. This covers X posts served as MP4 from the public
+`/tweet_video/` path, direct Giphy GIF links whose preview redirects to a silent
+MP4, and Tenor `.gif` links that redirect to a `/view/` page. The platform and
+source domain remain based on the host the user submitted. Direct animated GIF
+links from Facebook CDN hosts such as `cdn.fbsbx.com` are identified as Facebook
+media and use the normal yt-dlp path through the egress proxy.
 
 In `formats[]`, `height` and `quality_label` are a quality tier that follows
 YouTube's labels, while `resolution` is the file's actual frame size. For frames
 wider than 16:9, the tier comes from the 16:9-equivalent height of the width. For
 example, a 1920x960 video reports `height` `1080` and `quality_label` `1080p`,
 but `resolution` stays `1920x960`. `raw_height` carries the actual frame height
+
+When the extractor returns multiple video formats with a known display tier,
+the API returns one option for that tier. Formats without a known height stay
+separate because their display tiers cannot be compared. For duplicate known
+tiers, it prefers a format with reported FPS
+and then the higher FPS value; if no candidate reports FPS, it keeps the best
+format by container, codec, audio-track, and bitrate preference. A video-only
+format can still be combined with a separate audio track by the worker.
 
 A blocked policy decision is returned without formats. Rights confirmation is
 required later, when submitting `POST /downloads`.
@@ -272,6 +287,8 @@ Query parameters:
 
 The frontend uses this endpoint for active queue and terminal history views.
 Per-job guest lookup uses `GET /downloads/{job_id}`.
+Job payloads include `file_size_bytes` with the exact completed output size;
+`file_size_mb` is a rounded convenience value.
 
 ### GET `/downloads/{job_id}`
 
@@ -372,7 +389,12 @@ never returned by the API.
 }
 ```
 
-`DELETE /notifications/subscriptions` accepts the subscription endpoint in its
-request body and removes only the row owned by the authenticated user. The
+`GET /notifications/subscriptions/status` reports whether the authenticated
+account has any push endpoints registered across app origins.
+
+`DELETE /notifications/subscriptions` accepts an optional endpoint in its
+request body. When supplied, it removes only that endpoint owned by the
+authenticated user; when omitted, it removes all of that account's endpoints
+so opting out on one app origin also stops pushes registered on another. The
 worker sends notifications for job transitions to `COMPLETED`, `FAILED`, and
 `BLOCKED`; expired push endpoints are removed after a `404` or `410` response.

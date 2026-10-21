@@ -18,7 +18,6 @@ from app.url_storage import (
     UrlStorageError,
     decrypt_url,
     encrypt_url,
-    safe_url_reference,
 )
 
 logger = logging.getLogger("media_loader_api.job_service")
@@ -147,6 +146,7 @@ def _normalize_job(job: dict, *, include_internal: bool = False) -> dict:
     if job.get("original_url"):
         job["original_url"] = decrypt_url(job["original_url"])
     if "file_size" in job and job["file_size"] is not None:
+        job["file_size_bytes"] = int(job["file_size"])
         job["file_size_mb"] = round(job["file_size"] / (1024 * 1024), 2)
     if "total_bytes_estimate" in job and job["total_bytes_estimate"] is not None:
         job["total_size_mb"] = round(job["total_bytes_estimate"] / (1024 * 1024), 2)
@@ -304,7 +304,6 @@ def cancel_job(
         "CANCELLED",
         user_id=user_id,
         guest_session_id=guest_session_id,
-        original_url=safe_url_reference(job["original_url"]),
         locked_by=None,
         locked_at=None,
     )

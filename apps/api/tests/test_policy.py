@@ -80,3 +80,13 @@ def test_check_url_whitelist():
 
     res = check_url("https://archive.org.evil.example/video")
     assert res.decision == "needs_confirmation"
+
+
+def test_check_url_facebook_cdn_gif_still_requires_rights_confirmation(monkeypatch):
+    monkeypatch.setattr("app.url_policy.resolve_and_check_ssrf", lambda _host: None)
+
+    res = check_url(
+        "https://cdn.fbsbx.com/v/t59.2708-21/example.gif?signature=redacted"
+    )
+
+    assert res.decision == "needs_confirmation"

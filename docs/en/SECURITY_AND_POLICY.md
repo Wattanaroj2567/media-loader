@@ -23,8 +23,10 @@ The system must never become an unrestricted downloader.
   connects them to the proxy. Deployments outside this Compose network must
   provide an equivalent public-IP egress proxy and block direct network egress.
 - `download_jobs.original_url` is encrypted with Fernet before database writes.
-  The API and worker must share `MEDIA_URL_ENCRYPTION_KEY`. `policy_logs.url`
-  stores only the source origin with its path and query removed.
+  The API and worker must share `MEDIA_URL_ENCRYPTION_KEY`. It remains encrypted
+  while the job record exists for owner-only copy and reanalysis actions; deleting
+  the job removes the stored link. `policy_logs.url` stores only the source
+  origin with its path and query removed.
 - Existing plaintext rows require the one-time migration command documented in
   [Environment Variables](ENVIRONMENT_VARIABLES.md). Until it is run, older
   job rows remain plaintext in the database.
@@ -174,7 +176,8 @@ Do not log:
 - Service role key
 - User private keys
 
-The database keeps job URLs encrypted while they are needed for processing.
+The database keeps job URLs encrypted while their job records exist so owners can
+copy or analyze the source link again. Deleting a job removes its stored link.
 Policy logs keep only a redacted source origin. Run the legacy-data migration
 before sharing an existing deployment that stored plaintext URLs.
 

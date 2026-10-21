@@ -32,7 +32,7 @@ Stores each media job.
 | id | uuid | Primary key |
 | user_id | uuid | Owner; nullable only on legacy guest jobs |
 | guest_session_id | text | Ephemeral ID retained for owner-checking legacy guest jobs; new jobs require an account |
-| original_url | text | Fernet-encrypted submitted URL while needed for job processing; API and worker share `MEDIA_URL_ENCRYPTION_KEY` |
+| original_url | text | Fernet-encrypted submitted URL retained while the job record exists; API and worker share `MEDIA_URL_ENCRYPTION_KEY` |
 | platform | text | direct, youtube, tiktok, etc. |
 | title | text | Media title |
 | uploader | text | Creator/uploader name returned by analysis |
@@ -62,7 +62,9 @@ Stores each media job.
 New `original_url` values are encrypted before they are written. Existing
 plaintext rows must be migrated with the one-time command in
 [Environment Variables](ENVIRONMENT_VARIABLES.md). The API decrypts the URL for
-the authorized owner, and the worker decrypts it to process the job.
+the authorized owner, and the worker decrypts it to process the job. Keeping the
+encrypted value on terminal jobs supports owner-only copy and reanalysis actions;
+deleting a job removes it.
 
 The default output mode is `local_temp`. The database includes fields reserved
 for a future/cloud storage path, but complete Supabase Storage output and

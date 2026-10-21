@@ -27,6 +27,71 @@ export interface MediaFormat {
   has_audio?: boolean;
 }
 
+export type MediaOutputFormat = "mp4" | "mp3" | "gif";
+
+export function formatFileSize(bytes?: number | null): string | null {
+  if (bytes === undefined || bytes === null || !Number.isFinite(bytes) || bytes < 0) {
+    return null;
+  }
+
+  if (bytes >= 1024 ** 3) return `${(bytes / 1024 ** 3).toFixed(2)} GB`;
+  if (bytes >= 1024 ** 2) return `${(bytes / 1024 ** 2).toFixed(2)} MB`;
+  if (bytes >= 1024) return `${(bytes / 1024).toFixed(2)} KB`;
+  return `${Math.round(bytes)} B`;
+}
+
+export function estimateOutputSizeBytes(
+  format: MediaFormat,
+  durationSeconds: number | null | undefined,
+  outputFormat: MediaOutputFormat
+) {
+  const duration = durationSeconds && durationSeconds > 0 ? durationSeconds : null;
+  let bytes = format.filesize && format.filesize > 0 ? format.filesize : null;
+
+  if (!bytes && format.bitrate && format.bitrate > 0 && duration) {
+    bytes = (format.bitrate * 1000 * duration) / 8;
+  }
+
+  if (!bytes && format.type === "video" && duration) {
+    const resolution =
+      Math.min(format.width || 0, format.height || 0) || format.height || 0;
+    const estimatedBitrateKbps =
+      resolution >= 4320
+        ? 25_000
+        : resolution >= 2160
+          ? 12_000
+          : resolution >= 1440
+            ? 6_000
+            : resolution >= 1080
+              ? 3_200
+              : resolution >= 720
+                ? 1_600
+                : resolution >= 480
+                  ? 800
+                  : resolution > 0
+                    ? 400
+                    : 0;
+
+    if (estimatedBitrateKbps > 0) {
+      bytes = (estimatedBitrateKbps * 1000 * duration) / 8;
+    }
+  }
+
+  if (!bytes) return null;
+
+  // The worker merges a separate 320 kbps AAC track into video-only MP4 output.
+  if (
+    outputFormat === "mp4" &&
+    format.type === "video" &&
+    !format.has_audio &&
+    duration
+  ) {
+    bytes += (320_000 * duration) / 8;
+  }
+
+  return bytes;
+}
+
 export function groupFormats(formats: MediaFormat[]) {
   return {
     video: formats.filter((format) => format.type === "video"),

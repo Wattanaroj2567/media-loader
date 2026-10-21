@@ -1,4 +1,5 @@
 import asyncio
+from types import SimpleNamespace
 
 import pytest
 
@@ -100,16 +101,59 @@ def test_normalize_extractor_result_returns_real_unique_video_heights():
     assert [item.bitrate for item in audio] == [160, 128]
 
 
+def test_normalize_extractor_result_prefers_fps_when_source_repeats_a_resolution():
+    _, formats = normalize_extractor_result(
+        {
+            "title": "VK clip with repeated quality tiers",
+            "extractor_key": "VK",
+            "formats": [
+                _video_format(
+                    1080,
+                    "1080p-without-fps",
+                    fps=None,
+                    acodec="mp4a.40.2",
+                ),
+                _video_format(
+                    1080,
+                    "1080p-25fps",
+                    fps=25,
+                    acodec="none",
+                ),
+                _video_format(
+                    1080,
+                    "1080p-60fps",
+                    fps=60,
+                    acodec="none",
+                ),
+                _video_format(720, "720p-without-fps", fps=None),
+            ],
+        }
+    )
+
+    videos = [item for item in formats if item.type == "video"]
+
+    assert [(item.height, item.fps, item.format_id) for item in videos] == [
+        (1080, 60, "1080p-60fps"),
+        (720, None, "720p-without-fps"),
+    ]
+
+
 @pytest.mark.parametrize(
     ("input_url", "expected_platform", "expected_domain"),
     [
         ("https://www.instagram.com/reel/example/", "Instagram", "instagram.com"),
         ("https://www.tiktok.com/@creator/video/123", "TikTok", "tiktok.com"),
         ("https://www.facebook.com/watch/?v=123", "Facebook", "facebook.com"),
+        (
+            "https://cdn.fbsbx.com/v/t59.2708-21/example.gif?signature=redacted",
+            "Facebook",
+            "cdn.fbsbx.com",
+        ),
         ("https://x.com/i/status/123", "X", "x.com"),
         ("https://www.bilibili.com/video/BV123", "Bilibili", "bilibili.com"),
         ("https://vk.com/video-123_456", "VK Video", "vk.com"),
         ("https://media.giphy.com/media/example/giphy.gif", "Giphy", "media.giphy.com"),
+        ("https://tenor.com/daVeiKfHpOs.gif", "Tenor", "tenor.com"),
     ],
 )
 def test_normalize_extractor_result_preserves_submitted_platform_identity(
@@ -384,6 +428,154 @@ def test_normalize_extractor_result_keeps_direct_gif_identity_after_cdn_redirect
 
     assert media.is_animated_gif is True
     assert media.platform == "Giphy"
+
+
+def test_normalize_extractor_result_keeps_tenor_gif_identity_after_page_redirect():
+    media, formats = normalize_extractor_result(
+        {
+            "title": "Cade Cunningham GIF",
+            "extractor_key": "Generic",
+            "webpage_url_domain": "tenor.com",
+            "original_url": "https://tenor.com/view/cade-cunningham-gif",
+            "webpage_url": "https://tenor.com/view/cade-cunningham-gif",
+            "url": "https://media.tenor.com/example/animation.mp4",
+            "ext": "mp4",
+            "video_ext": "mp4",
+            "audio_ext": "none",
+            "format_id": "0",
+            "vcodec": "avc1",
+            "acodec": "none",
+            "_media_loader_input_url": "https://tenor.com/daVeiKfHpOs.gif",
+            "formats": [],
+        }
+    )
+
+    assert media.platform == "Tenor"
+    assert media.source_domain == "tenor.com"
+    assert media.is_animated_gif is True
+    assert len(formats) == 1
+    assert formats[0].type == "video"
+
+
+def test_normalize_extractor_result_keeps_facebook_cdn_gif_identity():
+    input_url = "https://cdn.fbsbx.com/v/t59.2708-21/example.gif?signature=redacted"
+    media, formats = normalize_extractor_result(
+        {
+            "title": "Facebook Reel comment GIF",
+            "extractor_key": "Generic",
+            "webpage_url_domain": "cdn.fbsbx.com",
+            "original_url": input_url,
+            "webpage_url": input_url,
+            "url": input_url,
+            "ext": "gif",
+            "video_ext": "gif",
+            "audio_ext": "none",
+            "format_id": "0",
+            "vcodec": "gif",
+            "acodec": "none",
+            "_media_loader_input_url": input_url,
+            "formats": [],
+        }
+    )
+
+    assert media.platform == "Facebook"
+    assert media.source_domain == "cdn.fbsbx.com"
+    assert media.is_animated_gif is True
+    assert len(formats) == 1
+    assert formats[0].type == "video"
+    assert formats[0].extension == "gif"
+
+
+@pytest.mark.parametrize(
+    (
+        "input_url",
+        "webpage_url",
+        "media_url",
+        "extension",
+        "video_codec",
+        "expected_platform",
+        "expected_domain",
+    ),
+    [
+        (
+            "https://tenor.com/daVeiKfHpOs.gif",
+            "https://tenor.com/view/cade-cadecunningham-nba",
+            "https://media.tenor.com/example/animation.mp4",
+            "mp4",
+            "avc1",
+            "Tenor",
+            "tenor.com",
+        ),
+        (
+            "https://cdn.fbsbx.com/v/t59.2708-21/example.gif?signature=redacted",
+            "https://cdn.fbsbx.com/v/t59.2708-21/example.gif?signature=redacted",
+            "https://cdn.fbsbx.com/v/t59.2708-21/example.gif?signature=redacted",
+            "gif",
+            "gif",
+            "Facebook",
+            "cdn.fbsbx.com",
+        ),
+    ],
+)
+def test_extract_metadata_keeps_submitted_gif_identity_after_redirect(
+    monkeypatch,
+    input_url,
+    webpage_url,
+    media_url,
+    extension,
+    video_codec,
+    expected_platform,
+    expected_domain,
+):
+
+    class FakeYoutubeDL:
+        def __init__(self, _options):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, _exc_type, _exc, _traceback):
+            return False
+
+        def extract_info(self, url: str, *, download: bool):
+            assert url == input_url
+            assert download is False
+            return {
+                "title": "Cade Cunningham GIF",
+                "extractor_key": "Generic",
+                "webpage_url_domain": expected_domain,
+                "original_url": webpage_url,
+                "webpage_url": webpage_url,
+                "url": media_url,
+                "ext": extension,
+                "video_ext": extension,
+                "audio_ext": "none",
+                "format_id": "0",
+                "vcodec": video_codec,
+                "acodec": "none",
+                "view_count": 0,
+                "formats": [],
+            }
+
+    monkeypatch.setattr(
+        yt_dlp_service,
+        "get_settings",
+        lambda: SimpleNamespace(
+            media_egress_proxy="http://proxy.example:8080",
+            resolved_js_runtime=None,
+        ),
+    )
+    monkeypatch.setattr(yt_dlp_service.yt_dlp, "YoutubeDL", FakeYoutubeDL)
+
+    media, formats = asyncio.run(extract_metadata(input_url))
+
+    assert media.platform == expected_platform
+    assert media.source_domain == expected_domain
+    assert media.is_animated_gif is True
+    assert len(formats) == 1
+    assert formats[0].type == "video"
+    assert formats[0].extension == extension
 
 
 def test_normalize_extractor_result_keeps_real_single_format_metadata_without_defaults():
