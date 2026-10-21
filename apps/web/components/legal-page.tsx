@@ -626,7 +626,7 @@ export function LegalPage({ kind }: { kind: PolicyKind }) {
 
   return (
     <main className="relative flex min-h-dvh flex-col overflow-x-clip bg-bg-base text-text">
-      <article className="relative z-10 mx-auto w-full max-w-6xl flex-1 px-4 pb-12 pt-2 sm:px-6 sm:pt-8 lg:px-8">
+      <article className="relative z-10 mx-auto w-full max-w-6xl flex-1 px-4 pb-12 pt-[calc(1.25rem+env(safe-area-inset-top))] sm:px-6 sm:pt-8 lg:px-8">
         <Link
           href="/"
           className="mb-5 inline-flex items-center gap-2 rounded-lg py-2 text-sm text-text-muted transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
@@ -637,7 +637,7 @@ export function LegalPage({ kind }: { kind: PolicyKind }) {
 
         <div className="grid items-start gap-5 lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-7">
           <aside className="lg:sticky lg:top-6">
-            <details className="group rounded-2xl border border-border/70 bg-bg-surface/75 p-3 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-bg-surface/65 lg:hidden">
+            <details className="group rounded-2xl border border-border/70 bg-bg-surface p-3 shadow-none backdrop-blur-none dark:border-white/10 dark:bg-bg-surface dark:shadow-none sm:bg-bg-surface/75 sm:shadow-sm sm:backdrop-blur-xl sm:dark:bg-bg-surface/65 lg:hidden">
               <summary className="flex cursor-pointer list-none items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-semibold marker:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary [&::-webkit-details-marker]:hidden">
                 <List aria-hidden="true" className="size-4 text-primary" />
                 {isThai ? "สารบัญหัวข้อ" : "On this page"}
@@ -659,7 +659,7 @@ export function LegalPage({ kind }: { kind: PolicyKind }) {
             </div>
           </aside>
 
-          <div className="min-w-0 rounded-3xl border border-border/70 bg-bg-surface/75 p-5 shadow-xl shadow-black/5 backdrop-blur-xl dark:border-white/10 dark:bg-bg-surface/65 dark:shadow-black/20 sm:p-8 md:p-10">
+          <div className="min-w-0 rounded-3xl border border-border/70 bg-bg-surface p-5 shadow-sm shadow-black/5 backdrop-blur-none dark:border-white/10 dark:bg-bg-surface dark:shadow-none sm:bg-bg-surface/75 sm:p-8 sm:shadow-xl sm:backdrop-blur-xl sm:dark:bg-bg-surface/65 sm:dark:shadow-black/20 md:p-10">
             <header className="mb-6 flex items-start gap-4 border-b border-border/60 pb-6 dark:border-white/10 sm:mb-8 sm:pb-7">
               <span className="mt-1 flex size-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary ring-1 ring-primary/15">
                 <Icon aria-hidden="true" className="size-5" />
