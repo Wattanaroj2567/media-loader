@@ -68,6 +68,8 @@ async function errorMessage(response: Response): Promise<string> {
 export class ResumableDownload {
   private chunks: Uint8Array[] = [];
   private controller = new AbortController();
+  private runPromise: Promise<"complete" | "paused"> | null = null;
+  private progressListeners = new Set<(progress: TransferProgress) => void>();
   private readonly options: Required<
     Pick<ResumableDownloadOptions, "maxVisibleRetries" | "retryDelayMs">
   > &
@@ -81,13 +83,27 @@ export class ResumableDownload {
     this.options = { maxVisibleRetries: 2, retryDelayMs: 800, ...options };
   }
 
+  subscribeProgress(listener: (progress: TransferProgress) => void) {
+    this.progressListeners.add(listener);
+    return () => this.progressListeners.delete(listener);
+  }
+
   /**
    * Transfer the remaining bytes. Resolves "complete" when the file is fully
    * buffered or "paused" when the page was hidden while the transfer broke;
    * call run() again to continue. Rejects on HTTP errors, user aborts, and
    * repeated network failures while the page stays visible.
    */
-  async run(): Promise<"complete" | "paused"> {
+  run(): Promise<"complete" | "paused"> {
+    if (this.runPromise) return this.runPromise;
+    const runPromise = this.runInternal();
+    this.runPromise = runPromise.finally(() => {
+      this.runPromise = null;
+    });
+    return this.runPromise;
+  }
+
+  private async runInternal(): Promise<"complete" | "paused"> {
     const visibility = this.options.visibility ?? documentVisibility();
     let visibleRetries = 0;
 
@@ -155,6 +171,8 @@ export class ResumableDownload {
   }
 
   private report() {
-    this.options.onProgress?.({ received: this.received, total: this.total });
+    const progress = { received: this.received, total: this.total };
+    this.options.onProgress?.(progress);
+    this.progressListeners.forEach((listener) => listener(progress));
   }
 }

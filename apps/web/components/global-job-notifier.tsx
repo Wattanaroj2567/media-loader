@@ -48,10 +48,16 @@ export function GlobalJobNotifier() {
       if (outcome === "dismissed") {
         // Keep the file on the server (temporary retention) — the user can
         // still share or download it from the History page.
+        const title = current.title || current.filename;
+        const shortTitle = title.slice(0, 72);
         toast(
           "info",
           t("file.savedLaterTitle", {}, "เก็บไฟล์ไว้ให้แล้ว"),
-          t("file.savedLaterDesc", {}, "ไปที่หน้าประวัติเพื่อแชร์หรือดาวน์โหลดได้")
+          t(
+            "file.savedLaterDesc",
+            { title: shortTitle },
+            `ไฟล์ “${shortTitle}” เก็บไว้ชั่วคราว ไปที่ประวัติแล้วแตะ “บันทึกลงเครื่อง” อีกครั้งได้ โดยไม่ต้องเริ่มงานดาวน์โหลดจากต้นทางใหม่`
+          )
         );
       }
     },

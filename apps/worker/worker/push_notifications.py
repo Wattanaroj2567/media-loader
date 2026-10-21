@@ -2,7 +2,7 @@
 
 import json
 import logging
-from urllib.parse import urlsplit
+from urllib.parse import quote, urlsplit
 
 import requests
 from pywebpush import WebPushException, webpush
@@ -21,12 +21,12 @@ PUSH_HOST_SUFFIXES = (".push.apple.com", ".notify.windows.com")
 
 MESSAGES = {
     "th": {
-        "COMPLETED": "ดาวน์โหลดสำเร็จแล้ว",
+        "COMPLETED": "ไฟล์พร้อมบันทึก",
         "FAILED": "ดาวน์โหลดล้มเหลว",
         "BLOCKED": "ดาวน์โหลดถูกบล็อก",
     },
     "en": {
-        "COMPLETED": "Download Completed",
+        "COMPLETED": "Ready to save",
         "FAILED": "Download Failed",
         "BLOCKED": "Download Blocked",
     },
@@ -131,13 +131,26 @@ def send_terminal_job_notification(
 
             locale = subscription.get("locale")
             locale_messages = MESSAGES.get(locale, MESSAGES["en"])
+            safe_title = (title or "Media Loader").replace("\r", " ").replace("\n", " ")
+            notification_title = locale_messages[status]
+            body = safe_title
+            url = "/dashboard"
+            if status == "COMPLETED":
+                save_hint = (
+                    "งานจากต้นทางเสร็จแล้ว แตะเพื่อเปิดประวัติและบันทึกลงเครื่อง"
+                    if locale == "th"
+                    else "Source job complete. Open History to save it to your device."
+                )
+                notification_title = f"{locale_messages[status]}: {safe_title[:72]}"
+                body = save_hint
+                url = (
+                    f"/history?notification=download-ready&job={quote(job_id, safe='')}"
+                )
             message = {
-                "title": locale_messages[status],
-                "body": (title or "Media Loader")
-                .replace("\r", " ")
-                .replace("\n", " ")[:180],
+                "title": notification_title,
+                "body": body[:180],
                 "tag": f"job-{job_id}",
-                "url": "/dashboard",
+                "url": url,
             }
             subscription_info = {
                 "endpoint": endpoint,

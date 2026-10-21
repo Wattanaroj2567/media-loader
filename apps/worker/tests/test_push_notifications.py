@@ -106,10 +106,10 @@ def test_terminal_notification_uses_the_configured_egress_proxy(monkeypatch):
 
     assert len(requests) == 1
     assert json.loads(requests[0]["data"]) == {
-        "title": "ดาวน์โหลดสำเร็จแล้ว",
-        "body": "Clip title",
+        "title": "ไฟล์พร้อมบันทึก: Clip title",
+        "body": "งานจากต้นทางเสร็จแล้ว แตะเพื่อเปิดประวัติและบันทึกลงเครื่อง",
         "tag": "job-job-1",
-        "url": "/dashboard",
+        "url": "/history?notification=download-ready&job=job-1",
     }
     assert requests[0]["vapid_private_key"] == "private-key"
     assert requests[0]["vapid_claims"] == {"sub": "mailto:push@example.com"}

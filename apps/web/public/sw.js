@@ -7,6 +7,15 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(self.clients.claim());
 });
 
+function sameOriginNotificationUrl(value, fallback = "/dashboard") {
+  try {
+    const target = new URL(value, self.location.origin);
+    return target.origin === self.location.origin ? target.href : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 self.addEventListener("push", (event) => {
   let payload = {};
   try {
@@ -18,6 +27,8 @@ self.addEventListener("push", (event) => {
   const title = typeof payload.title === "string" ? payload.title : "Media Loader";
   const body =
     typeof payload.body === "string" ? payload.body : "A download job has finished.";
+  const requestedUrl = typeof payload.url === "string" ? payload.url : "/dashboard";
+  const notificationUrl = sameOriginNotificationUrl(requestedUrl);
 
   event.waitUntil(
     self.registration.pushManager
@@ -33,7 +44,7 @@ self.addEventListener("push", (event) => {
               tag: typeof payload.tag === "string" ? payload.tag : undefined,
               icon: "/icon.png",
               badge: "/apple-icon.png",
-              data: { url: "/dashboard" },
+              data: { url: notificationUrl },
             });
           });
       })
@@ -49,10 +60,19 @@ self.addEventListener("notificationclick", (event) => {
     self.clients
       .matchAll({ type: "window", includeUncontrolled: true })
       .then(async (clients) => {
-        const target = new URL("/dashboard", self.location.origin);
-        const existing = clients.find((client) =>
-          client.url.startsWith(self.location.origin)
+        const requestedUrl = event.notification.data?.url;
+        const target = new URL(
+          sameOriginNotificationUrl(
+            typeof requestedUrl === "string" ? requestedUrl : "/dashboard"
+          )
         );
+        const existing = clients.find((client) => {
+          try {
+            return new URL(client.url).origin === self.location.origin;
+          } catch {
+            return false;
+          }
+        });
         if (existing) {
           await existing.navigate(target.href);
           return existing.focus();

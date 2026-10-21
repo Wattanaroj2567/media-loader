@@ -227,7 +227,10 @@ users.
   viewer places its close control at the upper right on mobile. Opt-in Web Push
   subscriptions deliver completed, failed, and policy-blocked alerts for signed-in
   account jobs through a service worker, including while the app is closed. On iPhone and iPad the
-  user must install Media Loader on the Home Screen and allow notifications.
+  user must install Media Loader on the Home Screen and allow notifications. Opening a
+  completed alert says the source job is ready to save, names the clip, opens its matching History item, and explains how to
+  save it. Dismissing the save sheet keeps in-progress bytes available across save flows
+  in the same app session; after a full reload, History can fetch the same completed output.
 - Authenticated same-origin file streaming for signed-in users
 
 ### FastAPI

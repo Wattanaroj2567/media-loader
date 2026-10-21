@@ -64,6 +64,12 @@ export function SaveFileDialog({
   const shareLabel = isIos
     ? t("file.shareActionIos", {}, "บันทึกลงรูปภาพ / แชร์")
     : t("file.shareAction", {}, "แชร์ไฟล์");
+  const dialogTitle =
+    phase === "paused"
+      ? t("file.transferPausedTitle", {}, "พักการเตรียมไฟล์ไว้ชั่วคราว")
+      : phase === "downloading"
+        ? t("file.transferTitle", {}, "กำลังเตรียมไฟล์ผลลัพธ์สำหรับบันทึก")
+        : t("file.saveTitle", {}, "ไฟล์พร้อมแล้ว");
 
   const shareBtn = (primary: boolean) => (
     <Button
@@ -77,11 +83,11 @@ export function SaveFileDialog({
         <LoadingIndicator
           label={
             percent === null
-              ? t("file.transferLoading", {}, "กำลังโหลดไฟล์...")
+              ? t("file.transferLoading", {}, "กำลังรับไฟล์ผลลัพธ์...")
               : t(
                   "file.transferLoadingPercent",
                   { percent },
-                  `กำลังโหลดไฟล์ ${percent}%`
+                  `กำลังรับไฟล์ผลลัพธ์ ${percent}%`
                 )
           }
           iconClassName="size-4"
@@ -127,7 +133,7 @@ export function SaveFileDialog({
       ? t(
           "file.transferHint",
           {},
-          "กำลังโหลดไฟล์ก่อนบันทึก ถ้าสลับไปแอปอื่น ระบบจะพักไว้และโหลดต่อเมื่อกลับมา"
+          "กำลังรับไฟล์ผลลัพธ์ที่เสร็จแล้วจากเซิร์ฟเวอร์เพื่อบันทึกลงเครื่อง หากสลับแอป ระบบจะพักและทำต่อเมื่อกลับมา"
         )
       : phase === "paused"
         ? t(
@@ -145,7 +151,7 @@ export function SaveFileDialog({
     <div
       role="dialog"
       aria-modal="true"
-      aria-label={t("file.saveTitle", {}, "ไฟล์พร้อมแล้ว")}
+      aria-label={dialogTitle}
       onClick={onDismiss}
       className="fixed inset-0 z-9999 flex items-end justify-center bg-black/55 p-3 backdrop-blur-[2px] sm:items-center sm:p-6"
     >
@@ -155,9 +161,7 @@ export function SaveFileDialog({
       >
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-base font-semibold text-text">
-              {t("file.saveTitle", {}, "ไฟล์พร้อมแล้ว")}
-            </p>
+            <p className="text-base font-semibold text-text">{dialogTitle}</p>
             <p className="mt-1 text-xs leading-5 text-text-muted">
               {isIos
                 ? t(
@@ -190,7 +194,11 @@ export function SaveFileDialog({
           <div className="mt-4" data-testid="share-transfer">
             <div
               role="progressbar"
-              aria-label={t("file.transferProgress", {}, "ความคืบหน้าการโหลดไฟล์")}
+              aria-label={t(
+                "file.transferProgress",
+                {},
+                "ความคืบหน้าการรับไฟล์ผลลัพธ์"
+              )}
               aria-valuemin={0}
               aria-valuemax={100}
               aria-valuenow={phase === "ready" ? 100 : (percent ?? undefined)}

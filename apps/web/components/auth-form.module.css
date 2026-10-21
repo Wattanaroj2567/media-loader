@@ -142,11 +142,11 @@
 }
 @media (max-width: 639px), (max-width: 950px) and (max-height: 480px) {
   .modalSurface {
-    inset: 0;
+    inset: var(--auth-viewport-offset-top, 0px) 0 auto;
     width: 100%;
     max-width: none;
-    height: 100dvh;
-    max-height: 100dvh;
+    height: var(--auth-viewport-height, 100dvh);
+    max-height: var(--auth-viewport-height, 100dvh);
     margin: 0;
     border: 0;
     border-radius: 0;

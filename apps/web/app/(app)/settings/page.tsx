@@ -8,6 +8,7 @@ import {
   Bell,
   ChevronDown,
   ChevronRight,
+  LoaderCircle,
   LogOut,
   ShieldCheck,
   Trash2,
@@ -46,10 +47,12 @@ export default function AccountPage() {
   const [notifyPermission, setNotifyPermission] =
     useState<BrowserNotificationPermission>("default");
   const [notifyEnabled, setNotifyEnabled] = useState(false);
+  const [notifyResolved, setNotifyResolved] = useState(false);
   const [notifyBusy, setNotifyBusy] = useState(false);
 
   useEffect(() => {
     // Read browser-only state after mount to avoid hydration mismatches.
+    setNotifyResolved(false);
     setNotifyPermission(getNotificationPermission());
     let active = true;
     void Promise.all([
@@ -62,6 +65,7 @@ export default function AccountPage() {
           status?.enabled ??
           (Boolean(subscription) && hasBrowserNotificationsPreference(user.id));
         setNotifyEnabled(enabled);
+        setNotifyResolved(true);
         if (!enabled) {
           setBrowserNotificationsPreference(false, user.id);
         }
@@ -69,6 +73,7 @@ export default function AccountPage() {
       .catch(() => {
         if (active) {
           setNotifyEnabled(false);
+          setNotifyResolved(true);
           setBrowserNotificationsPreference(false, user.id);
         }
       });
@@ -152,7 +157,7 @@ export default function AccountPage() {
       data-testid="account-page-content"
       className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 sm:py-12"
     >
-      <div className="sticky top-0 z-40 -mx-4 mb-6 border-b border-border/60 bg-bg-base px-4 pt-[env(safe-area-inset-top)] sm:static sm:mx-0 sm:mb-6 sm:border-0 sm:bg-transparent sm:px-0 sm:pt-0">
+      <div className="sticky top-0 z-40 -mx-4 mb-6 bg-bg-base px-4 pt-[env(safe-area-inset-top)] sm:static sm:mx-0 sm:mb-6 sm:bg-transparent sm:px-0 sm:pt-0">
         <Link
           href="/dashboard"
           prefetch={true}
@@ -184,7 +189,7 @@ export default function AccountPage() {
             </span>
           </div>
 
-          <div className="mt-5 flex flex-col gap-4 border-t border-border/70 pt-5 sm:flex-row sm:items-center sm:justify-between min-w-0">
+          <div className="mt-5 flex min-w-0 flex-col gap-4 pt-5 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-4 min-w-0">
               <UserAvatar
                 name={user.name || user.email}
@@ -266,8 +271,10 @@ export default function AccountPage() {
               role="switch"
               aria-label={t("account.notifyTitle", {}, "แจ้งเตือนบนเบราว์เซอร์")}
               aria-describedby="browser-notifications-description"
-              aria-checked={notifyEnabled}
+              aria-checked={notifyResolved && notifyEnabled}
+              aria-busy={!notifyResolved || notifyBusy}
               disabled={
+                !notifyResolved ||
                 notifyBusy ||
                 (!notifyEnabled &&
                   (notifyPermission === "unsupported" ||
@@ -280,16 +287,22 @@ export default function AccountPage() {
               <span
                 aria-hidden="true"
                 className={`flex h-6 w-11 items-center rounded-full border transition-colors duration-200 motion-reduce:transition-none ${
-                  notifyEnabled
-                    ? "border-primary bg-primary"
-                    : "border-border bg-bg-base/70"
+                  !notifyResolved
+                    ? "justify-center border-border bg-bg-base/70"
+                    : notifyEnabled
+                      ? "border-primary bg-primary"
+                      : "border-border bg-bg-base/70"
                 }`}
               >
-                <span
-                  className={`size-4 rounded-full bg-white shadow-sm transition-transform duration-200 motion-reduce:transition-none ${
-                    notifyEnabled ? "translate-x-6" : "translate-x-1"
-                  }`}
-                />
+                {notifyResolved ? (
+                  <span
+                    className={`size-4 rounded-full bg-white shadow-sm transition-transform duration-200 motion-reduce:transition-none ${
+                      notifyEnabled ? "translate-x-6" : "translate-x-1"
+                    }`}
+                  />
+                ) : (
+                  <LoaderCircle className="size-3 animate-spin text-text-muted" />
+                )}
               </span>
             </button>
           </div>

@@ -47,9 +47,37 @@ export function LandingAuthProvider({ children }: { children: ReactNode }) {
     if (!dialog) return;
     if (open && !dialog.open) {
       dialog.showModal();
-      dialog.querySelector<HTMLInputElement>("input")?.focus();
     } else if (!open && dialog.open) dialog.close();
     scrollRef.current?.scrollTo(0, 0);
+
+    if (!open) return;
+
+    const viewport = window.visualViewport;
+    const syncDialogViewport = () => {
+      dialog.style.setProperty(
+        "--auth-viewport-height",
+        `${Math.round(viewport?.height ?? window.innerHeight)}px`
+      );
+      dialog.style.setProperty(
+        "--auth-viewport-offset-top",
+        `${Math.round(viewport?.offsetTop ?? 0)}px`
+      );
+    };
+
+    syncDialogViewport();
+    viewport?.addEventListener("resize", syncDialogViewport);
+    viewport?.addEventListener("scroll", syncDialogViewport);
+    window.addEventListener("resize", syncDialogViewport);
+
+    if (!window.matchMedia("(pointer: coarse)").matches) {
+      dialog.querySelector<HTMLInputElement>("input")?.focus();
+    }
+
+    return () => {
+      viewport?.removeEventListener("resize", syncDialogViewport);
+      viewport?.removeEventListener("scroll", syncDialogViewport);
+      window.removeEventListener("resize", syncDialogViewport);
+    };
   }, [open, mode]);
 
   function closeAuth() {

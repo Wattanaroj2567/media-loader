@@ -36,7 +36,11 @@ import {
   isMobileDevice,
   type Job,
 } from "@/lib/api-client";
-import { FileShareFlow, type FileShareRequest } from "@/components/file-share-flow";
+import {
+  FileShareFlow,
+  type FileShareOutcome,
+  type FileShareRequest,
+} from "@/components/file-share-flow";
 import {
   formatCalendarDate,
   formatCalendarDateTime,
@@ -229,6 +233,7 @@ function JobCard({
   busyAction,
   selectionMode,
   selected,
+  isNotificationTarget,
   onToggleSelection,
   onCancel,
   onCopyLink,
@@ -245,6 +250,7 @@ function JobCard({
   busyAction: "cancel" | "delete" | "pause" | "resume" | "share" | null;
   selectionMode: boolean;
   selected: boolean;
+  isNotificationTarget?: boolean;
   onToggleSelection: () => void;
   onCancel: () => void;
   onCopyLink: () => void;
@@ -307,16 +313,20 @@ function JobCard({
 
   return (
     <article
+      id={`job-card-${job.id}`}
       onClick={selectionMode ? onToggleSelection : undefined}
-      className={`relative overflow-hidden flex flex-col gap-3 rounded-2xl border p-3.5 shadow-[inset_0_1px_0_var(--panel-highlight)] transition-all duration-200 ${
+      className={cn(
+        "relative flex flex-col gap-3 overflow-hidden rounded-2xl border p-3.5 shadow-[inset_0_1px_0_var(--panel-highlight)] transition-all duration-200",
         mode === "history"
           ? "lg:flex-row lg:items-center"
-          : "sm:flex-row sm:items-center"
-      } ${selectionMode ? "cursor-pointer select-none" : ""} ${
+          : "sm:flex-row sm:items-center",
+        selectionMode && "cursor-pointer select-none",
         selected
           ? "border-primary bg-primary/10 ring-2 ring-primary/30 shadow-md"
-          : "border-border bg-bg-elevated/65 hover:border-primary/40 hover:bg-bg-elevated/85"
-      }`}
+          : "border-border bg-bg-elevated/65 hover:border-primary/40 hover:bg-bg-elevated/85",
+        isNotificationTarget &&
+          "border-primary ring-2 ring-primary/35 shadow-md shadow-primary/10"
+      )}
     >
       {job.status === "DOWNLOADING" && (
         <BorderBeam size={180} duration={6} colorFrom="#00c8ff" colorTo="#0070f3" />
@@ -326,8 +336,10 @@ function JobCard({
       )}
       <div
         className={`flex min-w-0 flex-1 gap-3 ${
-          mode === "history" ? "flex-row items-start" : "flex-row items-center"
-        } sm:flex-row sm:items-center`}
+          mode === "queue"
+            ? "flex-col sm:flex-row sm:items-center"
+            : "flex-row items-start sm:items-center"
+        }`}
       >
         {selectionMode && (
           <div
@@ -347,7 +359,11 @@ function JobCard({
         {/* Compact thumbnails keep queue cards readable on mobile. */}
         <div
           data-testid="job-thumbnail"
-          className="h-16 w-28 shrink-0 overflow-hidden rounded-xl sm:h-13.5 sm:w-24"
+          className={`shrink-0 overflow-hidden rounded-xl ${
+            mode === "queue"
+              ? "aspect-video w-full sm:aspect-auto sm:h-13.5 sm:w-24"
+              : "h-16 w-28"
+          }`}
         >
           <Thumb job={job} priority={priority} />
         </div>
@@ -1060,6 +1076,9 @@ export function JobList({ mode, compact = false, onQueueClosed }: JobListProps) 
     updateJob,
   } = useJobPolling();
   const [selectionMode, setSelectionMode] = useState(false);
+  const [notificationReady, setNotificationReady] = useState(false);
+  const [notificationJobId, setNotificationJobId] = useState<string | null>(null);
+  const notificationScrollHandledRef = useRef(false);
   const [selectedJobIds, setSelectedJobIds] = useState<Set<string>>(new Set());
   const [deletingSelection, setDeletingSelection] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -1078,6 +1097,14 @@ export function JobList({ mode, compact = false, onQueueClosed }: JobListProps) 
     onConfirm: () => void;
     variant?: "danger" | "warning" | "info";
   } | null>(null);
+
+  useEffect(() => {
+    if (mode !== "history") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("notification") !== "download-ready") return;
+    setNotificationReady(true);
+    setNotificationJobId(params.get("job"));
+  }, [mode]);
 
   const showConfirm = useCallback(
     (
@@ -1152,6 +1179,26 @@ export function JobList({ mode, compact = false, onQueueClosed }: JobListProps) 
     const startIndex = (currentPage - 1) * HISTORY_PAGE_SIZE;
     return visibleJobs.slice(startIndex, startIndex + HISTORY_PAGE_SIZE);
   }, [currentPage, isHistory, visibleJobs]);
+
+  useEffect(() => {
+    if (!isHistory || !notificationJobId || notificationScrollHandledRef.current) {
+      return;
+    }
+    const jobIndex = visibleJobs.findIndex((job) => job.id === notificationJobId);
+    if (jobIndex < 0) return;
+
+    const targetPage = Math.floor(jobIndex / HISTORY_PAGE_SIZE) + 1;
+    if (currentPage !== targetPage) {
+      setCurrentPage(targetPage);
+      return;
+    }
+
+    if (!displayJobs.some((job) => job.id === notificationJobId)) return;
+    const targetCard = document.getElementById(`job-card-${notificationJobId}`);
+    if (!targetCard) return;
+    notificationScrollHandledRef.current = true;
+    targetCard.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [currentPage, isHistory, notificationJobId, visibleJobs, displayJobs]);
 
   const handlePageChange = useCallback((page: number) => {
     setCurrentPage(page);
@@ -1362,11 +1409,27 @@ export function JobList({ mode, compact = false, onQueueClosed }: JobListProps) 
     [fetchJobs, t, toast]
   );
 
-  const handleShareDone = useCallback(() => {
-    setShareRequest(null);
-    // Refresh availability in case retention cleanup changed the file state.
-    void fetchJobs(true);
-  }, [fetchJobs]);
+  const handleShareDone = useCallback(
+    (outcome: FileShareOutcome) => {
+      setShareRequest(null);
+      if (outcome === "dismissed") {
+        const title = shareRequest?.title || shareRequest?.filename || "ไฟล์นี้";
+        const shortTitle = title.slice(0, 72);
+        toast(
+          "info",
+          t("file.savedLaterTitle", {}, "เก็บไฟล์ไว้ให้แล้ว"),
+          t(
+            "file.savedLaterDesc",
+            { title: shortTitle },
+            `ไฟล์ “${shortTitle}” เก็บไว้ชั่วคราว ไปที่ประวัติแล้วแตะ “บันทึกลงเครื่อง” อีกครั้งได้ โดยไม่ต้องเริ่มงานดาวน์โหลดจากต้นทางใหม่`
+          )
+        );
+      }
+      // Refresh availability in case retention cleanup changed the file state.
+      void fetchJobs(true);
+    },
+    [fetchJobs, shareRequest, t, toast]
+  );
 
   const analyzeOriginalLink = useCallback(
     (job: Job) => {
@@ -1564,6 +1627,41 @@ export function JobList({ mode, compact = false, onQueueClosed }: JobListProps) 
         <OfflineBanner message={loadError} mode={mode} retrying={retrying} />
       )}
 
+      {isHistory && notificationReady && (
+        <div
+          role="status"
+          className="mb-4 flex items-start gap-3 rounded-2xl border border-primary/25 bg-primary/10 px-4 py-3.5 text-text shadow-sm"
+        >
+          <Download
+            aria-hidden="true"
+            className="mt-0.5 size-5 shrink-0 text-primary"
+          />
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold">
+              {t("history.notificationReadyTitle", {}, "ไฟล์พร้อมบันทึกลงเครื่องแล้ว")}
+            </p>
+            <p className="mt-1 text-xs leading-relaxed text-text-muted">
+              {t(
+                "history.notificationReadyDesc",
+                {},
+                "งานดาวน์โหลดจากต้นทางเสร็จแล้ว แตะ “บันทึกลงเครื่อง” ที่รายการนี้เพื่อบันทึกไฟล์ลงอุปกรณ์"
+              )}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setNotificationReady(false);
+              setNotificationJobId(null);
+            }}
+            aria-label={t("common.close", {}, "ปิด")}
+            className="grid size-8 shrink-0 place-items-center rounded-full text-text-muted transition-colors hover:bg-bg-surface hover:text-text"
+          >
+            <X aria-hidden="true" className="size-4" />
+          </button>
+        </div>
+      )}
+
       {/* List */}
       {loading ? (
         <div className="flex min-h-48 items-center justify-center text-sm text-text-muted">
@@ -1585,6 +1683,7 @@ export function JobList({ mode, compact = false, onQueueClosed }: JobListProps) 
                 busyAction={busyState?.id === job.id ? busyState.action : null}
                 selectionMode={mode === "history" && selectionMode}
                 selected={selectedJobIds.has(job.id)}
+                isNotificationTarget={job.id === notificationJobId}
                 onToggleSelection={() => toggleHistorySelection(job.id)}
                 onCancel={() => void cancelJob(job)}
                 onCopyLink={() => void copyLink(job)}
