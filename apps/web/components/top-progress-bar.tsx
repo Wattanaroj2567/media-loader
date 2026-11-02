@@ -6,42 +6,6 @@ import { usePathname } from "next/navigation";
 import { useT } from "@/lib/i18n/context";
 import { cn } from "@/lib/utils";
 
-const PROGRESS_STYLES = `
-@keyframes top-progress-sweep {
-  0% {
-    transform: translateX(-100%);
-  }
-  60% {
-    transform: translateX(-20%);
-  }
-  85% {
-    transform: translateX(0%);
-  }
-  100% {
-    transform: translateX(0%);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .top-progress-line {
-    animation: none !important;
-    display: none !important;
-  }
-}
-`;
-
-function useGlobalStyles(css: string, id: string) {
-  useEffect(() => {
-    if (typeof document === "undefined") return;
-    if (document.getElementById(id)) return;
-
-    const style = document.createElement("style");
-    style.id = id;
-    style.textContent = css;
-    document.head.appendChild(style);
-  }, [css, id]);
-}
-
 interface TopProgressBarProps {
   className?: string;
 }
@@ -57,8 +21,6 @@ export function TopProgressBar({ className }: TopProgressBarProps) {
   const routeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const finishTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useGlobalStyles(PROGRESS_STYLES, "top-progress-bar-styles");
-
   const finishProgress = useCallback(() => {
     if (finishTimer.current) clearTimeout(finishTimer.current);
     setFading(true);
@@ -66,7 +28,7 @@ export function TopProgressBar({ className }: TopProgressBarProps) {
       setActive(false);
       setFading(false);
       finishTimer.current = null;
-    }, 250);
+    }, 300);
   }, []);
 
   useEffect(() => {
@@ -168,25 +130,20 @@ export function TopProgressBar({ className }: TopProgressBarProps) {
       aria-label={t("common.loading", {}, "Loading page")}
       aria-valuemin={0}
       aria-valuemax={100}
+      aria-valuenow={fading ? 100 : undefined}
       className={cn(
-        "pointer-events-none fixed inset-x-0 top-0 z-100 h-[2.5px] overflow-hidden transition-opacity duration-300 motion-reduce:hidden",
+        "top-progress-track pointer-events-none fixed inset-x-0 top-0 z-100 h-[3px] overflow-hidden transition-opacity duration-300 motion-reduce:hidden",
         fading ? "opacity-0" : "opacity-100",
         className
       )}
     >
       <div
-        className="top-progress-line relative h-full w-full"
-        style={{
-          background: "linear-gradient(90deg, #0284c7 0%, #0ea5e9 50%, #00c8ff 100%)",
-          boxShadow: "0 0 10px rgba(0, 200, 255, 0.8), 0 0 4px rgba(2, 132, 199, 0.6)",
-          animation: "top-progress-sweep 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards",
-        }}
-      >
-        <span
-          className="absolute right-0 top-1/2 -translate-y-1/2 w-16 h-2 bg-radial from-[#00c8ff] via-[#00c8ff]/60 to-transparent blur-[1px] shadow-[0_0_10px_#00c8ff]"
-          aria-hidden="true"
-        />
-      </div>
+        className={cn(
+          "top-progress-segment absolute inset-y-0 left-0 rounded-full",
+          fading && "top-progress-segment-complete"
+        )}
+        aria-hidden="true"
+      />
     </div>
   );
 }

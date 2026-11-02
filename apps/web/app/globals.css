@@ -80,6 +80,47 @@
   }
 }
 
+@keyframes top-progress-travel {
+  0% {
+    opacity: 0.55;
+    transform: translateX(-115%);
+  }
+  55% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.7;
+    transform: translateX(330%);
+  }
+}
+
+.top-progress-track {
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+}
+
+.top-progress-segment {
+  width: 34%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--primary) 24%,
+    var(--color-brand-sky) 72%,
+    transparent
+  );
+  box-shadow: 0 0 10px color-mix(in srgb, var(--primary) 68%, transparent);
+  animation: top-progress-travel 1.35s cubic-bezier(0.45, 0, 0.2, 1) infinite;
+  will-change: transform;
+}
+
+.top-progress-segment-complete {
+  width: 100%;
+  transform: translateX(0);
+  animation: none;
+  transition:
+    width 180ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
 /* Smooth GPU-composited sheen for loading skeletons (transform-only). */
 .skeleton-shimmer {
   position: relative;
