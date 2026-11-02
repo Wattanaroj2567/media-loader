@@ -445,6 +445,12 @@ test("history selection controls remain visible on mobile", async ({
   await expect(itemCheckbox).toBeChecked();
   await expect
     .poll(() => itemCard.evaluate((card) => getComputedStyle(card).backgroundColor))
+    .not.toBe(unselectedBackground);
+  await itemCard.click();
+  await page.mouse.move(0, 0);
+  await expect(itemCheckbox).not.toBeChecked();
+  await expect
+    .poll(() => itemCard.evaluate((card) => getComputedStyle(card).backgroundColor))
     .toBe(unselectedBackground);
 
   const checkboxPlacement = await itemCheckbox.evaluate((checkbox) => {
@@ -743,10 +749,14 @@ test.describe("Mobile share / save flow (simulated iPhone)", () => {
       .click();
 
     await expect(dialog.getByRole("progressbar")).toBeVisible();
-    await expect(dialog.getByText(/กำลังโหลดไฟล์|loading file/i).first()).toBeVisible();
     await expect(
-      dialog.getByText(/กำลังโหลดไฟล์ก่อนบันทึก|loading the file before saving/i)
-    ).toBeVisible({ timeout: 15000 });
+      dialog.getByText(/กำลังรับไฟล์ผลลัพธ์|loading result file/i).first()
+    ).toBeVisible();
+    await expect(dialog.getByRole("progressbar")).toHaveAttribute(
+      "aria-valuenow",
+      "100",
+      { timeout: 15000 }
+    );
     // The share sheet waits for a fresh tap instead of failing on iOS.
     expect(await page.evaluate(() => window.__sharedPayload)).toBeNull();
 
@@ -791,9 +801,12 @@ test.describe("Mobile share / save flow (simulated iPhone)", () => {
       .first()
       .click();
 
-    await expect(dialog.getByText(/พักการโหลดไว้|paused while/i)).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(dialog).toHaveAccessibleName(
+      /พักการเตรียมไฟล์|file preparation paused/i,
+      {
+        timeout: 10000,
+      }
+    );
     await expect(page.getByText(/แชร์ไฟล์ไม่สำเร็จ|could not share/i)).toHaveCount(0);
 
     await setPageHidden(page, false);

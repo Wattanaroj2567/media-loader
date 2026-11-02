@@ -20,8 +20,10 @@ The API and worker use the same local media-output volume in the default
 `media-output` volume. A worker on a different host must not claim jobs whose
 files it cannot share with the API.
 
-See the [architecture diagram](../diagrams/media-loader-architecture.html) or
-[dark-mode diagram](../diagrams/media-loader-architecture-dark.html).
+See the illustrated architecture in [English](../images/media-loader-architecture-en.png)
+or [Thai](../images/media-loader-architecture-th.png). Follow the numbered flow
+from URL entry to owner-checked file delivery; the bottom strip shows the checked
+egress path used for source requests.
 
 ## Runtime modes
 
@@ -222,7 +224,8 @@ users.
 - Authentication and dashboard UI
 - URL analysis and format selection
 - Queue, history, and settings pages
-- Queue cards use compact 112 px thumbnails on mobile and show the localized
+- Queue cards use full-width 16:9 thumbnails on mobile and compact 96 × 54 px
+  thumbnails from the small-screen breakpoint, and show the localized
   creation date and time; history cards show the download date. The media
   viewer places its close control at the upper right on mobile. Opt-in Web Push
   subscriptions deliver completed, failed, and policy-blocked alerts for signed-in

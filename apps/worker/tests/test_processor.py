@@ -9,11 +9,11 @@ from worker.processor import (
     JobCancelled,
     MediaDownloadError,
     _download_validated,
+    _download_with_yt_dlp,
     build_format_selector,
     calculate_download_progress,
     classify_download_error,
     create_progress_hook,
-    download_media,
     ffmpeg_error_tail,
     get_file_size_mb,
     is_terminal_status,
@@ -96,20 +96,18 @@ def test_download_retries_403_with_fresh_extraction(monkeypatch, tmp_path):
         def prepare_filename(self, _info):
             return str(downloaded_file)
 
-    async def no_delay(_seconds):
+    def no_delay(_seconds):
         return None
 
     monkeypatch.setattr(processor.yt_dlp, "YoutubeDL", FakeYoutubeDL)
     monkeypatch.setattr(processor, "is_job_cancelled", lambda _job_id: False)
-    monkeypatch.setattr(processor.asyncio, "sleep", no_delay)
+    monkeypatch.setattr(processor.time, "sleep", no_delay)
 
-    result = asyncio.run(
-        download_media(
-            "https://example.com/media",
-            tmp_path,
-            "137",
-            "job-retry",
-        )
+    result = _download_with_yt_dlp(
+        "https://example.com/media",
+        tmp_path,
+        "137",
+        "job-retry",
     )
 
     assert attempts == 2
@@ -160,7 +158,7 @@ def test_download_media_preserves_direct_giphy_gif(monkeypatch, tmp_path):
     monkeypatch.setattr(processor.yt_dlp, "YoutubeDL", UnexpectedYoutubeDL)
     monkeypatch.setattr(processor, "is_job_cancelled", lambda _job_id: False)
 
-    result = asyncio.run(download_media(source_url, tmp_path, "0", "job-giphy", "gif"))
+    result = _download_with_yt_dlp(source_url, tmp_path, "0", "job-giphy", "gif")
 
     assert result == tmp_path / "giphy.gif"
     assert result.read_bytes() == payload
@@ -197,15 +195,13 @@ def test_download_media_uses_egress_proxy_for_facebook_cdn_gif(monkeypatch, tmp_
     monkeypatch.setattr(processor, "urlopen", unexpected_direct_open, raising=False)
     monkeypatch.setattr(processor, "is_job_cancelled", lambda _job_id: False)
 
-    result = asyncio.run(
-        download_media(
-            source_url,
-            tmp_path,
-            "0",
-            "job-fbsbx-gif",
-            "gif",
-            selected_has_video=True,
-        )
+    result = _download_with_yt_dlp(
+        source_url,
+        tmp_path,
+        "0",
+        "job-fbsbx-gif",
+        "gif",
+        selected_has_video=True,
     )
 
     assert result == downloaded_file

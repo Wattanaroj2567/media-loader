@@ -14,6 +14,8 @@ from urllib.parse import urlsplit
 from urllib.request import ProxyHandler, Request, build_opener
 
 import yt_dlp
+from yt_dlp.networking.common import Response
+from yt_dlp.networking.exceptions import HTTPError
 from yt_dlp.networking.impersonate import ImpersonateTarget
 from yt_dlp.utils import parse_count
 
@@ -39,6 +41,79 @@ INSTAGRAM_VIEW_COUNT_PATTERN = re.compile(
     rb'\\?"video_view_count\\?"\s*:\s*(?P<count>\d+)',
 )
 _MAX_INSTAGRAM_EMBED_BYTES = 1_000_000
+_MAX_METADATA_RESPONSE_BYTES = 8 * 1024 * 1024
+_MAX_METADATA_EXTRACTION_BYTES = 32 * 1024 * 1024
+
+
+class MetadataLimitExceeded(Exception):
+    """Stop oversized metadata responses without retrying the source."""
+
+
+class _LimitedMetadataResponse(Response):
+    def __init__(self, response: Response, downloader: "_MetadataYoutubeDL"):
+        """Wrap a response with a per-response limit and shared extraction budget."""
+        super().__init__(
+            response,
+            response.url,
+            response.headers,
+            response.status,
+            response.reason,
+            response.extensions,
+        )
+        self._downloader = downloader
+        self._remaining = _MAX_METADATA_RESPONSE_BYTES
+
+    def read(self, amt: int | None = None) -> bytes:
+        """Read decompressed bytes within both budgets, closing on overflow."""
+        chunks = []
+        unlimited = amt is None or amt < 0
+        while unlimited or amt > 0:
+            limit = min(self._remaining, self._downloader.remaining_metadata_bytes)
+            size = min(64 * 1024, limit + 1)
+            if not unlimited:
+                size = min(size, amt)
+            chunk = self.fp.read(size)
+            if len(chunk) > limit:
+                self.close()
+                raise MetadataLimitExceeded("Metadata response exceeds the size limit")
+            self._remaining -= len(chunk)
+            self._downloader.remaining_metadata_bytes -= len(chunk)
+            if not chunk:
+                break
+            chunks.append(chunk)
+            if not unlimited:
+                amt -= len(chunk)
+        return b"".join(chunks)
+
+
+class _MetadataYoutubeDL(yt_dlp.YoutubeDL):
+    def __init__(self, options):
+        """Initialize a byte budget shared by every response in this extraction."""
+        super().__init__(options)
+        self.remaining_metadata_bytes = _MAX_METADATA_EXTRACTION_BYTES
+
+    def build_request_director(self, handlers, preferences=None):
+        """Exclude transports that buffer entire bodies before enforcing limits."""
+        # yt-dlp's urllib handler buffers and decompresses the entire body
+        # before returning a Response, which would bypass the read budget.
+        streaming_handlers = [
+            handler for handler in handlers if handler.RH_KEY != "Urllib"
+        ]
+        return super().build_request_director(streaming_handlers, preferences)
+
+    def urlopen(self, request):
+        """Apply the shared metadata budget to successful and HTTP error responses."""
+        try:
+            response = super().urlopen(request)
+        except HTTPError as error:
+            # Extractors may deliberately accept an HTTP error response and
+            # parse its body through expected_status.
+            error.response = _LimitedMetadataResponse(error.response, self)
+            raise
+        # Reads are bounded after transport decompression, including responses
+        # with missing or misleading Content-Length headers.
+        return _LimitedMetadataResponse(response, self)
+
 
 _INPUT_PLATFORM_BY_HOST = {
     "youtube.com": "Youtube",
@@ -122,6 +197,7 @@ def _is_animated_gif(raw_info: dict[str, Any]) -> bool:
 
 
 def _platform_name(raw_info: dict[str, Any]) -> str:
+    """Resolve the display platform from extractor metadata and the source host."""
     input_url = str(raw_info.get("_media_loader_input_url") or "")
     input_host = (urlsplit(input_url).hostname or "").lower().removeprefix("www.")
     for host, platform_name in _INPUT_PLATFORM_BY_HOST.items():
@@ -251,7 +327,7 @@ def _run_yt_dlp_sync(url: str) -> dict[str, Any]:
             pass
 
         try:
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            with _MetadataYoutubeDL(ydl_opts) as ydl:
                 info = ydl.extract_info(url, download=False)
                 if not info:
                     raise ValueError("No metadata returned from yt-dlp")
@@ -268,6 +344,8 @@ def _run_yt_dlp_sync(url: str) -> dict[str, Any]:
                             info = dict(info)
                             info["view_count"] = instagram_view_count
                 return info
+        except MetadataLimitExceeded:
+            raise
         except Exception as error:
             last_error = error
             logger.warning(
@@ -284,6 +362,7 @@ def _run_yt_dlp_sync(url: str) -> dict[str, Any]:
 
 
 def _as_positive_int(value: Any) -> int | None:
+    """Normalize a positive integer, returning None for invalid values."""
     try:
         number = int(float(value))
     except (TypeError, ValueError):
@@ -292,6 +371,7 @@ def _as_positive_int(value: Any) -> int | None:
 
 
 def _as_non_negative_int(value: Any) -> int | None:
+    """Normalize a nonnegative integer, returning None for invalid values."""
     try:
         number = int(float(value))
     except (TypeError, ValueError):
@@ -337,12 +417,14 @@ def _quality_tier(height: int, width: int | None) -> int:
 
 
 def _codec_label(codec: str | None) -> str | None:
+    """Normalize a codec name for display in a format label."""
     if not codec or codec == "none":
         return None
     return codec.split(".")[0].upper()
 
 
 def _video_preference(raw_format: dict[str, Any]) -> tuple[int, int, int, int, int]:
+    """Rank video formats for selection using codec and container compatibility."""
     extension = str(raw_format.get("ext") or "").lower()
     codec = str(raw_format.get("vcodec") or "").lower()
     return (

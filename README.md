@@ -47,23 +47,38 @@ URL input → Validation → Policy check → Analysis → Rights confirmation �
 
 ## Architecture
 
-| Component | Responsibility | Deployment |
-| --- | --- | --- |
-| `apps/web` | Next.js web application | Vercel |
-| `apps/api` | FastAPI URL analysis, policy checks, and job creation | Separate container host |
-| `apps/worker` | Queue polling and media processing with yt-dlp and FFmpeg | Worker host sharing the API's output volume |
-| `apps/proxy` | Public-IP egress proxy for source requests | Private backend network |
-| `supabase` | Authentication, PostgreSQL, and Row Level Security | Supabase |
+Follow steps **1–7** from entering a URL to saving the finished file. The strip
+below the main flow shows how API and worker requests reach public media sources
+through the checked egress proxy.
+
+<p align="center">
+  <a href="docs/images/media-loader-architecture-en.png">
+    <img src="docs/images/media-loader-architecture-en.png" alt="Seven-step Media Loader architecture: web app, API checks, rights confirmation, Supabase queue, worker processing, shared temporary files, and owner-checked delivery through API and Web." width="100%">
+  </a>
+</p>
+
+<p align="center">
+  <a href="docs/images/media-loader-architecture-en.png">View full-size English image</a> ·
+  <a href="docs/images/media-loader-architecture-th.png">ดูภาพภาษาไทย</a>
+</p>
 
 Vercel hosts the frontend only. The API and worker run separately; the worker
 does not run inside Vercel Functions. In the default `local_temp` mode, the API
-and worker must share the same output volume.
+and worker must share the same output volume. Supabase stores account and job
+data; generated media files stay in the shared temporary volume.
 
-<p align="center">
-  <a href="docs/diagrams/media-loader-architecture.svg">
-    <img src="docs/diagrams/media-loader-architecture.svg" alt="Media Loader architecture diagram" width="100%">
-  </a>
-</p>
+<details>
+<summary>Component reference</summary>
+
+| Component     | Responsibility                                            | Deployment                                  |
+| ------------- | --------------------------------------------------------- | ------------------------------------------- |
+| `apps/web`    | Next.js web application                                   | Vercel                                      |
+| `apps/api`    | FastAPI URL analysis, policy checks, and job creation     | Separate container host                     |
+| `apps/worker` | Queue polling and media processing with yt-dlp and FFmpeg | Worker host sharing the API's output volume |
+| `apps/proxy`  | Public-IP egress proxy for source requests                | Private backend network                     |
+| `supabase`    | Authentication, PostgreSQL, and Row Level Security        | Supabase                                    |
+
+</details>
 
 ## Getting Started
 
@@ -115,20 +130,20 @@ the [developer guide](docs/en/DEVELOPER_GUIDE.md).
 
 ## Development Commands
 
-| Command | Purpose |
-| --- | --- |
-| `pnpm dev` | Start the web app, API, worker, and egress proxy for local development |
-| `pnpm dev:web` | Start only the Next.js web app |
-| `pnpm dev:api` | Start only the FastAPI service |
-| `pnpm dev:worker` | Start only the media worker |
-| `pnpm dev:proxy` | Start only the SSRF egress proxy on `127.0.0.1:3128` |
-| `pnpm lint` | Run lint checks across the repository |
-| `pnpm deadcode` | Audit unused code across the repository |
-| `pnpm build` | Build the Next.js web app |
-| `pnpm test:web` | Run web unit tests |
-| `pnpm test:api` | Run API tests |
-| `pnpm test:worker` | Run worker tests |
-| `pnpm test:proxy` | Run egress proxy tests |
+| Command            | Purpose                                                                |
+| ------------------ | ---------------------------------------------------------------------- |
+| `pnpm dev`         | Start the web app, API, worker, and egress proxy for local development |
+| `pnpm dev:web`     | Start only the Next.js web app                                         |
+| `pnpm dev:api`     | Start only the FastAPI service                                         |
+| `pnpm dev:worker`  | Start only the media worker                                            |
+| `pnpm dev:proxy`   | Start only the SSRF egress proxy on `127.0.0.1:3128`                   |
+| `pnpm lint`        | Run lint checks across the repository                                  |
+| `pnpm deadcode`    | Audit unused code across the repository                                |
+| `pnpm build`       | Build the Next.js web app                                              |
+| `pnpm test:web`    | Run web unit tests                                                     |
+| `pnpm test:api`    | Run API tests                                                          |
+| `pnpm test:worker` | Run worker tests                                                       |
+| `pnpm test:proxy`  | Run egress proxy tests                                                 |
 
 ## Documentation
 
