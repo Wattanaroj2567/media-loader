@@ -49,7 +49,7 @@ interface TopProgressBarProps {
 export function TopProgressBar({ className }: TopProgressBarProps) {
   const { t } = useT();
   const pathname = usePathname();
-  const [active, setActive] = useState(false);
+  const [active, setActive] = useState(true);
   const [fading, setFading] = useState(false);
   const navigationStarted = useRef(false);
   const previousPathname = useRef(pathname);
@@ -68,6 +68,25 @@ export function TopProgressBar({ className }: TopProgressBarProps) {
       finishTimer.current = null;
     }, 250);
   }, []);
+
+  useEffect(() => {
+    const finishInitialLoad = () => {
+      if (!navigationStarted.current) finishProgress();
+    };
+
+    if (document.readyState === "complete") {
+      finishInitialLoad();
+      return;
+    }
+
+    window.addEventListener("load", finishInitialLoad, { once: true });
+    const initialLoadTimer = setTimeout(finishInitialLoad, 10_000);
+
+    return () => {
+      window.removeEventListener("load", finishInitialLoad);
+      clearTimeout(initialLoadTimer);
+    };
+  }, [finishProgress]);
 
   useEffect(() => {
     const startProgressForLink = (event: MouseEvent) => {
