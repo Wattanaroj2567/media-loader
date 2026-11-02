@@ -325,7 +325,7 @@ function LandingPageContent() {
         <div
           data-testid="landing-topbar"
           className={cn(
-            "mx-auto flex h-13.5 w-full items-center justify-between gap-2 border-b border-border/60 bg-bg-base px-3.5 transition-[background-color,border-color,box-shadow] duration-300 sm:h-14 sm:px-6 lg:h-auto lg:max-w-272 lg:rounded-full lg:border-0 lg:bg-transparent lg:p-2 lg:pl-5",
+            "mx-auto flex h-13.5 w-full items-center justify-between gap-2 border-b border-border/60 bg-bg-base px-3.5 transition-[background-color,border-color,box-shadow] duration-300 sm:h-14 sm:px-6 lg:h-auto lg:max-w-272 lg:rounded-full lg:border lg:bg-transparent lg:p-2 lg:pl-5",
             isScrolled
               ? "shadow-none lg:border lg:border-border/60 lg:bg-white/60 lg:shadow-md lg:shadow-black/5 lg:backdrop-blur-xl lg:backdrop-saturate-150 dark:lg:border-white/12 dark:lg:bg-[#16181f]/60 dark:lg:shadow-black/30"
               : "shadow-none lg:border-transparent lg:bg-transparent lg:shadow-none dark:lg:border-transparent dark:lg:bg-transparent"

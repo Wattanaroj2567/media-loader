@@ -5,9 +5,13 @@ Handles download and conversion operations using yt-dlp and FFmpeg.
 """
 
 import asyncio
+import json
 import logging
+import os
 import shutil
+import signal
 import subprocess
+import sys
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -35,6 +39,7 @@ settings = get_settings()
 TERMINAL_STATUSES = {"COMPLETED", "FAILED", "BLOCKED", "CANCELLED"}
 SOURCE_DOWNLOAD_ATTEMPTS = 2
 SOURCE_RETRY_DELAY_SECONDS = 1.0
+MIN_FREE_DISK_BYTES = 64 * 1024 * 1024
 
 
 class JobCancelled(Exception):
@@ -43,6 +48,31 @@ class JobCancelled(Exception):
 
 class MediaDownloadError(Exception):
     """Safe source-download error that can be persisted with the job."""
+
+
+def check_job_resources(job_dir: Path, *, require_capacity: bool = False) -> None:
+    """Bound temporary streams, merged output, and free space on the shared disk."""
+    max_bytes = settings.max_file_size_mb * 1024 * 1024
+    used_bytes = 0
+    for path in job_dir.rglob("*"):
+        if not path.is_file():
+            continue
+        try:
+            size = path.stat().st_size
+        except FileNotFoundError:
+            continue  # yt-dlp can rename a partial file while it is being checked.
+        if size > max_bytes:
+            raise MediaDownloadError("ไฟล์จากต้นทางหรือไฟล์ผลลัพธ์มีขนาดเกินกำหนด")
+        used_bytes += size
+    # Separate audio/video streams and their merged output coexist temporarily.
+    max_job_bytes = 3 * max_bytes
+    if used_bytes > max_job_bytes:
+        raise MediaDownloadError("ไฟล์ชั่วคราวของงานมีขนาดเกินกำหนด")
+    required = MIN_FREE_DISK_BYTES
+    if require_capacity:
+        required += max_job_bytes - used_bytes
+    if shutil.disk_usage(job_dir).free < required:
+        raise MediaDownloadError("พื้นที่จัดเก็บไฟล์ชั่วคราวไม่เพียงพอ กรุณาลองใหม่ภายหลัง")
 
 
 def urlopen(request: Request, *, timeout: int):
@@ -55,6 +85,7 @@ def urlopen(request: Request, *, timeout: int):
 
 
 def is_terminal_status(status: str) -> bool:
+    """Return whether a job can no longer transition through processing."""
     return status in TERMINAL_STATUSES
 
 
@@ -64,6 +95,7 @@ def build_format_selector(
     selected_has_audio: bool = False,
     selected_has_video: bool = False,
 ) -> str:
+    """Select source streams compatible with the requested output format."""
     if output_format == "mp4":
         if format_id == "best":
             return "bestvideo+bestaudio[ext=m4a]/bestvideo+bestaudio/best"
@@ -99,6 +131,7 @@ def is_retryable_source_error(error: Exception) -> bool:
 
 
 def calculate_download_progress(progress_data: dict) -> int:
+    """Estimate download percentage while reserving completion for processing."""
     downloaded = progress_data.get("downloaded_bytes") or 0
     total = progress_data.get("total_bytes") or progress_data.get(
         "total_bytes_estimate"
@@ -111,17 +144,20 @@ def calculate_download_progress(progress_data: dict) -> int:
 def create_progress_hook(
     job_id: str,
     *,
+    job_dir: Path | None = None,
     cancellation_checker: Callable[[str], bool] = is_job_cancelled,
     progress_updater: Callable[
         [str, int, float | None, int | None], object
     ] = update_job_progress,
 ):
+    """Build a throttled progress callback with cancellation and resource checks."""
     last_progress = -1
     last_cancel_check_time = 0.0
     cancel_check_interval = 1.0  # Check cancellation every 1.0s for instant response
     is_cancelled_cached = False
 
     def hook(progress_data: dict) -> None:
+        """Enforce download limits and report progress while honoring cancellation."""
         nonlocal last_progress, last_cancel_check_time, is_cancelled_cached
 
         now = time.time()
@@ -131,6 +167,15 @@ def create_progress_hook(
 
         if is_cancelled_cached:
             raise JobCancelled(f"Job {job_id} was cancelled")
+
+        max_bytes = settings.max_file_size_mb * 1024 * 1024
+        if any(
+            (progress_data.get(key) or 0) > max_bytes
+            for key in ("downloaded_bytes", "total_bytes")
+        ):
+            raise MediaDownloadError("ไฟล์จากต้นทางมีขนาดเกินกำหนด")
+        if job_dir is not None:
+            check_job_resources(job_dir)
 
         status = progress_data.get("status")
         if status == "finished":
@@ -202,6 +247,7 @@ def ffmpeg_error_tail(log_path: Path, limit: int = 500) -> str:
 
 
 def get_file_size_mb(file_path: Path) -> float:
+    """Return the file size in MiB for job metadata."""
     return file_path.stat().st_size / (1024 * 1024)
 
 
@@ -248,6 +294,7 @@ def _download_direct_giphy_gif(url: str, output_path: Path, job_id: str) -> Path
                     downloaded += len(chunk)
                     if downloaded > max_bytes:
                         raise MediaDownloadError("ไฟล์จากต้นทางมีขนาดเกินกำหนด")
+                    check_job_resources(output_path)
                     output.write(chunk)
                     if content_length:
                         progress = min(99, int(downloaded / content_length * 100))
@@ -277,6 +324,52 @@ async def download_media(
     selected_has_audio: bool = False,
     selected_has_video: bool = False,
 ) -> Optional[Path]:
+    """Run source download and yt-dlp's FFmpeg children under resource monitoring."""
+    check_job_resources(output_path, require_capacity=True)
+    result_path = output_path / "download-result.json"
+    result_path.unlink(missing_ok=True)
+    arguments = {
+        "url": url,
+        "output_path": str(output_path),
+        "format_id": format_id,
+        "job_id": job_id,
+        "output_format": output_format,
+        "selected_has_audio": selected_has_audio,
+        "selected_has_video": selected_has_video,
+    }
+    success = await _run_cancellable_command(
+        [sys.executable, "-m", "worker.processor"],
+        job_id=job_id,
+        timeout_seconds=settings.job_timeout_minutes * 60,
+        job_dir=output_path,
+        input_data=json.dumps(arguments).encode("utf-8"),
+    )
+    if not success or not result_path.is_file():
+        raise MediaDownloadError("ดาวน์โหลดจากแหล่งต้นทางไม่สำเร็จ")
+    result = json.loads(result_path.read_text(encoding="utf-8"))
+    result_path.unlink(missing_ok=True)
+    if result.get("cancelled"):
+        raise JobCancelled(f"Job {job_id} was cancelled")
+    if result.get("error"):
+        raise MediaDownloadError(result["error"])
+    filename = result.get("filename")
+    if filename is None:
+        return None
+    downloaded = (output_path / filename).resolve()
+    if downloaded.parent != output_path.resolve() or not downloaded.is_file():
+        raise MediaDownloadError("ไฟล์ที่ได้รับจากต้นทางใช้การไม่ได้")
+    return downloaded
+
+
+def _download_with_yt_dlp(
+    url: str,
+    output_path: Path,
+    format_id: str,
+    job_id: str,
+    output_format: str = "mp4",
+    selected_has_audio: bool = False,
+    selected_has_video: bool = False,
+) -> Optional[Path]:
     """Download media using yt-dlp in restricted mode.
 
     Args:
@@ -291,31 +384,19 @@ async def download_media(
     egress_proxy = settings.media_egress_proxy.strip()
     if not egress_proxy:
         raise MediaDownloadError("Secure source proxy is not configured")
+    if output_format == "gif" and is_direct_giphy_gif_url(url):
+        try:
+            return _download_direct_giphy_gif(url, output_path, job_id)
+        except (JobCancelled, MediaDownloadError):
+            raise
+        except Exception as error:
+            raise MediaDownloadError(classify_download_error(error)) from error
     logger.info(
         "Downloading from %s with format %s (target: %s)",
         safe_url_reference(url),
         format_id,
         output_format,
     )
-
-    if output_format == "gif" and is_direct_giphy_gif_url(url):
-        try:
-            return await asyncio.to_thread(
-                _download_direct_giphy_gif,
-                url,
-                output_path,
-                job_id,
-            )
-        except (JobCancelled, MediaDownloadError):
-            raise
-        except Exception as error:
-            if is_job_cancelled(job_id):
-                raise JobCancelled(f"Job {job_id} was cancelled") from error
-            logger.error(
-                "Direct Giphy GIF download failed (%s)",
-                type(error).__name__,
-            )
-            raise MediaDownloadError(classify_download_error(error)) from error
 
     format_selector = build_format_selector(
         format_id,
@@ -340,7 +421,10 @@ async def download_media(
         "extractor_args": {
             "youtube": {"player_client": ["web_embedded"]},
         },
-        "progress_hooks": [create_progress_hook(job_id)],
+        "progress_hooks": [create_progress_hook(job_id, job_dir=output_path)],
+        "max_filesize": settings.max_file_size_mb * 1024 * 1024,
+        "buffersize": 64 * 1024,
+        "noresizebuffer": True,
         # Force maximum-quality 320kbps AAC when transcoding incompatible audio streams (like OPUS/webm to MP4)
         "postprocessor_args": {"merger": ["-c:a", "aac", "-b:a", "320k"]},
         # Security: No cookies, no login bypass
@@ -393,11 +477,16 @@ async def download_media(
                     else:
                         # Try to find the file by pattern
                         for file in output_path.iterdir():
-                            if file.is_file():
+                            if file.is_file() and file.suffix.lower() not in {
+                                ".part",
+                                ".ytdl",
+                                ".json",
+                                ".log",
+                            }:
                                 logger.info(f"Found downloaded file {file}")
                                 return file
                 return None
-        except JobCancelled:
+        except (JobCancelled, MediaDownloadError):
             raise
         except Exception as error:
             if is_job_cancelled(job_id):
@@ -408,7 +497,7 @@ async def download_media(
                     attempt,
                     SOURCE_DOWNLOAD_ATTEMPTS,
                 )
-                await asyncio.sleep(SOURCE_RETRY_DELAY_SECONDS)
+                time.sleep(SOURCE_RETRY_DELAY_SECONDS)
                 continue
             logger.error(
                 "Download failed (%s)",
@@ -425,37 +514,83 @@ async def _run_cancellable_command(
     job_id: str,
     timeout_seconds: int,
     stderr_log_path: Path | None = None,
+    job_dir: Path | None = None,
+    input_data: bytes | None = None,
 ) -> bool:
+    """Run a monitored command and reap its process tree on every exit path."""
+    if job_dir is None and stderr_log_path is not None:
+        job_dir = stderr_log_path.parent
+    if job_dir is not None:
+        check_job_resources(job_dir)
+    process = None
+    cancellation_task = None
     err_file = None
     if stderr_log_path is not None:
         err_file = open(stderr_log_path, "wb")
     try:
         process = await asyncio.create_subprocess_exec(
             *command,
+            stdin=asyncio.subprocess.PIPE if input_data is not None else None,
             stdout=asyncio.subprocess.DEVNULL,
             stderr=err_file if err_file is not None else asyncio.subprocess.DEVNULL,
+            **(
+                {"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP}
+                if os.name == "nt"
+                else {"start_new_session": True}
+            ),
         )
+        if input_data is not None:
+            process.stdin.write(input_data)
+            await process.stdin.drain()
+            process.stdin.close()
         loop = asyncio.get_running_loop()
         started_at = loop.time()
+        next_cancellation_check = started_at
         while process.returncode is None:
-            if await asyncio.to_thread(is_job_cancelled, job_id):
-                process.terminate()
-                try:
-                    await asyncio.wait_for(process.wait(), timeout=3)
-                except TimeoutError:
-                    process.kill()
-                    await process.wait()
-                raise JobCancelled(f"Job {job_id} was cancelled")
+            if job_dir is not None:
+                check_job_resources(job_dir)
+            # Database latency must not delay disk checks or process timeouts.
+            if cancellation_task is not None and cancellation_task.done():
+                if cancellation_task.result():
+                    raise JobCancelled(f"Job {job_id} was cancelled")
+                cancellation_task = None
+                next_cancellation_check = loop.time() + 1
+            if cancellation_task is None and loop.time() >= next_cancellation_check:
+                cancellation_task = asyncio.create_task(
+                    asyncio.to_thread(is_job_cancelled, job_id)
+                )
             if loop.time() - started_at > timeout_seconds:
-                process.kill()
-                await process.wait()
                 return False
             try:
-                await asyncio.wait_for(process.wait(), timeout=0.5)
+                await asyncio.wait_for(process.wait(), timeout=0.25)
             except TimeoutError:
                 continue
+        if job_dir is not None:
+            check_job_resources(job_dir)
         return process.returncode == 0
     finally:
+        if cancellation_task is not None:
+            cancellation_task.cancel()
+        if process is not None and process.returncode is None:
+            # yt-dlp may own a downloader or merger process. Stop the entire tree
+            # before the caller removes partial output, including on task cancellation.
+            if os.name == "nt":
+                killer = await asyncio.create_subprocess_exec(
+                    "taskkill",
+                    "/PID",
+                    str(process.pid),
+                    "/T",
+                    "/F",
+                    stdout=asyncio.subprocess.DEVNULL,
+                    stderr=asyncio.subprocess.DEVNULL,
+                )
+                await killer.wait()
+            else:
+                try:
+                    os.killpg(process.pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+            await process.wait()
         if err_file is not None:
             err_file.close()
 
@@ -499,7 +634,7 @@ async def convert_to_mp3(input_path: Path, output_path: Path, *, job_id: str) ->
             return True
         logger.error("FFmpeg MP3 conversion failed: %s", ffmpeg_error_tail(err_log))
         return False
-    except JobCancelled:
+    except (JobCancelled, MediaDownloadError):
         raise
     except Exception as error:
         logger.error("Conversion error: %s", type(error).__name__)
@@ -549,7 +684,7 @@ async def convert_to_mp4(input_path: Path, output_path: Path, *, job_id: str) ->
             return True
         logger.error("FFmpeg MP4 conversion failed: %s", ffmpeg_error_tail(err_log))
         return False
-    except JobCancelled:
+    except (JobCancelled, MediaDownloadError):
         raise
     except Exception as error:
         logger.error("Conversion error: %s", type(error).__name__)
@@ -592,7 +727,7 @@ async def convert_to_gif(input_path: Path, output_path: Path, *, job_id: str) ->
             return True
         logger.error("FFmpeg GIF conversion failed: %s", ffmpeg_error_tail(err_log))
         return False
-    except JobCancelled:
+    except (JobCancelled, MediaDownloadError):
         raise
     except Exception as error:
         logger.error("Conversion error: %s", type(error).__name__)
@@ -618,6 +753,7 @@ async def _download_validated(
     saw_file = False
 
     async def attempt() -> Optional[Path]:
+        """Download one candidate and discard output that fails media validation."""
         nonlocal saw_file
         downloaded = await download_media(
             url,
@@ -823,6 +959,9 @@ async def process_job(job: dict) -> bool:
         else:
             logger.info("Stopped cancelled job %s", job_id)
         return False
+    except MediaDownloadError as error:
+        update_job_status(job_id, "FAILED", error_message=str(error))
+        return False
     except Exception as error:
         logger.error("Error processing job %s: %s", job_id, type(error).__name__)
         if not is_job_cancelled(job_id):
@@ -835,3 +974,23 @@ async def process_job(job: dict) -> bool:
     finally:
         if not keep_output:
             shutil.rmtree(job_dir, ignore_errors=True)
+
+
+def _download_entrypoint() -> None:
+    """Receive source arguments over stdin rather than exposing URLs in argv."""
+    arguments = json.load(sys.stdin)
+    output_path = Path(arguments.pop("output_path"))
+    try:
+        downloaded = _download_with_yt_dlp(output_path=output_path, **arguments)
+        result = {"filename": downloaded.name if downloaded else None}
+    except JobCancelled:
+        result = {"cancelled": True}
+    except MediaDownloadError as error:
+        result = {"error": str(error)}
+    (output_path / "download-result.json").write_text(
+        json.dumps(result), encoding="utf-8"
+    )
+
+
+if __name__ == "__main__":
+    _download_entrypoint()

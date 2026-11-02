@@ -133,7 +133,7 @@ test.describe("Account Settings Page UI", () => {
     const backLink = page.getByRole("link", { name: /back|กลับ/i });
     await expect(backLink).toBeVisible();
     await expect(backLink).toHaveAttribute("href", "/dashboard");
-    await expect(backLink).toHaveClass(/mb-6/);
+    await expect(backLink.locator("..")).toHaveCSS("margin-bottom", "24px");
     await expect(backLink.locator("svg.lucide-arrow-left")).toBeVisible();
 
     const mainHeading = page.locator("h1, h2, header").first();

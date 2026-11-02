@@ -1162,8 +1162,17 @@ export function MediaAnalyzer() {
                       size="sm"
                       data-testid="media-viewer-download"
                       onClick={async () => {
+                        let thumbnailUrl: URL;
                         try {
-                          const res = await fetch(media.thumbnail_url!);
+                          thumbnailUrl = new URL(media.thumbnail_url!);
+                        } catch {
+                          return;
+                        }
+                        if (!["http:", "https:"].includes(thumbnailUrl.protocol))
+                          return;
+                        try {
+                          const res = await fetch(thumbnailUrl.href);
+                          if (!res.ok) throw new Error("Thumbnail request failed");
                           const blob = await res.blob();
                           const blobUrl = URL.createObjectURL(blob);
                           const a = document.createElement("a");
@@ -1174,8 +1183,11 @@ export function MediaAnalyzer() {
                           document.body.removeChild(a);
                           URL.revokeObjectURL(blobUrl);
                         } catch {
-                          if (media.thumbnail_url)
-                            window.open(media.thumbnail_url, "_blank");
+                          window.open(
+                            thumbnailUrl.href,
+                            "_blank",
+                            "noopener,noreferrer"
+                          );
                         }
                       }}
                       className="h-9 gap-1.5 rounded-xl px-3 text-xs font-semibold cursor-pointer"

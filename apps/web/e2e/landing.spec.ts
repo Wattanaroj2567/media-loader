@@ -422,6 +422,10 @@ test.describe("Landing Page & Brand UI", () => {
     });
     expect(desktopShape.width).toBeLessThan(1280);
     expect(desktopShape.radius).toBeGreaterThan(20);
+    await page.evaluate(() => window.scrollTo(0, 150));
+    await expect
+      .poll(() => topbar.evaluate((element) => element.getBoundingClientRect().height))
+      .toBe(58);
   });
 
   test("should not clip the mobile platform badges at the viewport edges", async ({

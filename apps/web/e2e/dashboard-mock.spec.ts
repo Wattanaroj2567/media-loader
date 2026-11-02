@@ -8,6 +8,93 @@ const CORS_HEADERS = {
   "Access-Control-Allow-Headers": "*",
 };
 
+for (const failure of ["network", "http"] as const) {
+  test(`thumbnail ${failure} fallback opens without an opener or referrer`, async ({
+    context,
+    page,
+    baseURL,
+  }) => {
+    await seedAuth(context, baseURL!);
+    const thumbnailUrl = "https://thumbnail.example/preview.jpg";
+    let sentReferrer = false;
+    await context.route(thumbnailUrl, async (route) => {
+      if (route.request().isNavigationRequest()) {
+        sentReferrer = Boolean(route.request().headers()["referer"]);
+        await route.fulfill({
+          contentType: "text/html",
+          body: "<title>Thumbnail source</title>",
+        });
+      } else if (route.request().resourceType() === "fetch") {
+        if (failure === "network") await route.abort("failed");
+        else
+          await route.fulfill({
+            status: 500,
+            headers: CORS_HEADERS,
+            body: "Unavailable",
+          });
+      } else {
+        await route.fulfill({
+          contentType: "image/svg+xml",
+          body: '<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"/>',
+        });
+      }
+    });
+    await page.route("**/downloads*", (route) =>
+      route.fulfill(
+        jsonResponse({
+          ok: true,
+          data: { jobs: [], total: 0, limit: 100, offset: 0 },
+          error: null,
+        })
+      )
+    );
+    await page.route("**/media/analyze*", (route) =>
+      route.fulfill(
+        jsonResponse({
+          ok: true,
+          data: {
+            policy: { decision: "allowed", reason: "Public test media" },
+            media: {
+              title: "Thumbnail safety test",
+              platform: "Instagram",
+              thumbnail_url: thumbnailUrl,
+              duration_seconds: 10,
+              source_domain: "instagram.com",
+            },
+            formats: [
+              {
+                format_id: "video",
+                extension: "mp4",
+                type: "video",
+                quality_label: "720p",
+                height: 720,
+                has_video: true,
+                has_audio: true,
+              },
+            ],
+          },
+          error: null,
+        })
+      )
+    );
+    await page.goto("/dashboard");
+    const input = page.getByRole("textbox").first();
+    await input.fill("https://www.instagram.com/reel/public-test/");
+    await input.press("Enter");
+    await page
+      .getByRole("button", { name: /คลิกเพื่อรับชม|view media|full.?screen/i })
+      .click();
+    const popupPromise = context.waitForEvent("page");
+    await page.getByTestId("media-viewer-download").click();
+    const popup = await popupPromise;
+    await popup.waitForLoadState();
+    expect(popup.url()).toBe(thumbnailUrl);
+    expect(await popup.evaluate(() => window.opener === null)).toBe(true);
+    expect(sentReferrer).toBe(false);
+    await popup.close();
+  });
+}
+
 function jsonResponse(body: unknown, status = 200) {
   return {
     status,
@@ -209,14 +296,23 @@ test.describe("Mocked Dashboard Workflow", () => {
     const thumbnail = queueCard.getByTestId("job-thumbnail");
     await expect
       .poll(() =>
-        thumbnail.evaluate((element) => element.getBoundingClientRect().width)
+        thumbnail.evaluate((element) => {
+          const rect = element.getBoundingClientRect();
+          return rect.width / rect.height;
+        })
       )
-      .toBe(112);
+      .toBeCloseTo(16 / 9, 2);
     await expect
       .poll(() =>
-        thumbnail.evaluate((element) => element.getBoundingClientRect().height)
+        thumbnail.evaluate((element) => {
+          const content = element.parentElement!;
+          return Math.abs(
+            element.getBoundingClientRect().width -
+              content.getBoundingClientRect().width
+          );
+        })
       )
-      .toBe(64);
+      .toBeLessThanOrEqual(1);
     const queueTimestamp = queueCard.locator("time");
     await expect(queueTimestamp).toHaveAttribute("datetime", queuedJob.created_at);
     await expect(queueTimestamp).toContainText("Sep 18, 2026");

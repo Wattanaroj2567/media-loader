@@ -45,15 +45,18 @@ test("pasting prompts for sign-in or registration and dismissal keeps the draft"
   await expect(page.getByRole("status")).toContainText("Your link is saved");
   await page.setViewportSize({ width: 390, height: 540 });
   const scrollArea = page.getByTestId("auth-modal-scroll");
-  const scrollMetrics = await scrollArea.evaluate((element) => ({
-    scrolls: element.scrollHeight > element.clientHeight,
-    thin:
-      getComputedStyle(element).scrollbarWidth === "thin" ||
-      getComputedStyle(element, "::-webkit-scrollbar").width === "5px",
-    dialogFits:
-      element.closest("dialog")!.getBoundingClientRect().bottom <= innerHeight,
-  }));
-  expect(scrollMetrics).toEqual({ scrolls: true, thin: true, dialogFits: true });
+  await expect
+    .poll(() =>
+      scrollArea.evaluate((element) => ({
+        scrolls: element.scrollHeight > element.clientHeight,
+        thin:
+          getComputedStyle(element).scrollbarWidth === "thin" ||
+          getComputedStyle(element, "::-webkit-scrollbar").width === "5px",
+        dialogFits:
+          element.closest("dialog")!.getBoundingClientRect().bottom <= innerHeight,
+      }))
+    )
+    .toEqual({ scrolls: true, thin: true, dialogFits: true });
   await page.getByLabel("Confirm password", { exact: true }).scrollIntoViewIfNeeded();
   await expect(
     page.getByRole("button", { name: "Close", exact: true })
