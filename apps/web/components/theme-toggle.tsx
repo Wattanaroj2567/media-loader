@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import { useTheme } from "next-themes";
 import { Sun, Moon, Laptop, ChevronDown, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
+import triggerStyles from "./utility-trigger.module.css";
 import { useT } from "@/lib/i18n/context";
 
 interface ThemeToggleProps {
@@ -141,14 +142,14 @@ export function ThemeToggle({
             tone === "ghost"
               ? "border-transparent bg-transparent text-text-muted hover:bg-bg-elevated hover:text-primary"
               : cn(
-                  "border-border/70 bg-bg-surface/50 text-text-muted backdrop-blur-sm shadow-2xs",
+                  "border-border/70 bg-bg-surface/50 text-text-muted backdrop-blur-sm shadow-none",
                   "dark:border-white/12 dark:bg-white/6",
-                  "hover:border-border hover:bg-bg-surface hover:text-text",
-                  "dark:hover:border-white/20 dark:hover:bg-white/10 dark:hover:text-text"
+                  "hover:bg-bg-surface",
+                  "dark:hover:bg-white/10"
                 ),
             "focus-visible:ring-2 focus-visible:ring-primary/40",
-            isOpen &&
-              "border-primary/50 bg-primary/5 text-primary ring-2 ring-primary/20 dark:border-primary/50 dark:bg-primary/10 dark:text-primary",
+            tone === "surface" && triggerStyles.trigger,
+            isOpen && "bg-primary/5 text-primary dark:bg-primary/10 dark:text-primary",
             showLabel ? "gap-1.5" : "gap-1.5",
             className
           )}

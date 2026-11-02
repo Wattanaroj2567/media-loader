@@ -82,6 +82,10 @@ Landing-page authentication opens as a modal on wider viewports and navigates to
 the full-page auth routes on phone-sized or short-landscape viewports.
 Direct login, registration, and password-reset-request URLs also open the landing
 page modal on desktop; mobile keeps the full-page form.
+Legal links from login and registration carry an allowlisted `from` mode. Their
+back links restore that auth mode, including the desktop modal; direct legal-page
+visits return home. Switching between legal documents preserves the auth origin.
+Desktop legal back links target the landing modal directly, without an intermediate auth page.
 Registration accepts an optional display name stored as `full_name` metadata;
 it is not a username credential. Email signup stores the selected interface
 language as `language` user metadata. When changed, the interface language is

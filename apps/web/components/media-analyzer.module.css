@@ -1,3 +1,13 @@
+.urlInput:focus-within {
+  border-color: color-mix(in srgb, var(--primary) 55%, var(--border));
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .urlInput:hover {
+    border-color: color-mix(in srgb, var(--primary) 55%, var(--border));
+  }
+}
+
 .pasteFeedback {
   position: absolute;
   inset: 0;

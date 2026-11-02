@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowUpRight, Check, FileText, List, ShieldCheck } from "lucide-react";
 
 import { BackButton } from "@/components/back-button";
+import { useFullPageAuth } from "@/lib/auth-viewport";
 import { SiteFooter } from "@/components/site-footer";
 import { useT } from "@/lib/i18n/context";
 import { CONTACT_EMAIL } from "@/lib/contact-mailto";
@@ -646,8 +647,16 @@ function TableOfContentsNav({
   );
 }
 
-export function LegalPage({ kind }: { kind: PolicyKind }) {
-  const { locale } = useT();
+export function LegalPage({
+  kind,
+  origin,
+}: {
+  kind: PolicyKind;
+  origin?: string | string[];
+}) {
+  const { locale, t } = useT();
+  const returnMode = origin === "login" || origin === "register" ? origin : null;
+  const fullPageAuth = useFullPageAuth();
   const [activeSectionIndex, setActiveSectionIndex] = useState(0);
   const isThai = locale === "th";
   const content = policyContent[kind];
@@ -717,8 +726,21 @@ export function LegalPage({ kind }: { kind: PolicyKind }) {
       <article className="relative z-10 mx-auto w-full max-w-6xl flex-1 px-4 pb-12 pt-[calc(2rem+env(safe-area-inset-top))] sm:px-6 sm:pt-12 lg:px-8">
         <div className="grid items-start gap-5 lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-7">
           <aside className="flex flex-col gap-3 lg:sticky lg:top-12">
-            <BackButton href="/" className="px-1">
-              {isThai ? "กลับหน้าหลัก" : "Back to home"}
+            <BackButton
+              href={
+                returnMode
+                  ? fullPageAuth
+                    ? `/auth/${returnMode}`
+                    : `/?auth=${returnMode}`
+                  : "/"
+              }
+              className="px-1"
+            >
+              {returnMode
+                ? t(returnMode === "login" ? "auth.backToLogin" : "auth.backToRegister")
+                : isThai
+                  ? "กลับหน้าหลัก"
+                  : "Back to home"}
             </BackButton>
 
             <details className="group rounded-2xl border border-border/70 bg-bg-surface p-3 shadow-none backdrop-blur-none dark:border-white/10 dark:bg-bg-surface dark:shadow-none sm:bg-bg-surface/75 sm:shadow-sm sm:backdrop-blur-xl sm:dark:bg-bg-surface/65 lg:hidden">
@@ -904,7 +926,7 @@ export function LegalPage({ kind }: { kind: PolicyKind }) {
 
             <div className="mt-9 flex flex-wrap items-center justify-end gap-3 border-t border-border/60 pt-5 text-xs text-text-dim dark:border-white/10">
               <Link
-                href={otherKind === "privacy" ? "/privacy" : "/terms"}
+                href={`/${otherKind}${returnMode ? `?from=${returnMode}` : ""}`}
                 className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
               >
                 {policyContent[otherKind].title[isThai ? "th" : "en"]}

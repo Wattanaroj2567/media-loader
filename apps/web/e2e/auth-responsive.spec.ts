@@ -134,7 +134,7 @@ async function checkLayout(page: Page) {
   await submit.scrollIntoViewIfNeeded();
   await expect(submit).toBeInViewport();
   await expect(modal.getByRole("button").first()).toBeInViewport();
-  const footer = modal.locator("nav, p:has(> a[href='/privacy'])").last();
+  const footer = modal.locator("nav, p:has(> a[href^='/privacy?'])").last();
   await footer.scrollIntoViewIfNeeded();
   // Allow subpixel intersection rounding while checking the dialog bounds below.
   await expect(footer).toBeInViewport({ ratio: 0.99 });
@@ -222,10 +222,10 @@ for (const locale of ["th", "en"] as const) {
         ).toHaveAttribute("href", "/auth/register");
         await expect(
           main.getByRole("link", { name: labels.privacy, exact: true })
-        ).toHaveAttribute("href", "/privacy");
+        ).toHaveAttribute("href", "/privacy?from=login");
         await expect(
           main.getByRole("link", { name: labels.terms, exact: true })
-        ).toHaveAttribute("href", "/terms");
+        ).toHaveAttribute("href", "/terms?from=login");
         if (locale === "th" && ["mobile", "mobile-landscape"].includes(screen.name)) {
           await page.screenshot({
             path: test.info().outputPath(`login-full-page-${screen.name}.png`),
@@ -266,10 +266,10 @@ for (const locale of ["th", "en"] as const) {
       const legalLinks = modal;
       await expect(
         legalLinks.getByRole("link", { name: labels.privacy, exact: true })
-      ).toHaveAttribute("href", "/privacy");
+      ).toHaveAttribute("href", "/privacy?from=login");
       await expect(
         legalLinks.getByRole("link", { name: labels.terms, exact: true })
-      ).toHaveAttribute("href", "/terms");
+      ).toHaveAttribute("href", "/terms?from=login");
       if (locale === "th" && ["mobile", "tablet", "desktop"].includes(screen.name)) {
         await modal.getByRole("heading").scrollIntoViewIfNeeded();
         await page.screenshot({
@@ -310,7 +310,7 @@ for (const locale of ["th", "en"] as const) {
   }
 }
 
-test("open registration modal keeps its footer reachable after viewport shrink", async ({
+test("open registration switches to a full page with a reachable footer after viewport shrink", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 768, height: 1024 });
@@ -320,8 +320,11 @@ test("open registration modal keeps its footer reachable after viewport shrink",
   const modal = page.getByRole("dialog");
   await modal.locator('a[href="/auth/register"]').click();
   await page.setViewportSize({ width: 390, height: 420 });
-  await modal.getByRole("heading").scrollIntoViewIfNeeded();
-  await checkLayout(page);
+  await expect(page).toHaveURL(/\/auth\/register$/);
+  await checkFullPageLayout(page);
+  const footer = page.getByRole("main").locator('p:has(> a[href^="/privacy?"])');
+  await footer.scrollIntoViewIfNeeded();
+  await expect(footer).toBeInViewport();
 });
 
 test("auth modal navigates to privacy and terms in the same tab", async ({
@@ -339,7 +342,7 @@ test("auth modal navigates to privacy and terms in the same tab", async ({
 
   const modal = page.getByRole("dialog");
   await modal.getByRole("link", { name: copy.th.privacy }).click();
-  await expect(page).toHaveURL(/\/privacy$/);
+  await expect(page).toHaveURL(/\/privacy\?from=login$/);
   await expect(
     page.getByRole("heading", { name: "ประกาศความเป็นส่วนตัว" })
   ).toBeVisible();
@@ -350,7 +353,7 @@ test("auth modal navigates to privacy and terms in the same tab", async ({
     .getByRole("button", { name: copy.th.login, exact: true })
     .click();
   await page.getByRole("dialog").getByRole("link", { name: copy.th.terms }).click();
-  await expect(page).toHaveURL(/\/terms$/);
+  await expect(page).toHaveURL(/\/terms\?from=login$/);
   await expect(page.getByRole("heading", { name: "ข้อกำหนดการใช้งาน" })).toBeVisible();
 });
 

@@ -505,6 +505,7 @@
   "auth.links": "ลิงก์บัญชี",
   "auth.forgotLink": "ลืมรหัสผ่าน?",
   "auth.backToLogin": "กลับไปเข้าสู่ระบบ",
+  "auth.backToRegister": "กลับไปสมัครสมาชิก",
   "auth.guest": "กลับไปหน้าวางลิงก์",
   "download.paste": "วางลิงก์",
   "download.pasteTitle": "วางลิงก์จากคลิปบอร์ด",

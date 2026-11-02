@@ -1,12 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useLayoutEffect } from "react";
 import { useRouter } from "next/navigation";
 import { AuthForm } from "@/components/auth-form";
+import { FULL_PAGE_AUTH_MEDIA_QUERY } from "@/lib/auth-viewport";
 import styles from "./auth-form.module.css";
-
-export const FULL_PAGE_AUTH_MEDIA_QUERY =
-  "(max-width: 639px), (max-width: 950px) and (max-height: 480px)";
 
 export function AuthRoute({
   mode,
@@ -14,13 +12,13 @@ export function AuthRoute({
   mode: "login" | "register" | "forgot-password";
 }) {
   const router = useRouter();
-  const [mobile, setMobile] = useState(false);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const media = window.matchMedia(FULL_PAGE_AUTH_MEDIA_QUERY);
     const updatePresentation = () => {
-      if (media.matches) setMobile(true);
-      else {
+      if (media.matches) {
+        window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+      } else {
         const params = new URLSearchParams(window.location.search);
         const error = params.has("error") ? "&error=auth" : "";
         const reset = params.get("reset") === "success" ? "&reset=success" : "";
@@ -32,9 +30,9 @@ export function AuthRoute({
     return () => media.removeEventListener("change", updatePresentation);
   }, [mode, router]);
 
-  return mobile ? (
+  return (
     <div className={styles.mobileRoute}>
       <AuthForm mode={mode} />
     </div>
-  ) : null;
+  );
 }

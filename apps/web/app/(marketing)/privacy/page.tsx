@@ -7,6 +7,11 @@ export const metadata: Metadata = {
   description: "ประกาศความเป็นส่วนตัวของ Media Loader",
 };
 
-export default function PrivacyPage() {
-  return <LegalPage kind="privacy" />;
+export default async function PrivacyPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ from?: string | string[] }>;
+}) {
+  const { from } = await searchParams;
+  return <LegalPage kind="privacy" origin={from} />;
 }

@@ -35,7 +35,9 @@ export function MediaUrlInput({
   return (
     <div className={submitLabel ? undefined : "mb-5"}>
       <p className="ui-kicker mb-3">{t("download.placeholderLabel")}</p>
-      <div className="group relative flex min-h-16 gap-2 overflow-hidden rounded-2xl border border-border bg-bg-surface/60 p-2 transition-all duration-200 focus-within:border-primary/60 focus-within:bg-bg-elevated focus-within:ring-3 focus-within:ring-primary/15">
+      <div
+        className={`${styles.urlInput} group relative flex min-h-16 gap-2 overflow-hidden rounded-2xl border border-border bg-bg-surface/60 p-2 transition-colors duration-200 focus-within:bg-bg-elevated`}
+      >
         {pasteFeedback > 0 && (
           <span
             key={pasteFeedback}

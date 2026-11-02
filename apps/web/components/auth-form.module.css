@@ -32,6 +32,13 @@
 .mobileClose {
   display: none;
 }
+@media (hover: hover) and (pointer: fine) {
+  .mobileClose:hover,
+  .modalClose:hover {
+    border-color: color-mix(in srgb, var(--primary) 55%, var(--border));
+    color: var(--primary);
+  }
+}
 .formInner {
   width: 100%;
   max-width: 372px;
@@ -576,10 +583,6 @@
     transition:
       color 150ms ease,
       border-color 150ms ease;
-  }
-  .mobileClose:hover {
-    border-color: color-mix(in srgb, var(--primary) 55%, var(--border));
-    color: var(--primary);
   }
   .mobileClose:focus-visible {
     outline: 2px solid var(--primary);

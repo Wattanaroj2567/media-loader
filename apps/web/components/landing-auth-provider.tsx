@@ -5,6 +5,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -13,7 +14,7 @@ import {
 import { X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { AuthForm } from "@/components/auth-form";
-import { FULL_PAGE_AUTH_MEDIA_QUERY } from "@/components/auth-route";
+import { FULL_PAGE_AUTH_MEDIA_QUERY } from "@/lib/auth-viewport";
 import { requestMediaAnalysis } from "@/lib/analyzer-session";
 import { useT } from "@/lib/i18n/context";
 import styles from "./auth-form.module.css";
@@ -64,7 +65,7 @@ export function LandingAuthProvider({ children }: { children: ReactNode }) {
     return () => media.removeEventListener("change", updatePresentation);
   }, [open, mode, router]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const requestedMode = new URLSearchParams(window.location.search).get("auth");
     if (
       requestedMode !== "login" &&
@@ -78,14 +79,11 @@ export function LandingAuthProvider({ children }: { children: ReactNode }) {
       router.replace(`/auth/${requestedMode}${params.size ? `?${params}` : ""}`);
       return;
     }
-    const frame = window.requestAnimationFrame(() => {
-      setMode(requestedMode);
-      setOpen(true);
-    });
-    return () => window.cancelAnimationFrame(frame);
+    setMode(requestedMode);
+    setOpen(true);
   }, [router]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) return;
     if (open && !dialog.open) {
@@ -145,7 +143,7 @@ export function LandingAuthProvider({ children }: { children: ReactNode }) {
           type="button"
           aria-label={t("common.close")}
           onClick={closeAuth}
-          className={`${styles.modalClose} absolute top-[max(14px,env(safe-area-inset-top))] right-[max(14px,env(safe-area-inset-right))] sm:top-3.5 sm:right-3.5 z-10 grid size-9 sm:size-8 cursor-pointer place-items-center rounded-full sm:rounded-md border border-border/80 bg-bg-surface sm:bg-bg-elevated text-text-muted shadow-sm transition-colors hover:bg-bg-elevated hover:text-text outline-none focus-visible:outline-2 focus-visible:outline-primary`}
+          className={`${styles.modalClose} absolute top-[max(14px,env(safe-area-inset-top))] right-[max(14px,env(safe-area-inset-right))] sm:top-3.5 sm:right-3.5 z-10 grid size-9 sm:size-8 cursor-pointer place-items-center rounded-full sm:rounded-md border border-border/80 bg-bg-surface sm:bg-bg-elevated text-text-muted shadow-sm transition-colors outline-none focus-visible:outline-2 focus-visible:outline-primary`}
         >
           <X className="size-4" aria-hidden="true" />
         </button>

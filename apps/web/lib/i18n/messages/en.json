@@ -505,6 +505,7 @@
   "auth.links": "Account links",
   "auth.forgotLink": "Forgot password?",
   "auth.backToLogin": "Back to sign in",
+  "auth.backToRegister": "Back to create account",
   "auth.guest": "Back to paste a link",
   "download.paste": "Paste link",
   "download.pasteTitle": "Paste a link from the clipboard",

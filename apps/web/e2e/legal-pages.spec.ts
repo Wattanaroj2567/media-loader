@@ -195,7 +195,17 @@ test.describe("Privacy and terms pages", () => {
       border: getComputedStyle(element).borderTopColor,
     }));
     await page.goto("/auth/login");
-    const loginFieldStyles = await page.locator("#auth-email").evaluate((element) => {
+    const loginEmail = page.getByRole("dialog").locator("#auth-email");
+    await expect(loginEmail).toBeVisible();
+    await loginEmail.evaluate(async (element) => {
+      element.blur();
+      await Promise.all(
+        element
+          .getAnimations()
+          .map((animation) => animation.finished.catch(() => undefined))
+      );
+    });
+    const loginFieldStyles = await loginEmail.evaluate((element) => {
       const styles = getComputedStyle(element);
       return {
         backgroundColor: styles.backgroundColor,
@@ -209,7 +219,7 @@ test.describe("Privacy and terms pages", () => {
       };
     });
     const loginPanelBorder = await page.locator("#auth-title").evaluate((element) => {
-      const panel = element.closest("section")?.parentElement;
+      const panel = element.closest("dialog");
       if (!(panel instanceof HTMLElement)) return null;
       const styles = getComputedStyle(panel);
       return {
@@ -218,19 +228,31 @@ test.describe("Privacy and terms pages", () => {
         width: styles.borderTopWidth,
       };
     });
-    await page.locator("#auth-email").focus();
-    await page.waitForTimeout(200);
-    const loginFocusState = await page.locator("#auth-email").evaluate((element) => ({
+    await loginEmail.focus();
+    await loginEmail.evaluate(async (element) => {
+      await Promise.all(
+        element
+          .getAnimations()
+          .map((animation) => animation.finished.catch(() => undefined))
+      );
+    });
+    const loginFocusState = await loginEmail.evaluate((element) => ({
       active: document.activeElement === element,
       focus: element.matches(":focus"),
       focusVisible: element.matches(":focus-visible"),
       border: getComputedStyle(element).borderTopColor,
     }));
-    expect(contactFieldStyles).toEqual(loginFieldStyles);
-    expect(contactPanelBorder).toEqual(loginPanelBorder);
+    // Modal fields use the compact height; their shared field styling stays consistent.
+    expect(contactFieldStyles).toEqual({ ...loginFieldStyles, height: "44px" });
+    expect(loginFieldStyles.height).toBe("42px");
+    expect(contactPanelBorder).toMatchObject({ radius: "18px", width: "1px" });
+    expect(loginPanelBorder).toMatchObject({ radius: "16px", width: "1px" });
     expect(contactFocusState.active).toBe(true);
     expect(contactFocusState.focus).toBe(true);
     expect(contactFocusState.focusVisible).toBe(true);
+    expect(loginFocusState.active).toBe(true);
+    expect(loginFocusState.focus).toBe(true);
+    expect(loginFocusState.focusVisible).toBe(true);
     expect(contactFocusState.border).toBe(loginFocusState.border);
     await page.goto("/contact?topic=account");
     await expect(contactForm.locator('input[name="topic"]')).toHaveValue("account");

@@ -813,9 +813,11 @@ export function AuthForm({
             {(mode === "login" || registration) && (
               <p className={styles.legalConsent}>
                 <span>{t("auth.legalConsent.prefix")}</span>
-                <Link href="/terms">{t("auth.legalConsent.terms")}</Link>
+                <Link href={`/terms?from=${mode}`}>{t("auth.legalConsent.terms")}</Link>
                 <span>{t("auth.legalConsent.and")}</span>
-                <Link href="/privacy">{t("auth.legalConsent.privacy")}</Link>
+                <Link href={`/privacy?from=${mode}`}>
+                  {t("auth.legalConsent.privacy")}
+                </Link>
                 <span>{t("auth.legalConsent.suffix")}</span>
               </p>
             )}
