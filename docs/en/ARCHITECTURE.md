@@ -222,7 +222,8 @@ users.
 - Authentication and dashboard UI
 - URL analysis and format selection
 - Queue, history, and settings pages
-- Queue cards use compact 112 px thumbnails on mobile and show the localized
+- Queue cards use full-width 16:9 thumbnails on mobile and compact 96 × 54 px
+  thumbnails from the small-screen breakpoint, and show the localized
   creation date and time; history cards show the download date. The media
   viewer places its close control at the upper right on mobile. Opt-in Web Push
   subscriptions deliver completed, failed, and policy-blocked alerts for signed-in

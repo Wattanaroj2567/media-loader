@@ -135,6 +135,25 @@ If yt-dlp is used:
 
 ## File Safety
 
+- API metadata responses read through yt-dlp are limited to 8 MiB each and
+  32 MiB per extraction attempt, measured after transport decompression.
+  Oversized responses are closed without retrying. The public Instagram embed
+  fallback retains its separate 1,000,000-byte limit. Metadata extraction excludes
+  yt-dlp's urllib transport, which buffers compressed bodies before returning them.
+- The worker checks actual downloaded bytes, not only declared source sizes.
+  A monitored subprocess owns yt-dlp and its FFmpeg children so native downloads,
+  external downloaders, merging, and conversion can be stopped on resource limits,
+  cancellation, or timeout. Source URLs are passed through stdin, not process arguments.
+- Each temporary file is limited by `MAX_FILE_SIZE_MB`; all files for one job
+  share a budget of three times that limit to allow audio/video streams and
+  merged output to coexist. Admission requires capacity for the remaining job
+  budget plus 64 MiB free on the shared output disk. Runtime checks preserve
+  that 64 MiB reserve and remove failed-job output.
+- Subprocess disk checks run every 250 ms; a fast writer can overshoot between
+  checks. Use filesystem/container storage quotas for a hard storage boundary,
+  particularly when multiple workers share a volume.
+- Thumbnail fallback windows accept only HTTP(S) URLs and use
+  `noopener,noreferrer` to isolate the source page from the application.
 - Enforce max file size
 - Validate media content before accepting output
 - Validate extension
