@@ -51,6 +51,7 @@ class MetadataLimitExceeded(Exception):
 
 class _LimitedMetadataResponse(Response):
     def __init__(self, response: Response, downloader: "_MetadataYoutubeDL"):
+        """Wrap a response with a per-response limit and shared extraction budget."""
         super().__init__(
             response,
             response.url,
@@ -63,6 +64,7 @@ class _LimitedMetadataResponse(Response):
         self._remaining = _MAX_METADATA_RESPONSE_BYTES
 
     def read(self, amt: int | None = None) -> bytes:
+        """Read decompressed bytes within both budgets, closing on overflow."""
         chunks = []
         unlimited = amt is None or amt < 0
         while unlimited or amt > 0:
@@ -86,10 +88,12 @@ class _LimitedMetadataResponse(Response):
 
 class _MetadataYoutubeDL(yt_dlp.YoutubeDL):
     def __init__(self, options):
+        """Initialize a byte budget shared by every response in this extraction."""
         super().__init__(options)
         self.remaining_metadata_bytes = _MAX_METADATA_EXTRACTION_BYTES
 
     def build_request_director(self, handlers, preferences=None):
+        """Exclude transports that buffer entire bodies before enforcing limits."""
         # yt-dlp's urllib handler buffers and decompresses the entire body
         # before returning a Response, which would bypass the read budget.
         streaming_handlers = [
@@ -98,6 +102,7 @@ class _MetadataYoutubeDL(yt_dlp.YoutubeDL):
         return super().build_request_director(streaming_handlers, preferences)
 
     def urlopen(self, request):
+        """Apply the shared metadata budget to successful and HTTP error responses."""
         try:
             response = super().urlopen(request)
         except HTTPError as error:
@@ -192,6 +197,7 @@ def _is_animated_gif(raw_info: dict[str, Any]) -> bool:
 
 
 def _platform_name(raw_info: dict[str, Any]) -> str:
+    """Resolve the display platform from extractor metadata and the source host."""
     input_url = str(raw_info.get("_media_loader_input_url") or "")
     input_host = (urlsplit(input_url).hostname or "").lower().removeprefix("www.")
     for host, platform_name in _INPUT_PLATFORM_BY_HOST.items():
@@ -356,6 +362,7 @@ def _run_yt_dlp_sync(url: str) -> dict[str, Any]:
 
 
 def _as_positive_int(value: Any) -> int | None:
+    """Normalize a positive integer, returning None for invalid values."""
     try:
         number = int(float(value))
     except (TypeError, ValueError):
@@ -364,6 +371,7 @@ def _as_positive_int(value: Any) -> int | None:
 
 
 def _as_non_negative_int(value: Any) -> int | None:
+    """Normalize a nonnegative integer, returning None for invalid values."""
     try:
         number = int(float(value))
     except (TypeError, ValueError):
@@ -409,12 +417,14 @@ def _quality_tier(height: int, width: int | None) -> int:
 
 
 def _codec_label(codec: str | None) -> str | None:
+    """Normalize a codec name for display in a format label."""
     if not codec or codec == "none":
         return None
     return codec.split(".")[0].upper()
 
 
 def _video_preference(raw_format: dict[str, Any]) -> tuple[int, int, int, int, int]:
+    """Rank video formats for selection using codec and container compatibility."""
     extension = str(raw_format.get("ext") or "").lower()
     codec = str(raw_format.get("vcodec") or "").lower()
     return (
