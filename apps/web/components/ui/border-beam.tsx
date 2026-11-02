@@ -59,8 +59,8 @@ export function BorderBeam({
   size = 180,
   duration = 8,
   delay = 0,
-  colorFrom = "#00c8ff",
-  colorTo = "#0070f3",
+  colorFrom = "var(--primary)",
+  colorTo = "color-mix(in srgb, var(--primary) 50%, white)",
   borderWidth = 1.5,
   iterations = "infinite",
 }: BorderBeamProps) {

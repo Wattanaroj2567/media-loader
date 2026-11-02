@@ -139,7 +139,7 @@
     inset: var(--auth-viewport-offset-top, 0px) 0 0;
     width: calc(100% - 2rem);
     max-width: 392px;
-    height: auto;
+    height: fit-content;
     max-height: calc(var(--auth-viewport-height, 100dvh) - 2rem);
     margin: auto;
     border: 1px solid color-mix(in srgb, var(--text) 14%, transparent);
@@ -592,7 +592,7 @@
   overflow: hidden;
   padding: 32px 40px 28px;
   margin: 10px 10px 10px 0;
-  border: 1px solid #8bd8ff19;
+  border: 1px solid color-mix(in srgb, var(--primary) 12%, transparent);
   border-radius: 20px;
   background: #0b171d;
   color: #eef6fa;
@@ -604,8 +604,15 @@
   inset: 0;
   opacity: 0.4;
   background-image:
-    linear-gradient(#8fd9ff0b 1px, transparent 1px),
-    linear-gradient(90deg, #8fd9ff0b 1px, transparent 1px);
+    linear-gradient(
+      color-mix(in srgb, var(--primary) 5%, transparent) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--primary) 5%, transparent) 1px,
+      transparent 1px
+    );
   background-size: 56px 56px;
   mask-image: linear-gradient(transparent 0%, black 45%, transparent 90%);
 }
@@ -620,7 +627,7 @@
 }
 .formatLabel {
   white-space: nowrap;
-  color: #a3ccdf;
+  color: var(--color-brand-sky);
 }
 .artwork {
   position: relative;
@@ -634,7 +641,11 @@
   position: absolute;
   width: 90%;
   height: 85%;
-  background: radial-gradient(ellipse, #2ea8d62b, transparent 68%);
+  background: radial-gradient(
+    ellipse,
+    color-mix(in srgb, var(--primary) 18%, transparent),
+    transparent 68%
+  );
   animation: breathe 16s ease-in-out infinite alternate;
   pointer-events: none;
 }
@@ -652,13 +663,17 @@
   place-items: center;
   width: 94px;
   height: 94px;
-  border: 1px solid #b8eaff38;
+  border: 1px solid color-mix(in srgb, var(--primary) 24%, transparent);
   border-radius: 27px;
-  background: linear-gradient(145deg, #15313edf, #0c1e29ed);
+  background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--primary) 20%, #15313e),
+    color-mix(in srgb, var(--primary) 12%, #0c1e29)
+  );
   box-shadow:
     inset 0 1px 0 #ffffff16,
     0 16px 48px #0005,
-    0 0 48px #6acbfa13;
+    0 0 48px color-mix(in srgb, var(--primary) 8%, transparent);
   transform: rotate(-8deg);
 }
 .mediaGlyph > svg {
@@ -669,7 +684,7 @@
   bottom: 17px;
   font: 9px var(--font-mono);
   letter-spacing: 2px;
-  color: #a3ccdf;
+  color: var(--color-brand-sky);
 }
 .storyCopy {
   position: relative;
@@ -683,7 +698,7 @@
   font-weight: 500;
 }
 .storyCopy h2 > span {
-  color: #79d7ed;
+  color: var(--color-brand-sky);
 }
 .storyCopy p {
   max-width: 330px;
@@ -697,7 +712,7 @@
   justify-content: space-between;
   gap: 12px;
   padding-top: 19px;
-  border-top: 1px solid #a3d7ec22;
+  border-top: 1px solid color-mix(in srgb, var(--primary) 14%, transparent);
   font-size: 10px;
   color: #a4bbc7;
 }
@@ -710,7 +725,7 @@
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background: #7fd6e7;
+  background: var(--color-brand-sky);
 }
 .storyFooter > span:last-child {
   font: 10px var(--font-mono);

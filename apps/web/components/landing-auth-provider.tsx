@@ -93,7 +93,7 @@ export function LandingAuthProvider({ children }: { children: ReactNode }) {
         aria-labelledby="auth-title"
         onClose={closeAuth}
         onCancel={closeAuth}
-        className={`${styles.modalSurface} fixed inset-0 m-0 sm:m-auto w-full sm:w-[calc(100%-2rem)] sm:max-w-[392px] h-dvh sm:h-auto overflow-hidden rounded-none sm:rounded-2xl border-0 sm:border p-0 text-text`}
+        className={`${styles.modalSurface} fixed inset-0 m-auto w-[calc(100%-2rem)] max-w-[392px] h-fit max-h-[calc(100dvh-2rem)] overflow-hidden rounded-2xl border p-0 text-text`}
       >
         <button
           type="button"

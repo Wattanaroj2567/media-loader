@@ -623,7 +623,7 @@ function LandingPageContent() {
                             data-testid={`platform-details-button-${p.id}`}
                             aria-controls={`platform-details-${p.id}`}
                             aria-expanded={expandedPlatformId === p.id}
-                            className="inline-flex min-h-10 items-center gap-1 rounded-lg px-2.5 text-xs font-semibold text-primary transition-colors hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+                            className="inline-flex min-h-10 items-center gap-1 rounded-lg px-2.5 text-xs font-semibold text-primary transition-colors hover:text-primary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
                             onClick={() =>
                               setExpandedPlatformId((current) =>
                                 current === p.id ? null : p.id
@@ -702,7 +702,7 @@ function LandingPageContent() {
                     data-testid={`platform-details-button-${p.id}`}
                     aria-controls={`platform-details-${p.id}`}
                     aria-expanded={expandedPlatformId === p.id}
-                    className="mt-3 -ml-2 inline-flex min-h-10 items-center gap-1 rounded-lg px-2.5 text-xs font-semibold text-primary transition-colors hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+                    className="mt-3 -ml-2 inline-flex min-h-10 items-center gap-1 rounded-lg px-2.5 text-xs font-semibold text-primary transition-colors hover:text-primary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
                     onClick={() =>
                       setExpandedPlatformId((current) =>
                         current === p.id ? null : p.id
@@ -792,7 +792,7 @@ function LandingPageContent() {
                               data-testid={`gif-platform-details-button-${p.id}`}
                               aria-controls={`gif-platform-details-${p.id}`}
                               aria-expanded={expandedPlatformId === expandedId}
-                              className="inline-flex min-h-10 items-center gap-1 rounded-lg px-2.5 text-xs font-semibold text-primary transition-colors hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+                              className="inline-flex min-h-10 items-center gap-1 rounded-lg px-2.5 text-xs font-semibold text-primary transition-colors hover:text-primary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
                               onClick={() =>
                                 setExpandedPlatformId((current) =>
                                   current === expandedId ? null : expandedId
@@ -868,7 +868,7 @@ function LandingPageContent() {
                       data-testid={`gif-platform-details-button-${p.id}`}
                       aria-controls={`gif-platform-details-${p.id}`}
                       aria-expanded={expandedPlatformId === expandedId}
-                      className="mt-3 -ml-2 inline-flex min-h-10 items-center gap-1 rounded-lg px-2.5 text-xs font-semibold text-primary transition-colors hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+                      className="mt-3 -ml-2 inline-flex min-h-10 items-center gap-1 rounded-lg px-2.5 text-xs font-semibold text-primary transition-colors hover:text-primary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
                       onClick={() =>
                         setExpandedPlatformId((current) =>
                           current === expandedId ? null : expandedId
@@ -971,7 +971,7 @@ function LandingPageContent() {
                     {format.summary}
                   </p>
                   <details className="group mt-3 border-t border-border/70 pt-2.5">
-                    <summary className="-ml-2 inline-flex min-h-8 cursor-pointer list-none items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold text-primary select-none outline-none transition-colors hover:bg-primary/10 focus-visible:ring-2 focus-visible:ring-primary/60 marker:hidden [&::-webkit-details-marker]:hidden">
+                    <summary className="-ml-2 inline-flex min-h-8 cursor-pointer list-none items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold text-primary select-none outline-none transition-colors hover:text-primary/80 focus-visible:ring-2 focus-visible:ring-primary/60 marker:hidden [&::-webkit-details-marker]:hidden">
                       <span className="group-open:hidden">
                         {t("landing.codecTechnicalDetails")}
                       </span>
@@ -1044,7 +1044,7 @@ function LandingPageContent() {
           </div>
         </section>
       </div>
-      <div className="pointer-events-none fixed inset-x-0 bottom-5 z-40 px-4 sm:bottom-6 sm:px-6 lg:px-8">
+      <div className="pointer-events-none fixed inset-x-0 bottom-20 z-40 px-4 sm:bottom-24 sm:px-6 lg:px-8">
         <div className="mx-auto flex w-full max-w-6xl justify-end">
           {showScrollToTop && (
             <button

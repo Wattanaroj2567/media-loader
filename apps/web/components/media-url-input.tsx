@@ -44,9 +44,7 @@ export function MediaUrlInput({
             className={styles.pasteFeedback}
           />
         )}
-        {analyzing && (
-          <BorderBeam size={200} duration={4} colorFrom="#00c8ff" colorTo="#0070f3" />
-        )}
+        {analyzing && <BorderBeam size={200} duration={4} />}
         <span className="grid size-11 shrink-0 place-items-center self-center rounded-lg bg-primary/12 text-primary">
           <Search className="size-5" />
         </span>

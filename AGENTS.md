@@ -66,7 +66,8 @@ Every agent must strictly adhere to these non-negotiable rules:
 - **Extract new shared components**: If an interactive element, pattern, or link style appears on more than one page (e.g. Back button, TOC pill, details toggle, badge), agents **MUST** extract it into a reusable shared component in `apps/web/components/` instead of duplicating ad-hoc JSX.
 - **Strictly uniform interactive states**:
   - Hover states, focus rings, and active indicators must be 100% consistent across all pages.
-  - Interactive clickable pills/triggers: `transition-colors hover:bg-primary/10 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60`.
+  - Match hover cues to the action: navigation links that leave the current page (including footer and external links) may underline on hover to signal navigation. In-page disclosure controls (such as table/card details and accordions) must use button or `<summary>` semantics; hover changes text or icon color only, with no underline or link-style background. Rotate the chevron only when the disclosure opens or closes, never on hover.
+  - For interactive pills and triggers other than in-page disclosures, use `transition-colors hover:bg-primary/10 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60`.
   - Icon micro-interactions (e.g. back button arrow slide `group-hover:-translate-x-0.5`, accordion chevron rotate `group-open:rotate-180`) must behave uniformly everywhere.
   - Textarea and input controls must have disabled resize (`resize: none !important;`) and internal character counters pinned inside the box with proper padding to prevent text overlap.
 

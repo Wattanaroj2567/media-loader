@@ -164,7 +164,10 @@ for (const locale of ["th", "en"] as const) {
   }
 }
 
-test("auth modal opens the privacy and terms pages", async ({ page, context }) => {
+test("auth modal navigates to privacy and terms in the same tab", async ({
+  page,
+  context,
+}) => {
   await context.addCookies([
     { name: "media-loader-locale", value: "th", url: "http://localhost:3100" },
   ]);
@@ -175,28 +178,20 @@ test("auth modal opens the privacy and terms pages", async ({ page, context }) =
     .click();
 
   const modal = page.getByRole("dialog");
-  const privacyPopupPromise = page.waitForEvent("popup");
   await modal.getByRole("link", { name: copy.th.privacy }).click();
-  const privacyPage = await privacyPopupPromise;
-  await expect(privacyPage).toHaveURL(/\/privacy$/);
+  await expect(page).toHaveURL(/\/privacy$/);
   await expect(
-    privacyPage.getByRole("heading", { name: "ประกาศความเป็นส่วนตัว" })
+    page.getByRole("heading", { name: "ประกาศความเป็นส่วนตัว" })
   ).toBeVisible();
-  await privacyPage.close();
 
   await page.goto("/");
   await page
     .getByTestId("landing-topbar")
     .getByRole("button", { name: copy.th.login, exact: true })
     .click();
-  const termsPopupPromise = page.waitForEvent("popup");
   await page.getByRole("dialog").getByRole("link", { name: copy.th.terms }).click();
-  const termsPage = await termsPopupPromise;
-  await expect(termsPage).toHaveURL(/\/terms$/);
-  await expect(
-    termsPage.getByRole("heading", { name: "ข้อกำหนดการใช้งาน" })
-  ).toBeVisible();
-  await termsPage.close();
+  await expect(page).toHaveURL(/\/terms$/);
+  await expect(page.getByRole("heading", { name: "ข้อกำหนดการใช้งาน" })).toBeVisible();
 });
 
 for (const screen of [screens[1], screens[4]]) {

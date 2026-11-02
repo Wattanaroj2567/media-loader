@@ -820,13 +820,9 @@ export function AuthForm({
             {(mode === "login" || registration) && (
               <p className={styles.legalConsent}>
                 <span>{t("auth.legalConsent.prefix")}</span>
-                <Link href="/terms" target="_blank" rel="noopener noreferrer">
-                  {t("auth.legalConsent.terms")}
-                </Link>
+                <Link href="/terms">{t("auth.legalConsent.terms")}</Link>
                 <span>{t("auth.legalConsent.and")}</span>
-                <Link href="/privacy" target="_blank" rel="noopener noreferrer">
-                  {t("auth.legalConsent.privacy")}
-                </Link>
+                <Link href="/privacy">{t("auth.legalConsent.privacy")}</Link>
                 <span>{t("auth.legalConsent.suffix")}</span>
               </p>
             )}
@@ -856,10 +852,10 @@ export function AuthForm({
                     y2="350"
                     gradientUnits="userSpaceOnUse"
                   >
-                    <stop stopColor="#217baf" stopOpacity="0" />
-                    <stop offset=".35" stopColor="#65d7fa" />
-                    <stop offset=".65" stopColor="#b7edff" />
-                    <stop offset="1" stopColor="#227cae" stopOpacity=".1" />
+                    <stop stopColor="var(--primary)" stopOpacity="0" />
+                    <stop offset=".35" stopColor="var(--primary)" />
+                    <stop offset=".65" stopColor="var(--color-brand-sky)" />
+                    <stop offset="1" stopColor="var(--primary)" stopOpacity=".1" />
                   </linearGradient>
                 </defs>
                 {Array.from({ length: 24 }, (_, index) => (

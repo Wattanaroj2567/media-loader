@@ -41,9 +41,13 @@ test.describe("Privacy and terms pages", () => {
     await expect(
       footer.locator("nav").getByRole("link", { name: "GitHub" })
     ).toHaveCount(0);
-    await expect(footer.getByRole("link", { name: "GitHub" })).not.toHaveAttribute(
+    await expect(footer.getByRole("link", { name: "GitHub" })).toHaveAttribute(
       "target",
       "_blank"
+    );
+    await expect(footer.getByRole("link", { name: "GitHub" })).toHaveAttribute(
+      "rel",
+      "noopener noreferrer"
     );
     await footer.locator('a[href="/privacy"]').click();
     await expect(page).toHaveURL(/\/privacy$/);

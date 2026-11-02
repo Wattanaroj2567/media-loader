@@ -25,7 +25,7 @@ export function BackButton({
       prefetch={prefetch}
       aria-label={ariaLabel}
       className={cn(
-        "group inline-flex min-h-10 items-center gap-2 rounded-lg px-2 text-sm font-medium text-text-muted transition-colors hover:bg-primary/10 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 select-none",
+        "group inline-flex min-h-10 items-center gap-2 rounded-lg px-2 text-sm font-medium text-text-muted transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 select-none",
         className
       )}
     >
