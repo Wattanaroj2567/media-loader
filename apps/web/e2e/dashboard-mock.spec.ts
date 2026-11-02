@@ -88,6 +88,7 @@ for (const failure of ["network", "http"] as const) {
     await page.getByTestId("media-viewer-download").click();
     const popup = await popupPromise;
     await popup.waitForLoadState();
+    expect(popup.url()).toBe(thumbnailUrl);
     expect(await popup.evaluate(() => window.opener === null)).toBe(true);
     expect(sentReferrer).toBe(false);
     await popup.close();
