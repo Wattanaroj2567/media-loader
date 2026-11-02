@@ -295,14 +295,23 @@ test.describe("Mocked Dashboard Workflow", () => {
     const thumbnail = queueCard.getByTestId("job-thumbnail");
     await expect
       .poll(() =>
-        thumbnail.evaluate((element) => element.getBoundingClientRect().width)
+        thumbnail.evaluate((element) => {
+          const rect = element.getBoundingClientRect();
+          return rect.width / rect.height;
+        })
       )
-      .toBe(112);
+      .toBeCloseTo(16 / 9, 2);
     await expect
       .poll(() =>
-        thumbnail.evaluate((element) => element.getBoundingClientRect().height)
+        thumbnail.evaluate((element) => {
+          const content = element.parentElement!;
+          return Math.abs(
+            element.getBoundingClientRect().width -
+              content.getBoundingClientRect().width
+          );
+        })
       )
-      .toBe(64);
+      .toBeLessThanOrEqual(1);
     const queueTimestamp = queueCard.locator("time");
     await expect(queueTimestamp).toHaveAttribute("datetime", queuedJob.created_at);
     await expect(queueTimestamp).toContainText("Sep 18, 2026");
