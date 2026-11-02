@@ -566,7 +566,7 @@ def test_extract_metadata_keeps_submitted_gif_identity_after_redirect(
             resolved_js_runtime=None,
         ),
     )
-    monkeypatch.setattr(yt_dlp_service.yt_dlp, "YoutubeDL", FakeYoutubeDL)
+    monkeypatch.setattr(yt_dlp_service, "_MetadataYoutubeDL", FakeYoutubeDL)
 
     media, formats = asyncio.run(extract_metadata(input_url))
 
@@ -668,7 +668,7 @@ def test_instagram_analysis_enriches_missing_view_count_from_public_embed(monkey
                 "formats": [],
             }
 
-    monkeypatch.setattr(yt_dlp_service.yt_dlp, "YoutubeDL", FakeYoutubeDL)
+    monkeypatch.setattr(yt_dlp_service, "_MetadataYoutubeDL", FakeYoutubeDL)
     monkeypatch.setattr(
         yt_dlp_service,
         "_instagram_embed_view_count",
@@ -697,7 +697,7 @@ def test_youtube_analysis_uses_web_embedded_player_client(monkeypatch):
             assert download is False
             return {"title": "Test media", "formats": []}
 
-    monkeypatch.setattr(yt_dlp_service.yt_dlp, "YoutubeDL", FakeYoutubeDL)
+    monkeypatch.setattr(yt_dlp_service, "_MetadataYoutubeDL", FakeYoutubeDL)
 
     _run_yt_dlp_sync("https://www.youtube.com/watch?v=test")
 
