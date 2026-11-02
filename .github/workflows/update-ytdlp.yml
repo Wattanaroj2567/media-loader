@@ -1,8 +1,8 @@
-name: Weekly yt-dlp Auto-Update
+name: Monthly yt-dlp Auto-Update
 
 on:
   schedule:
-    # Run every Sunday at 03:00 UTC (10:00 AM Bangkok Time)
+    # Run every Sunday; the schedule guard below keeps only the first Sunday of each month.
     - cron: '0 3 * * 0'
   workflow_dispatch:
 
@@ -11,8 +11,29 @@ permissions:
   pull-requests: write
 
 jobs:
+  schedule-guard:
+    name: Check monthly schedule
+    runs-on: ubuntu-latest
+    outputs:
+      should-run: ${{ steps.check.outputs.should-run }}
+    steps:
+      - name: Run on dispatch or the first Sunday of the month
+        id: check
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          if [ "$EVENT_NAME" != "schedule" ]; then
+            echo "should-run=true" >> "$GITHUB_OUTPUT"
+          elif [ "$(date -u +%u)" -eq 7 ] && [ "$(date -u +%d)" -le 7 ]; then
+            echo "should-run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "should-run=false" >> "$GITHUB_OUTPUT"
+          fi
+
   update-ytdlp:
     name: Bump yt-dlp & Verify Tests
+    needs: schedule-guard
+    if: needs.schedule-guard.outputs.should-run == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -80,18 +101,18 @@ jobs:
         uses: peter-evans/create-pull-request@v8
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          branch: deps/weekly-ytdlp-update
+          branch: deps/monthly-ytdlp-update
           delete-branch: true
           title: "chore(deps): bump yt-dlp to ${{ steps.get_version.outputs.version }}"
           commit-message: "chore(deps): bump yt-dlp to ${{ steps.get_version.outputs.version }}"
           body: |
-            ### Automated Weekly yt-dlp Update
+            ### Automated Monthly yt-dlp Update
 
             - **Target packages**: `apps/api` and `apps/worker`
             - **New yt-dlp version**: `${{ steps.get_version.outputs.version }}`
             - **Validation**: Both `apps/api` and `apps/worker` pytest suites passed successfully.
 
-            This PR was generated automatically by the weekly yt-dlp maintenance workflow.
+            This PR was generated automatically by the monthly yt-dlp maintenance workflow.
           labels: |
             dependencies
             automated
