@@ -20,7 +20,9 @@ export function AuthRoute({
         window.scrollTo({ top: 0, left: 0, behavior: "instant" });
       } else {
         const params = new URLSearchParams(window.location.search);
-        const error = params.has("error") ? "&error=auth" : "";
+        const error = params.has("error")
+          ? `&error=${params.get("error") === "callback" ? "callback" : "auth"}`
+          : "";
         const reset = params.get("reset") === "success" ? "&reset=success" : "";
         router.replace(`/?auth=${mode}${error}${reset}`);
       }

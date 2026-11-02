@@ -14,6 +14,7 @@ import {
 import { X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { AuthForm } from "@/components/auth-form";
+import { useAuthFormState } from "@/components/auth-form-state";
 import { FULL_PAGE_AUTH_MEDIA_QUERY } from "@/lib/auth-viewport";
 import { requestMediaAnalysis } from "@/lib/analyzer-session";
 import { useT } from "@/lib/i18n/context";
@@ -32,6 +33,7 @@ export function useLandingAuth() {
 export function LandingAuthProvider({ children }: { children: ReactNode }) {
   const { t } = useT();
   const router = useRouter();
+  const { reset: resetForm } = useAuthFormState();
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<
     "login" | "register" | "forgot-password" | "reset-password"
@@ -41,6 +43,7 @@ export function LandingAuthProvider({ children }: { children: ReactNode }) {
 
   const openAuth = useCallback(
     (url?: string) => {
+      resetForm();
       if (url) requestMediaAnalysis(url);
       if (window.matchMedia(FULL_PAGE_AUTH_MEDIA_QUERY).matches) {
         router.push("/auth/login");
@@ -49,7 +52,7 @@ export function LandingAuthProvider({ children }: { children: ReactNode }) {
       setMode("login");
       setOpen(true);
     },
-    [router]
+    [router, resetForm]
   );
   const context = useMemo(() => ({ openAuth }), [openAuth]);
 
@@ -58,7 +61,13 @@ export function LandingAuthProvider({ children }: { children: ReactNode }) {
     const media = window.matchMedia(FULL_PAGE_AUTH_MEDIA_QUERY);
     const updatePresentation = () => {
       if (!media.matches) return;
-      router.replace(`/auth/${mode}`);
+      const params = new URLSearchParams(window.location.search);
+      const error = params.has("error")
+        ? `?error=${params.get("error") === "callback" ? "callback" : "auth"}`
+        : "";
+      const reset =
+        params.get("reset") === "success" ? `${error ? "&" : "?"}reset=success` : "";
+      router.replace(`/auth/${mode}${error}${reset}`);
     };
     updatePresentation();
     media.addEventListener("change", updatePresentation);
@@ -122,6 +131,7 @@ export function LandingAuthProvider({ children }: { children: ReactNode }) {
   }, [open, mode]);
 
   function closeAuth() {
+    resetForm();
     setOpen(false);
     setMode("login");
     if (new URLSearchParams(window.location.search).has("auth")) {

@@ -68,7 +68,10 @@ test.describe("Authentication routing", () => {
     await page.goto("/auth/login");
     await page.getByLabel("Email", { exact: true }).fill("tester@example.com");
     await page.getByLabel("Password", { exact: true }).fill("synthetic-password");
-    await page.getByRole("button", { name: "Sign in", exact: true }).click();
+    await page
+      .getByRole("dialog")
+      .getByRole("button", { name: "Sign in", exact: true })
+      .click();
     await expect(page).toHaveURL(/\/dashboard$/);
     await context.addCookies([
       {
@@ -80,7 +83,7 @@ test.describe("Authentication routing", () => {
     await page.goto(
       "/auth/callback?code=invalid-code&error_description=private-fixture"
     );
-    await expect(page).toHaveURL(/\/auth\/login\?error=callback$/);
+    await expect(page).toHaveURL(/\/\?auth=login&error=callback$/);
     await expect(page.locator("form [role=alert]")).toBeVisible();
     await expect(page.locator("body")).not.toContainText("private-fixture");
     await page.goto("/auth/callback?next=/auth/reset-password");
@@ -127,7 +130,10 @@ test.describe("Authentication routing", () => {
     await page.goto("/auth/login");
     await page.getByLabel("Email", { exact: true }).fill("tester@example.com");
     await page.getByLabel("Password", { exact: true }).fill("synthetic-password");
-    await page.getByRole("button", { name: "Sign in", exact: true }).click();
+    await page
+      .getByRole("dialog")
+      .getByRole("button", { name: "Sign in", exact: true })
+      .click();
     await expect(page).toHaveURL(/\/dashboard$/);
     for (const path of [
       "/",

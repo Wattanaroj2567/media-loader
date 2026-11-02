@@ -7,6 +7,128 @@ test.beforeEach(async ({ page }) => {
   await mockEmptyJobs(page);
 });
 
+for (const mode of ["login", "register", "forgot-password"]) {
+  test(`${mode} preserves form input through presentation redirects`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(`/auth/${mode}`);
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await page.locator("#auth-email").fill("resize@example.com");
+    if (mode !== "forgot-password") {
+      await page.locator("#auth-password").fill("Resize-fixture-123");
+    }
+    if (mode === "register") {
+      await page.getByLabel("Display name (optional)").fill("Resize Member");
+      await page.locator("#auth-confirm").fill("Resize-fixture-123");
+    }
+    for (const viewport of [
+      { width: 390, height: 844 },
+      { width: 1440, height: 900 },
+    ]) {
+      await page.setViewportSize(viewport);
+      if (viewport.width === 390)
+        await expect(page).toHaveURL(new RegExp(`/auth/${mode}$`));
+      else await expect(page.getByRole("dialog")).toBeVisible();
+      await expect(page.locator("#auth-email")).toHaveValue("resize@example.com");
+      if (mode !== "forgot-password") {
+        await expect(page.locator("#auth-password")).toHaveValue("Resize-fixture-123");
+      }
+      if (mode === "register") {
+        await expect(page.getByLabel("Display name (optional)")).toHaveValue(
+          "Resize Member"
+        );
+        await expect(page.locator("#auth-confirm")).toHaveValue("Resize-fixture-123");
+      }
+    }
+    if (mode === "login") {
+      await page.getByRole("dialog").locator("button").first().click();
+      await page
+        .getByTestId("landing-topbar")
+        .getByRole("button", { name: "Sign in", exact: true })
+        .click();
+      await expect(page.locator("#auth-email")).toHaveValue("");
+      await expect(page.locator("#auth-password")).toHaveValue("");
+    }
+  });
+}
+
+test("signup confirmation and resend cooldown survive presentation redirects", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/auth/register");
+  await page.locator("#auth-email").fill("resize@example.com");
+  await page.locator("#auth-password").fill("Resize-fixture-123");
+  await page.locator("#auth-confirm").fill("Resize-fixture-123");
+  await page.clock.install();
+  await page.getByRole("button", { name: "Create account", exact: true }).click();
+  const heading = page.getByRole("heading", { name: "Check your email", exact: true });
+  await expect(heading).toBeVisible();
+  await page.clock.runFor(20_000);
+  for (const viewport of [
+    { width: 390, height: 844 },
+    { width: 1440, height: 900 },
+  ]) {
+    await page.setViewportSize(viewport);
+    if (viewport.width === 390) await expect(page).toHaveURL(/\/auth\/register$/);
+    else await expect(page.getByRole("dialog")).toBeVisible();
+    await expect(heading).toBeVisible();
+    await expect(page.getByRole("button", { name: /Resend in/ })).toBeDisabled();
+    await expect(page.getByRole("button", { name: /Resend in/ })).toContainText("40");
+    await expect(page.locator("#auth-password")).toHaveCount(0);
+  }
+  await page.clock.runFor(41_000);
+  await expect(
+    page.getByRole("button", { name: "Resend confirmation email", exact: true })
+  ).toBeEnabled();
+});
+
+test("callback failure remains visible with an existing session across presentations", async ({
+  page,
+}) => {
+  await page.goto("/auth/login");
+  await page.getByLabel("Email", { exact: true }).fill("tester@example.com");
+  await page.getByLabel("Password", { exact: true }).fill("Fixture-password-123");
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Sign in", exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/dashboard$/);
+  await page.goto("/auth/callback");
+  await expect(page).toHaveURL(/\/\?auth=login&error=callback$/);
+  await expect(page.getByRole("dialog").locator("[role=alert]")).toBeVisible();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page).toHaveURL(/\/auth\/login\?error=callback$/);
+  await expect(page.locator("form [role=alert]")).toBeVisible();
+});
+
+test("pending signup finishes in the new presentation", async ({ page }) => {
+  let release!: () => void;
+  const ready = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await page.route("**/auth/v1/signup**", async (route) => {
+    await ready;
+    await route.continue();
+  });
+  await page.goto("/auth/register");
+  await page.locator("#auth-email").fill("pending@example.com");
+  await page.locator("#auth-password").fill("Resize-fixture-123");
+  await page.locator("#auth-confirm").fill("Resize-fixture-123");
+  const request = page.waitForRequest((request) =>
+    request.url().includes("/auth/v1/signup")
+  );
+  await page.getByRole("button", { name: "Create account", exact: true }).click();
+  await request;
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page).toHaveURL(/\/auth\/register$/);
+  release();
+  await expect(
+    page.getByRole("heading", { name: "Check your email", exact: true })
+  ).toBeVisible();
+});
+
 test("password visibility preserves input and never submits the login form", async ({
   page,
 }) => {

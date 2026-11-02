@@ -82,6 +82,11 @@ Landing-page authentication opens as a modal on wider viewports and navigates to
 the full-page auth routes on phone-sized or short-landscape viewports.
 Direct login, registration, and password-reset-request URLs also open the landing
 page modal on desktop; mobile keeps the full-page form.
+Resizing between these presentations retains form input, pending requests, and
+signup confirmation with its resend cooldown in a shared React owner. This state
+is never persisted to browser storage and is cleared when closing the form,
+changing auth mode, or leaving the auth flow. Callback failures retain the
+allowlisted `error=callback` marker through presentation redirects.
 Legal links from login and registration carry an allowlisted `from` mode. Their
 back links restore that auth mode, including the desktop modal; direct legal-page
 visits return home. Switching between legal documents preserves the auth origin.
