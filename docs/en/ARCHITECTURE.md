@@ -20,8 +20,10 @@ The API and worker use the same local media-output volume in the default
 `media-output` volume. A worker on a different host must not claim jobs whose
 files it cannot share with the API.
 
-See the [architecture diagram](../diagrams/media-loader-architecture.html) or
-[dark-mode diagram](../diagrams/media-loader-architecture-dark.html).
+See the illustrated architecture in [English](../images/media-loader-architecture-en.png)
+or [Thai](../images/media-loader-architecture-th.png). Follow the numbered flow
+from URL entry to owner-checked file delivery; the bottom strip shows the checked
+egress path used for source requests.
 
 ## Runtime modes
 

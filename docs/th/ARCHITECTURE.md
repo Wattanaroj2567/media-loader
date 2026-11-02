@@ -19,8 +19,10 @@ supabase      → Auth และตาราง PostgreSQL ที่ป้อง
 ร่วมกัน ใน Docker Compose ทั้งสอง container mount named volume `media-output`
 Worker ที่อยู่คนละเครื่องต้องไม่รับงานซึ่งไม่สามารถใช้ไฟล์ร่วมกับ API ได้
 
-ดู[แผนภาพสถาปัตยกรรม](../diagrams/media-loader-architecture.html) หรือ
-[แผนภาพโหมดมืด](../diagrams/media-loader-architecture-dark.html)
+ดูภาพสถาปัตยกรรมฉบับ[ภาษาไทย](../images/media-loader-architecture-th.png)
+หรือ [English](../images/media-loader-architecture-en.png) โดยอ่านตามลำดับเลข
+ตั้งแต่กรอก URL จนส่งไฟล์ให้เจ้าของงาน ส่วนแถบด้านล่างแสดงเส้นทางผ่าน proxy
+สำหรับคำขอไปยังแหล่งสื่อต้นทาง
 
 ## รูปแบบการรัน
 
