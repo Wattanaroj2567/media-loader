@@ -85,6 +85,7 @@ def urlopen(request: Request, *, timeout: int):
 
 
 def is_terminal_status(status: str) -> bool:
+    """Return whether a job can no longer transition through processing."""
     return status in TERMINAL_STATUSES
 
 
@@ -94,6 +95,7 @@ def build_format_selector(
     selected_has_audio: bool = False,
     selected_has_video: bool = False,
 ) -> str:
+    """Select source streams compatible with the requested output format."""
     if output_format == "mp4":
         if format_id == "best":
             return "bestvideo+bestaudio[ext=m4a]/bestvideo+bestaudio/best"
@@ -129,6 +131,7 @@ def is_retryable_source_error(error: Exception) -> bool:
 
 
 def calculate_download_progress(progress_data: dict) -> int:
+    """Estimate download percentage while reserving completion for processing."""
     downloaded = progress_data.get("downloaded_bytes") or 0
     total = progress_data.get("total_bytes") or progress_data.get(
         "total_bytes_estimate"
@@ -147,12 +150,14 @@ def create_progress_hook(
         [str, int, float | None, int | None], object
     ] = update_job_progress,
 ):
+    """Build a throttled progress callback with cancellation and resource checks."""
     last_progress = -1
     last_cancel_check_time = 0.0
     cancel_check_interval = 1.0  # Check cancellation every 1.0s for instant response
     is_cancelled_cached = False
 
     def hook(progress_data: dict) -> None:
+        """Enforce download limits and report progress while honoring cancellation."""
         nonlocal last_progress, last_cancel_check_time, is_cancelled_cached
 
         now = time.time()
@@ -242,6 +247,7 @@ def ffmpeg_error_tail(log_path: Path, limit: int = 500) -> str:
 
 
 def get_file_size_mb(file_path: Path) -> float:
+    """Return the file size in MiB for job metadata."""
     return file_path.stat().st_size / (1024 * 1024)
 
 
@@ -511,6 +517,7 @@ async def _run_cancellable_command(
     job_dir: Path | None = None,
     input_data: bytes | None = None,
 ) -> bool:
+    """Run a monitored command and reap its process tree on every exit path."""
     if job_dir is None and stderr_log_path is not None:
         job_dir = stderr_log_path.parent
     if job_dir is not None:
@@ -746,6 +753,7 @@ async def _download_validated(
     saw_file = False
 
     async def attempt() -> Optional[Path]:
+        """Download one candidate and discard output that fails media validation."""
         nonlocal saw_file
         downloaded = await download_media(
             url,

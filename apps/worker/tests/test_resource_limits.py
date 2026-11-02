@@ -102,7 +102,17 @@ def test_watchdog_stops_external_downloader_and_its_child(monkeypatch, tmp_path)
 def test_watchdog_also_reaps_processes_on_timeout_or_cancellation(
     monkeypatch, tmp_path, cancelled
 ):
+    """Timeout and cancellation must both reap the spawned command."""
     monkeypatch.setattr(processor, "is_job_cancelled", lambda _job_id: cancelled)
+    processes = []
+    create_process = asyncio.create_subprocess_exec
+
+    async def capture_process(*args, **kwargs):
+        process = await create_process(*args, **kwargs)
+        processes.append(process)
+        return process
+
+    monkeypatch.setattr(processor.asyncio, "create_subprocess_exec", capture_process)
 
     async def exercise():
         command = [sys.executable, "-c", "import time; time.sleep(30)"]
@@ -119,6 +129,8 @@ def test_watchdog_also_reaps_processes_on_timeout_or_cancellation(
             assert await operation is False
 
     asyncio.run(exercise())
+    assert processes
+    assert all(process.returncode is not None for process in processes)
 
 
 def test_download_subprocess_handoff_keeps_source_out_of_command_line(
