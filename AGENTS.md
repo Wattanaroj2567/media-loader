@@ -26,7 +26,6 @@ Do not create nested repository copies. Edit files in place under this repo root
 
 ## 2. Non-Negotiable Core Rules (Constitution)
 
-Every agent must strictly adhere to these 4 non-negotiable rules:
 Every agent must strictly adhere to these non-negotiable rules:
 
 ### A. Non-Bypass & Rights-Aware Policy
@@ -61,7 +60,23 @@ Every agent must strictly adhere to these non-negotiable rules:
 - Whenever creating, editing, or refactoring code, agents **MUST** run `pnpm deadcode` (`knip` for Web, `vulture` for API & Worker) to detect and remove dead code.
 - Never leave behind unused exports, orphaned variables, unreferenced helper functions, or dead imports. Clean them up immediately.
 
-### G. Verification Before Completion Mandate
+### G. UI Component Consistency & Design System Mandate
+
+- **Strict component reuse**: Always reuse existing Design System / UI components (`apps/web/components/ui/` or shared components like `BackButton`, `ThemeToggle`, `SiteFooter`). Never write ad-hoc inline interactive elements with diverging margins, paddings, or font sizes.
+- **Extract new shared components**: If an interactive element, pattern, or link style appears on more than one page (e.g. Back button, TOC pill, details toggle, badge), agents **MUST** extract it into a reusable shared component in `apps/web/components/` instead of duplicating ad-hoc JSX.
+- **Strictly uniform interactive states**:
+  - Hover states, focus rings, and active indicators must be 100% consistent across all pages.
+  - Interactive clickable pills/triggers: `transition-colors hover:bg-primary/10 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60`.
+  - Icon micro-interactions (e.g. back button arrow slide `group-hover:-translate-x-0.5`, accordion chevron rotate `group-open:rotate-180`) must behave uniformly everywhere.
+  - Textarea and input controls must have disabled resize (`resize: none !important;`) and internal character counters pinned inside the box with proper padding to prevent text overlap.
+
+### H. Rapid UI Iteration vs. Milestone Verification Protocol
+
+- **Fast iteration loop**: During rapid user-directed UI tweaking and styling adjustments, prioritize turnaround speed. Run quick checks (`pnpm --filter web lint`, `pnpm --filter web build` / TypeScript verification).
+- **Defer heavy test suites**: Full test suites (`pnpm test:web`, Playwright e2e, API worker tests) are deferred to milestone completion checkpoints or explicit user requests ("พวกรันเทสค่อยเก็บตก") to keep UI tweaking fast and agile.
+- **Milestone verification**: Before final task completion or handoff, run the full verification suite to ensure zero regressions.
+
+### I. Verification Before Completion Mandate
 
 - **No completion claims without fresh verification evidence**: Never claim a task, fix, or refactor is complete without running the corresponding verification commands in the current turn.
 - Always inspect exit codes and error logs. Never assume code "should work" or "looks right". Prove it with execution.
@@ -123,15 +138,11 @@ A task is done only when:
 3. Policy and non-bypass checks are strictly preserved.
 4. Error handling is clear and user-facing behavior is verified.
 5. Relevant documentation under `docs/` is updated if behavior changes.
-6. **Code Quality & Verification Commands must pass with verified evidence**:
-   - `pnpm lint` (ESLint for Web, Ruff for API & Worker, Markdownlint for Docs)
-   - Formatting is clean (`prettier` and `ruff format`)
 6. **Code Quality, Formatting, & Dead Code Verification commands must pass with verified evidence**:
    - `pnpm deadcode` (Knip for Web, Vulture for API & Worker: 0 dead code/unused exports)
    - `pnpm format` (Prettier and Ruff format: clean code style across all services)
    - `pnpm lint` (ESLint for Web, Ruff for API & Worker, Markdownlint for Docs: 0 errors)
    - `pnpm lint:md` (Markdown files pass clean linting: 0 issues)
    - `pnpm build` (TypeScript compilation and Next.js build pass with zero errors)
-   - Automated tests pass (`pnpm test:api`, `pnpm test:worker`, `pnpm test:web`)
    - Automated tests pass (`pnpm test:web`, `pnpm test:api`, `pnpm test:worker`)
 7. **Git safety confirmed**: Changes remain unstaged until the user explicitly commands a commit.
