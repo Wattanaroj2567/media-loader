@@ -93,13 +93,13 @@ export function LandingAuthProvider({ children }: { children: ReactNode }) {
         aria-labelledby="auth-title"
         onClose={closeAuth}
         onCancel={closeAuth}
-        className={`${styles.modalSurface} fixed inset-0 m-auto w-[calc(100%-2rem)] max-w-[392px] overflow-hidden rounded-2xl border p-0 text-text`}
+        className={`${styles.modalSurface} fixed inset-0 m-0 sm:m-auto w-full sm:w-[calc(100%-2rem)] sm:max-w-[392px] h-dvh sm:h-auto overflow-hidden rounded-none sm:rounded-2xl border-0 sm:border p-0 text-text`}
       >
         <button
           type="button"
           aria-label={t("common.close")}
           onClick={closeAuth}
-          className={`${styles.modalClose} absolute top-3.5 right-3.5 z-10 grid size-8 cursor-pointer place-items-center rounded-md border border-border/80 bg-bg-elevated text-text-muted shadow-sm transition-colors hover:bg-bg-surface hover:text-text outline-none focus-visible:outline-2 focus-visible:outline-primary`}
+          className={`${styles.modalClose} absolute top-[max(14px,env(safe-area-inset-top))] right-[max(14px,env(safe-area-inset-right))] sm:top-3.5 sm:right-3.5 z-10 grid size-9 sm:size-8 cursor-pointer place-items-center rounded-full sm:rounded-md border border-border/80 bg-bg-surface sm:bg-bg-elevated text-text-muted shadow-sm transition-colors hover:bg-bg-elevated hover:text-text outline-none focus-visible:outline-2 focus-visible:outline-primary`}
         >
           <X className="size-4" aria-hidden="true" />
         </button>

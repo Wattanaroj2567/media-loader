@@ -12,6 +12,7 @@ import { UserAvatar } from "@/components/user-avatar";
 import type { AppUser } from "@/components/app-user-context";
 import { useT } from "@/lib/i18n/context";
 import { clearGuestSessionId } from "@/lib/guest-session.ts";
+import { cn } from "@/lib/utils";
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -259,10 +260,20 @@ export function AppShell({ children, user }: AppShellProps) {
       {/* ─── Main Content (Full Desktop Width / No Sidebar Offset) ──── */}
       <main
         id="main-content"
-        className={`flex flex-1 flex-col ${isAccountPage ? "pt-0 pb-8 lg:pb-10" : "pt-[calc(3.375rem+env(safe-area-inset-top))] pb-24 sm:pt-[calc(3.5rem+env(safe-area-inset-top))] lg:pt-0 lg:pb-0"}`}
+        className={cn(
+          "flex flex-1 flex-col",
+          isAccountPage
+            ? "pt-0"
+            : "pt-[calc(3.375rem+env(safe-area-inset-top))] sm:pt-[calc(3.5rem+env(safe-area-inset-top))] lg:pt-0"
+        )}
       >
         {children}
-        <SiteFooter className="mt-4 px-4 pt-0 pb-6 md:pb-8 lg:mt-auto lg:pt-8" />
+        <SiteFooter
+          className={cn(
+            "mt-auto mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8",
+            !isAccountPage && "mb-20 lg:mb-0"
+          )}
+        />
       </main>
 
       {/* ─── Compact Bottom Nav (< lg) ──────────────────────────────── */}

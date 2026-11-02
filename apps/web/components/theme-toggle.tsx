@@ -59,37 +59,24 @@ export function ThemeToggle({
     };
   }, [isOpen]);
 
-  if (!mounted) {
-    if (variant === "segmented") {
-      return (
-        <div
-          className={cn(
-            "h-10 w-full animate-pulse rounded-xl border border-border/60 bg-bg-surface/40",
-            className
-          )}
-        />
-      );
-    }
-    return (
-      <div
-        className={cn(
-          "h-8 animate-pulse rounded-full",
-          tone === "surface"
-            ? "w-13 border border-border/70 bg-bg-surface/40"
-            : "size-8",
-          className
-        )}
-      />
-    );
-  }
-
-  const currentTheme = theme || "system";
-
   const options = [
     { value: "system", label: t("theme.system", {}, "ตามระบบ"), icon: Laptop },
     { value: "dark", label: t("theme.dark", {}, "มืด"), icon: Moon },
     { value: "light", label: t("theme.light", {}, "สว่าง"), icon: Sun },
   ];
+
+  const currentTheme = (mounted ? theme : undefined) || "system";
+
+  if (!mounted && variant === "segmented") {
+    return (
+      <div
+        className={cn(
+          "h-10 w-full animate-pulse rounded-xl border border-border/60 bg-bg-surface/40",
+          className
+        )}
+      />
+    );
+  }
 
   if (variant === "segmented") {
     return (
@@ -143,6 +130,7 @@ export function ThemeToggle({
       <div className="relative inline-block text-left" ref={dropdownRef}>
         <button
           type="button"
+          suppressHydrationWarning
           onClick={() => setIsOpen((prev) => !prev)}
           aria-expanded={isOpen}
           aria-haspopup="true"

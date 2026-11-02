@@ -113,6 +113,14 @@
 html {
   min-width: 280px;
   overflow-x: auto;
+  scrollbar-gutter: stable;
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
 }
 
 body {

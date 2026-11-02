@@ -321,14 +321,14 @@ function LandingPageContent() {
       </div>
 
       {/* ─── Top Header Navigation ─────────────────────────────────────── */}
-      <header className="fixed inset-x-0 top-0 z-50 w-full shrink-0 pt-[env(safe-area-inset-top)] transition-none lg:sticky lg:inset-auto lg:top-0 lg:pt-0 lg:py-3 lg:px-8 lg:transition-all lg:duration-300">
+      <header className="pointer-events-none fixed inset-x-0 top-0 z-50 w-full shrink-0 pt-[env(safe-area-inset-top)] transition-none lg:sticky lg:inset-auto lg:top-4 lg:p-0 lg:px-8 lg:transition-all lg:duration-300">
         <div
           data-testid="landing-topbar"
           className={cn(
-            "mx-auto flex h-13.5 w-full items-center justify-between gap-2 border-b border-border/60 bg-bg-base px-3.5 transition-[background-color,border-color,box-shadow] duration-300 sm:h-14 sm:px-6 lg:h-auto lg:max-w-272 lg:rounded-full lg:border lg:bg-transparent lg:p-2 lg:pl-5",
-            isScrolled
-              ? "shadow-none lg:border lg:border-border/60 lg:bg-white/60 lg:shadow-md lg:shadow-black/5 lg:backdrop-blur-xl lg:backdrop-saturate-150 dark:lg:border-white/12 dark:lg:bg-[#16181f]/60 dark:lg:shadow-black/30"
-              : "shadow-none lg:border-transparent lg:bg-transparent lg:shadow-none dark:lg:border-transparent dark:lg:bg-transparent"
+            "pointer-events-auto mx-auto flex h-13.5 w-full items-center justify-between gap-2 border-b border-border/60 bg-bg-base/90 backdrop-blur-md px-3.5 transition-[background-color,border-color,box-shadow] duration-300 sm:h-14 sm:px-6 lg:h-auto lg:max-w-272 lg:rounded-full lg:border lg:p-2 lg:pl-5",
+            "lg:border-border/60 lg:bg-white/65 lg:shadow-md lg:shadow-black/5 lg:backdrop-blur-xl lg:backdrop-saturate-150",
+            "dark:lg:border-white/12 dark:lg:bg-[#16181f]/65 dark:lg:shadow-lg dark:lg:shadow-black/30 dark:lg:backdrop-blur-xl dark:lg:backdrop-saturate-150",
+            isScrolled && "lg:shadow-lg dark:lg:shadow-black/50"
           )}
         >
           <Link
@@ -573,23 +573,30 @@ function LandingPageContent() {
             <div className="mt-3 hidden overflow-x-auto rounded-2xl border border-border bg-bg-surface/60 backdrop-blur-md md:block">
               <table
                 data-testid="platform-table"
-                className="ui-data-table min-w-[800px] w-full text-left text-[13px] leading-relaxed"
+                className="ui-data-table min-w-[800px] w-full table-fixed text-left text-[13px] leading-relaxed"
               >
+                <colgroup>
+                  <col className="w-[22%]" />
+                  <col className="w-[19%]" />
+                  <col className="w-[21%]" />
+                  <col className="w-[18%]" />
+                  <col className="w-[20%]" />
+                </colgroup>
                 <thead>
                   <tr className="bg-bg-elevated/40 text-xs font-semibold text-text-muted">
-                    <th className="px-5 py-3.5">
+                    <th className="w-[22%] px-5 py-3.5">
                       {t("landing.colPlatform", {}, "Platform")}
                     </th>
-                    <th className="px-5 py-3.5 text-center">
+                    <th className="w-[19%] px-5 py-3.5 text-center">
                       {t("landing.colVideo", {}, "Video")}
                     </th>
-                    <th className="px-5 py-3.5 text-center">
+                    <th className="w-[21%] px-5 py-3.5 text-center">
                       {t("landing.colAudio", {}, "Audio")}
                     </th>
-                    <th className="px-5 py-3.5 text-center">
+                    <th className="w-[18%] px-5 py-3.5 text-center">
                       {t("landing.colGif", {}, "GIF")}
                     </th>
-                    <th className="px-5 py-3.5 text-center">
+                    <th className="w-[20%] px-5 py-3.5 text-center">
                       {t("landing.colDetails", {}, "Details")}
                     </th>
                   </tr>
@@ -695,7 +702,7 @@ function LandingPageContent() {
                     data-testid={`platform-details-button-${p.id}`}
                     aria-controls={`platform-details-${p.id}`}
                     aria-expanded={expandedPlatformId === p.id}
-                    className="mt-3 inline-flex min-h-10 items-center gap-1 rounded-lg px-1 text-xs font-semibold text-primary transition-colors hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+                    className="mt-3 -ml-2 inline-flex min-h-10 items-center gap-1 rounded-lg px-2.5 text-xs font-semibold text-primary transition-colors hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
                     onClick={() =>
                       setExpandedPlatformId((current) =>
                         current === p.id ? null : p.id
@@ -740,20 +747,26 @@ function LandingPageContent() {
             <div className="mt-3 hidden overflow-x-auto rounded-2xl border border-border bg-bg-surface/60 backdrop-blur-md md:block">
               <table
                 data-testid="gif-platform-table"
-                className="ui-data-table min-w-[620px] w-full text-left text-[13px] leading-relaxed"
+                className="ui-data-table min-w-[620px] w-full table-fixed text-left text-[13px] leading-relaxed"
               >
+                <colgroup>
+                  <col className="w-[31%]" />
+                  <col className="w-[23%]" />
+                  <col className="w-[23%]" />
+                  <col className="w-[23%]" />
+                </colgroup>
                 <thead>
                   <tr className="bg-bg-elevated/40 text-xs font-semibold text-text-muted">
-                    <th className="px-5 py-3.5">
+                    <th className="w-[31%] px-5 py-3.5">
                       {t("landing.colPlatform", {}, "Platform")}
                     </th>
-                    <th className="px-5 py-3.5 text-center">
+                    <th className="w-[23%] px-5 py-3.5 text-center">
                       {t("landing.colGif", {}, "GIF")}
                     </th>
-                    <th className="px-5 py-3.5 text-center">
+                    <th className="w-[23%] px-5 py-3.5 text-center">
                       {t("landing.colAudio", {}, "Audio")}
                     </th>
-                    <th className="px-5 py-3.5 text-center">
+                    <th className="w-[23%] px-5 py-3.5 text-center">
                       {t("landing.colDetails", {}, "Details")}
                     </th>
                   </tr>
@@ -855,7 +868,7 @@ function LandingPageContent() {
                       data-testid={`gif-platform-details-button-${p.id}`}
                       aria-controls={`gif-platform-details-${p.id}`}
                       aria-expanded={expandedPlatformId === expandedId}
-                      className="mt-3 inline-flex min-h-10 items-center gap-1 rounded-lg px-1 text-xs font-semibold text-primary transition-colors hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+                      className="mt-3 -ml-2 inline-flex min-h-10 items-center gap-1 rounded-lg px-2.5 text-xs font-semibold text-primary transition-colors hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
                       onClick={() =>
                         setExpandedPlatformId((current) =>
                           current === expandedId ? null : expandedId
@@ -957,9 +970,18 @@ function LandingPageContent() {
                   <p className="mt-1.5 text-xs leading-relaxed text-text-muted md:min-h-10">
                     {format.summary}
                   </p>
-                  <details className="mt-3 border-t border-border/70 pt-2.5">
-                    <summary className="cursor-pointer text-xs font-semibold text-primary">
-                      {t("landing.codecTechnicalDetails")}
+                  <details className="group mt-3 border-t border-border/70 pt-2.5">
+                    <summary className="-ml-2 inline-flex min-h-8 cursor-pointer list-none items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold text-primary select-none outline-none transition-colors hover:bg-primary/10 focus-visible:ring-2 focus-visible:ring-primary/60 marker:hidden [&::-webkit-details-marker]:hidden">
+                      <span className="group-open:hidden">
+                        {t("landing.codecTechnicalDetails")}
+                      </span>
+                      <span className="hidden group-open:inline">
+                        {t("landing.hideCodecTechnicalDetails")}
+                      </span>
+                      <ChevronDown
+                        className="size-3.5 shrink-0 text-primary transition-transform duration-200 group-open:rotate-180"
+                        aria-hidden="true"
+                      />
                     </summary>
                     <div className="pt-2">
                       <code className="block wrap-break-word rounded-lg bg-bg-elevated/60 px-2.5 py-2 font-sans text-[11px] leading-relaxed text-primary sm:text-xs">
@@ -1041,7 +1063,7 @@ function LandingPageContent() {
           </button>
         )}
       </div>
-      <SiteFooter className="mt-auto w-full px-4 py-6" />
+      <SiteFooter className="mt-auto mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8" />
     </main>
   );
 }

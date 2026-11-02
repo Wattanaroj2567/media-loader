@@ -167,6 +167,7 @@
   "landing.codecGifExistingLabel": "If the source is already GIF",
   "landing.codecGifExistingDescription": "Keeps the original file without converting it again.",
   "landing.codecTechnicalDetails": "View conversion details",
+  "landing.hideCodecTechnicalDetails": "Hide conversion details",
 
   "download.newTitle": "New load",
   "download.newSubtitle": "Paste a link, inspect metadata, and choose the quality you want to download.",
