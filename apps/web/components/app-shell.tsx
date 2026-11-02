@@ -12,6 +12,7 @@ import { UserAvatar } from "@/components/user-avatar";
 import type { AppUser } from "@/components/app-user-context";
 import { useT } from "@/lib/i18n/context";
 import { clearGuestSessionId } from "@/lib/guest-session.ts";
+import { cn } from "@/lib/utils";
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -94,7 +95,7 @@ export function AppShell({ children, user }: AppShellProps) {
           {/* ─── Floating Topbar (lg+) ──────────────────────────────────── */}
           <header
             data-scroll-state="visible"
-            className="sticky top-4 z-50 mx-auto hidden w-fit max-w-[calc(100vw-1.5rem)] items-center gap-2 rounded-full border border-border/60 bg-bg-surface/95 p-2 pr-3 shadow-md shadow-black/5 backdrop-blur-xl backdrop-saturate-150 dark:border-white/12 dark:bg-[#16181f]/95 dark:shadow-black/30 lg:flex xl:gap-2.5"
+            className="sticky top-4 z-50 mx-auto hidden w-fit max-w-[calc(100vw-1.5rem)] items-center gap-2 rounded-full border border-border/60 bg-bg-surface/65 p-2 pr-3 shadow-md shadow-black/5 backdrop-blur-xl backdrop-saturate-150 dark:border-white/12 dark:bg-[#16181f]/65 dark:shadow-black/30 lg:flex xl:gap-2.5"
           >
             <Link
               href="/dashboard"
@@ -212,7 +213,7 @@ export function AppShell({ children, user }: AppShellProps) {
           <header
             data-testid="app-mobile-header"
             data-scroll-state="visible"
-            className="fixed inset-x-0 top-0 z-30 flex min-h-[calc(3.375rem+env(safe-area-inset-top))] items-center border-b border-border bg-bg-elevated px-3.5 pt-[env(safe-area-inset-top)] shadow-md shadow-slate-900/10 sm:min-h-[calc(3.5rem+env(safe-area-inset-top))] sm:px-6 dark:border-white/15 dark:bg-bg-base dark:shadow-black/30 lg:hidden"
+            className="fixed inset-x-0 top-0 z-30 flex min-h-[calc(3.375rem+env(safe-area-inset-top))] items-center border-b border-border bg-bg-elevated/80 px-3.5 pt-[env(safe-area-inset-top)] shadow-md shadow-slate-900/10 backdrop-blur-xl backdrop-saturate-150 sm:min-h-[calc(3.5rem+env(safe-area-inset-top))] sm:px-6 dark:border-white/15 dark:bg-bg-base/80 dark:shadow-black/30 lg:hidden"
           >
             <Link
               href="/dashboard"
@@ -259,10 +260,20 @@ export function AppShell({ children, user }: AppShellProps) {
       {/* ─── Main Content (Full Desktop Width / No Sidebar Offset) ──── */}
       <main
         id="main-content"
-        className={`flex flex-1 flex-col ${isAccountPage ? "pt-0 pb-8 lg:pb-10" : "pt-[calc(3.375rem+env(safe-area-inset-top))] pb-24 sm:pt-[calc(3.5rem+env(safe-area-inset-top))] lg:pt-0 lg:pb-0"}`}
+        className={cn(
+          "flex flex-1 flex-col",
+          isAccountPage
+            ? "pt-0"
+            : "pt-[calc(3.375rem+env(safe-area-inset-top))] sm:pt-[calc(3.5rem+env(safe-area-inset-top))] lg:pt-0"
+        )}
       >
         {children}
-        <SiteFooter className="mt-4 px-4 pt-0 pb-6 md:pb-8 lg:mt-auto lg:pt-8" />
+        <SiteFooter
+          className={cn(
+            "mt-auto mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8",
+            !isAccountPage && "mb-20 lg:mb-0"
+          )}
+        />
       </main>
 
       {/* ─── Compact Bottom Nav (< lg) ──────────────────────────────── */}

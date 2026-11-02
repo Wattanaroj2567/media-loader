@@ -61,14 +61,14 @@ type JobListMode = "queue" | "history";
 /* ─── Status colours ─────────────────────────────────────────────────── */
 const statusDot: Record<string, string> = {
   PENDING: "bg-slate-500",
-  ANALYZING: "bg-cyan-400",
-  READY: "bg-sky-400",
-  QUEUED: "bg-sky-400",
+  ANALYZING: "bg-primary",
+  READY: "bg-primary",
+  QUEUED: "bg-primary",
   RESUMING: "bg-primary animate-pulse",
   DOWNLOADING: "bg-primary animate-pulse",
   PAUSED: "bg-amber-400",
   CONVERTING: "bg-amber-400 animate-pulse",
-  UPLOADING: "bg-cyan-400",
+  UPLOADING: "bg-primary",
   COMPLETED: "bg-emerald-400",
   FAILED: "bg-rose-400",
   BLOCKED: "bg-rose-400",
@@ -77,14 +77,14 @@ const statusDot: Record<string, string> = {
 
 const statusBadge: Record<string, string> = {
   PENDING: "border-slate-500/20 bg-slate-500/10 text-slate-600 dark:text-slate-300",
-  ANALYZING: "border-cyan-500/20 bg-cyan-500/10 text-cyan-600 dark:text-cyan-300",
-  READY: "border-sky-500/20 bg-sky-500/10 text-sky-600 dark:text-sky-300",
-  QUEUED: "border-sky-500/20 bg-sky-500/10 text-sky-600 dark:text-sky-300",
+  ANALYZING: "border-primary/20 bg-primary/10 text-primary",
+  READY: "border-primary/20 bg-primary/10 text-primary",
+  QUEUED: "border-primary/20 bg-primary/10 text-primary",
   RESUMING: "border-primary/25 bg-primary/10 text-primary",
   DOWNLOADING: "border-primary/25 bg-primary/10 text-primary",
   PAUSED: "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300",
   CONVERTING: "border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-300",
-  UPLOADING: "border-cyan-500/20 bg-cyan-500/10 text-cyan-600 dark:text-cyan-300",
+  UPLOADING: "border-primary/20 bg-primary/10 text-primary",
   COMPLETED:
     "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
   FAILED: "border-rose-500/20 bg-rose-500/10 text-rose-600 dark:text-rose-300",
@@ -328,9 +328,7 @@ function JobCard({
           "border-primary ring-2 ring-primary/35 shadow-md shadow-primary/10"
       )}
     >
-      {job.status === "DOWNLOADING" && (
-        <BorderBeam size={180} duration={6} colorFrom="#00c8ff" colorTo="#0070f3" />
-      )}
+      {job.status === "DOWNLOADING" && <BorderBeam size={180} duration={6} />}
       {job.status === "CONVERTING" && (
         <BorderBeam size={180} duration={6} colorFrom="#f59e0b" colorTo="#d97706" />
       )}

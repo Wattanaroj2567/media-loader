@@ -27,32 +27,34 @@ export function SiteFooter({
       <nav aria-label={t("footer.legalNav")} className="flex items-center gap-4">
         <Link
           href="/how-it-works"
-          className="transition-colors hover:text-primary focus-visible:text-primary focus-visible:outline-none"
+          className="transition-colors hover:text-primary hover:underline hover:underline-offset-4 focus-visible:text-primary focus-visible:outline-none"
         >
           {t("footer.howItWorks")}
         </Link>
         <Link
           href="/contact"
-          className="transition-colors hover:text-primary focus-visible:text-primary focus-visible:outline-none"
+          className="transition-colors hover:text-primary hover:underline hover:underline-offset-4 focus-visible:text-primary focus-visible:outline-none"
         >
           {t("footer.contact")}
         </Link>
         <Link
           href="/privacy"
-          className="transition-colors hover:text-primary focus-visible:text-primary focus-visible:outline-none"
+          className="transition-colors hover:text-primary hover:underline hover:underline-offset-4 focus-visible:text-primary focus-visible:outline-none"
         >
           {t("footer.privacy")}
         </Link>
         <Link
           href="/terms"
-          className="transition-colors hover:text-primary focus-visible:text-primary focus-visible:outline-none"
+          className="transition-colors hover:text-primary hover:underline hover:underline-offset-4 focus-visible:text-primary focus-visible:outline-none"
         >
           {t("footer.terms")}
         </Link>
       </nav>
       <a
         href="https://github.com/Wattanaroj2567/media-loader"
-        className="inline-flex items-center gap-1.5 border-border transition-colors hover:text-primary focus-visible:text-primary focus-visible:outline-none sm:ml-1 sm:border-l sm:pl-4"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center gap-1.5 border-border transition-colors hover:text-primary hover:underline hover:underline-offset-4 focus-visible:text-primary focus-visible:outline-none sm:ml-1 sm:border-l sm:pl-4"
       >
         <svg
           aria-hidden="true"

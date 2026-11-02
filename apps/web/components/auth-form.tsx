@@ -2,6 +2,7 @@
 
 import {
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
   type ComponentProps,
@@ -10,16 +11,14 @@ import {
 } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Check, CircleAlert, Eye, EyeOff, Link2 } from "lucide-react";
+import { ArrowLeft, Check, CircleAlert, Eye, EyeOff, Link2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { SiteFooter } from "@/components/site-footer";
-import { BrandMark } from "@/components/brand-mark";
-import { HeaderUtilityControls } from "@/components/header-utility-controls";
 import { peekRequestedMediaAnalysis } from "@/lib/analyzer-session";
 import { useT } from "@/lib/i18n/context";
 import { createClient } from "@/lib/supabase/client";
+import { useAuthFormState } from "@/components/auth-form-state";
 import fieldStyles from "./form-field.module.css";
 import styles from "./auth-form.module.css";
 
@@ -81,24 +80,39 @@ export function AuthForm({
 }) {
   const { locale, t } = useT();
   const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirm, setConfirm] = useState("");
-  const [name, setName] = useState("");
-  const [touched, setTouched] = useState({
-    email: false,
-    password: false,
-  });
-  const [submitted, setSubmitted] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
-  const [message, setMessage] = useState("");
-  const [confirmationEmail, setConfirmationEmail] = useState("");
-  const [resendSeconds, setResendSeconds] = useState(0);
-  const resendInFlight = useRef(false);
+  const {
+    email,
+    setEmail,
+    password,
+    setPassword,
+    confirm,
+    setConfirm,
+    name,
+    setName,
+    touched,
+    setTouched,
+    submitted,
+    setSubmitted,
+    busy,
+    setBusy,
+    error,
+    setError,
+    message,
+    setMessage,
+    confirmationEmail,
+    setConfirmationEmail,
+    resendSeconds,
+    setResendSeconds,
+    passwordUpdated,
+    setPasswordUpdated,
+    resendInFlightRef,
+    flowVersionRef,
+    activateMode,
+    reset: resetForm,
+  } = useAuthFormState();
+  useLayoutEffect(() => activateMode(mode), [activateMode, mode]);
   const [hasPendingLink, setHasPendingLink] = useState(false);
   const [recoveryReady, setRecoveryReady] = useState(false);
-  const [passwordUpdated, setPasswordUpdated] = useState(false);
   const reset = mode === "reset-password";
   const registration = mode === "register";
   const settingPassword = registration || reset;
@@ -162,19 +176,11 @@ export function AuthForm({
     if (embedded) formPanel.current?.querySelector<HTMLInputElement>("input")?.focus();
   }, [embedded]);
 
-  const resendCooldownActive = resendSeconds > 0;
-  useEffect(() => {
-    if (!resendCooldownActive) return;
-    const timer = window.setInterval(() => {
-      setResendSeconds((seconds) => Math.max(0, seconds - 1));
-    }, 1000);
-    return () => window.clearInterval(timer);
-  }, [resendCooldownActive]);
-
   async function handleResendConfirmation() {
-    if (busy || resendInFlight.current || !confirmationEmail || resendSeconds > 0)
+    if (busy || resendInFlightRef.current || !confirmationEmail || resendSeconds > 0)
       return;
-    resendInFlight.current = true;
+    const version = flowVersionRef.current;
+    resendInFlightRef.current = true;
     setBusy(true);
     setError("");
     setResendSeconds(60);
@@ -184,20 +190,28 @@ export function AuthForm({
         email: confirmationEmail,
         options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
       });
+      if (version !== flowVersionRef.current) return;
       if (resendError) setError(safeError(resendError));
       else success("auth.resendSent");
     } catch {
-      setError(t("auth.genericError"));
+      if (version === flowVersionRef.current) setError(t("auth.genericError"));
     } finally {
-      resendInFlight.current = false;
-      setBusy(false);
+      if (version === flowVersionRef.current) {
+        resendInFlightRef.current = false;
+        setBusy(false);
+      }
     }
   }
 
   function switchMode(event: MouseEvent<HTMLAnchorElement>, nextMode: AuthMode) {
+    if (busy) {
+      event.preventDefault();
+      return;
+    }
+    resetForm();
     if (!onModeChange) return;
     event.preventDefault();
-    if (!busy) onModeChange(nextMode);
+    onModeChange(nextMode);
   }
 
   useEffect(() => {
@@ -223,7 +237,7 @@ export function AuthForm({
     return () => {
       active = false;
     };
-  }, [mode, reset, t]);
+  }, [mode, reset, t, setError, setMessage]);
 
   function safeError(cause: { code?: string; status?: number } | null) {
     if (
@@ -254,6 +268,7 @@ export function AuthForm({
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (busy || confirmationEmail) return;
+    const version = flowVersionRef.current;
     setError("");
     setMessage("");
     setSubmitted(true);
@@ -282,16 +297,18 @@ export function AuthForm({
         } catch {
           // Recovery responses stay neutral when the provider is unavailable.
         }
-        success("auth.recoverySent");
+        if (version === flowVersionRef.current) success("auth.recoverySent");
       } else if (reset) {
         if (!passwordUpdated) {
           const { data, error: sessionError } = await supabase.auth.getUser();
+          if (version !== flowVersionRef.current) return;
           if (sessionError || !data.user) {
             setRecoveryReady(false);
             setError(t("auth.recoveryExpired"));
             return;
           }
           const { error: updateError } = await supabase.auth.updateUser({ password });
+          if (version !== flowVersionRef.current) return;
           if (updateError) {
             setError(safeError(updateError));
             return;
@@ -301,6 +318,7 @@ export function AuthForm({
           setConfirm("");
         }
         const { error: signoutError } = await supabase.auth.signOut();
+        if (version !== flowVersionRef.current) return;
         if (signoutError) {
           setError(t("auth.signoutRetry"));
           return;
@@ -318,6 +336,7 @@ export function AuthForm({
               },
             })
           : await supabase.auth.signInWithPassword({ email: email.trim(), password });
+        if (version !== flowVersionRef.current) return;
         if (result.error) setError(safeError(result.error));
         else if (result.data.session) {
           if (!registration) {
@@ -327,6 +346,7 @@ export function AuthForm({
               // Keep sign-in successful if the preference sync fails.
             }
           }
+          if (version !== flowVersionRef.current) return;
           onSuccess?.(t("auth.signedIn"));
           router.replace("/dashboard");
           router.refresh();
@@ -339,14 +359,15 @@ export function AuthForm({
         } else setError(t("auth.genericError"));
       }
     } catch {
-      setError(t("auth.genericError"));
+      if (version === flowVersionRef.current) setError(t("auth.genericError"));
     } finally {
-      setBusy(false);
+      if (version === flowVersionRef.current) setBusy(false);
     }
   }
 
   async function google() {
     if (busy) return;
+    const version = flowVersionRef.current;
     setBusy(true);
     setError("");
     try {
@@ -354,24 +375,26 @@ export function AuthForm({
         provider: "google",
         options: { redirectTo: `${window.location.origin}/auth/callback` },
       });
-      if (oauthError) setError(t("auth.googleError"));
+      if (version === flowVersionRef.current && oauthError)
+        setError(t("auth.googleError"));
     } catch {
-      setError(t("auth.googleError"));
+      if (version === flowVersionRef.current) setError(t("auth.googleError"));
     } finally {
-      setBusy(false);
+      if (version === flowVersionRef.current) setBusy(false);
     }
   }
 
   return (
     <Container className={embedded ? styles.embedded : styles.page}>
       {!embedded && (
-        <header className={styles.header}>
-          <Link href="/" className={styles.brand} aria-label="Media Loader">
-            <BrandMark className="size-8" />
-            <span>Media Loader</span>
-          </Link>
-          <HeaderUtilityControls />
-        </header>
+        <Link
+          href="/"
+          onClick={resetForm}
+          className={styles.mobileClose}
+          aria-label={t("common.close")}
+        >
+          <X size={18} aria-hidden="true" />
+        </Link>
       )}
       <div className={embedded ? styles.modalLayout : styles.layout}>
         <section
@@ -820,81 +843,17 @@ export function AuthForm({
             {(mode === "login" || registration) && (
               <p className={styles.legalConsent}>
                 <span>{t("auth.legalConsent.prefix")}</span>
-                <Link href="/terms" target="_blank" rel="noopener noreferrer">
-                  {t("auth.legalConsent.terms")}
-                </Link>
+                <Link href={`/terms?from=${mode}`}>{t("auth.legalConsent.terms")}</Link>
                 <span>{t("auth.legalConsent.and")}</span>
-                <Link href="/privacy" target="_blank" rel="noopener noreferrer">
+                <Link href={`/privacy?from=${mode}`}>
                   {t("auth.legalConsent.privacy")}
                 </Link>
                 <span>{t("auth.legalConsent.suffix")}</span>
               </p>
             )}
-            {!embedded && (
-              <Link className={styles.guestLink} href="/">
-                <ArrowLeft size={15} aria-hidden="true" />
-                {t("auth.guest")}
-              </Link>
-            )}
           </div>
         </section>
-        {!embedded && (
-          <aside className={styles.showcase} aria-label={t("auth.storyLabel")}>
-            <div className={styles.showcaseTop}>
-              <span>{t("auth.storyEyebrow")}</span>
-              <span className={styles.formatLabel}>MP4 / MP3 / GIF</span>
-            </div>
-            <div className={styles.artwork} aria-hidden="true">
-              <div className={styles.artworkGlow} />
-              <svg className={styles.ribbons} viewBox="0 0 600 350" fill="none">
-                <defs>
-                  <linearGradient
-                    id="auth-ribbon"
-                    x1="20"
-                    y1="0"
-                    x2="580"
-                    y2="350"
-                    gradientUnits="userSpaceOnUse"
-                  >
-                    <stop stopColor="#217baf" stopOpacity="0" />
-                    <stop offset=".35" stopColor="#65d7fa" />
-                    <stop offset=".65" stopColor="#b7edff" />
-                    <stop offset="1" stopColor="#227cae" stopOpacity=".1" />
-                  </linearGradient>
-                </defs>
-                {Array.from({ length: 24 }, (_, index) => (
-                  <path
-                    key={index}
-                    d={`M -60 ${65 + index * 7} C 110 ${-45 + index * 4}, 155 ${370 - index * 5}, 315 ${235 - index * 4} S 460 ${-50 + index * 6}, 660 ${85 + index * 8}`}
-                    stroke="url(#auth-ribbon)"
-                    strokeWidth="1.3"
-                  />
-                ))}
-              </svg>
-              <div className={styles.mediaGlyph}>
-                <BrandMark className="size-14" />
-              </div>
-              <span className={styles.artworkCaption}>{t("auth.artworkReady")}</span>
-            </div>
-            <div className={styles.storyCopy}>
-              <h2>
-                {t("auth.storyTitle")}
-                <br />
-                <span>{t("auth.storyAccent")}</span>
-              </h2>
-              <p>{t("auth.storyDescription")}</p>
-            </div>
-            <div className={styles.storyFooter}>
-              <span>
-                <i />
-                {t("auth.workspaceNote")}
-              </span>
-              <span>MEDIA LOADER</span>
-            </div>
-          </aside>
-        )}
       </div>
-      {!embedded && <SiteFooter className={styles.footer} />}
     </Container>
   );
 }

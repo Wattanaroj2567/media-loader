@@ -27,10 +27,49 @@
   color: var(--text-dim);
 }
 
-.textarea {
-  height: auto;
-  min-height: 8rem;
-  padding: 10px 14px;
+.textareaWrapper {
+  margin-top: 2px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-base);
+  transition: border-color 150ms ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.textareaWrapper:focus-within {
+  border-color: var(--primary);
+}
+
+.textareaWrapper:has([aria-invalid="true"]) {
+  border-color: var(--destructive);
+}
+
+.textareaInput {
+  width: 100%;
+  min-height: 4.75rem;
+  padding: 10px 14px 4px;
+  border: none;
+  background: transparent;
+  font-size: 16px;
   line-height: 1.5;
-  resize: vertical;
+  color: var(--text);
+  outline: none;
+  box-shadow: none;
+  resize: none !important;
+}
+
+.textareaInput::placeholder {
+  color: var(--text-dim);
+}
+
+.textareaCounter {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 12px 6px;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+  user-select: none;
+  pointer-events: none;
 }

@@ -41,9 +41,13 @@ test.describe("Privacy and terms pages", () => {
     await expect(
       footer.locator("nav").getByRole("link", { name: "GitHub" })
     ).toHaveCount(0);
-    await expect(footer.getByRole("link", { name: "GitHub" })).not.toHaveAttribute(
+    await expect(footer.getByRole("link", { name: "GitHub" })).toHaveAttribute(
       "target",
       "_blank"
+    );
+    await expect(footer.getByRole("link", { name: "GitHub" })).toHaveAttribute(
+      "rel",
+      "noopener noreferrer"
     );
     await footer.locator('a[href="/privacy"]').click();
     await expect(page).toHaveURL(/\/privacy$/);
@@ -140,7 +144,7 @@ test.describe("Privacy and terms pages", () => {
     const contactForm = page.getByTestId("contact-form");
     await expect(contactForm).toBeVisible();
     await expect(contactForm).toHaveAttribute("novalidate", "");
-    await expect(contactForm.locator('select[name="topic"]')).toHaveValue("privacy");
+    await expect(contactForm.locator('input[name="topic"]')).toHaveValue("privacy");
     await expect(
       contactForm.getByLabel(/Reply email|อีเมลสำหรับติดต่อกลับ/i)
     ).toBeVisible();
@@ -155,7 +159,9 @@ test.describe("Privacy and terms pages", () => {
     await expect(contactForm).toContainText(
       /Do not include passwords|อย่าส่งรหัสผ่าน/i
     );
-    const requestType = contactForm.locator('select[name="requestType"]');
+    const requestType = contactForm.getByRole("combobox", {
+      name: /What would you like us to do|ต้องการจัดการข้อมูลอย่างไร/i,
+    });
     await expect(requestType).toBeVisible();
 
     const contactPanelBorder = await contactForm.evaluate((element) => {
@@ -189,7 +195,17 @@ test.describe("Privacy and terms pages", () => {
       border: getComputedStyle(element).borderTopColor,
     }));
     await page.goto("/auth/login");
-    const loginFieldStyles = await page.locator("#auth-email").evaluate((element) => {
+    const loginEmail = page.getByRole("dialog").locator("#auth-email");
+    await expect(loginEmail).toBeVisible();
+    await loginEmail.evaluate(async (element) => {
+      element.blur();
+      await Promise.all(
+        element
+          .getAnimations()
+          .map((animation) => animation.finished.catch(() => undefined))
+      );
+    });
+    const loginFieldStyles = await loginEmail.evaluate((element) => {
       const styles = getComputedStyle(element);
       return {
         backgroundColor: styles.backgroundColor,
@@ -203,7 +219,7 @@ test.describe("Privacy and terms pages", () => {
       };
     });
     const loginPanelBorder = await page.locator("#auth-title").evaluate((element) => {
-      const panel = element.closest("section")?.parentElement;
+      const panel = element.closest("dialog");
       if (!(panel instanceof HTMLElement)) return null;
       const styles = getComputedStyle(panel);
       return {
@@ -212,22 +228,34 @@ test.describe("Privacy and terms pages", () => {
         width: styles.borderTopWidth,
       };
     });
-    await page.locator("#auth-email").focus();
-    await page.waitForTimeout(200);
-    const loginFocusState = await page.locator("#auth-email").evaluate((element) => ({
+    await loginEmail.focus();
+    await loginEmail.evaluate(async (element) => {
+      await Promise.all(
+        element
+          .getAnimations()
+          .map((animation) => animation.finished.catch(() => undefined))
+      );
+    });
+    const loginFocusState = await loginEmail.evaluate((element) => ({
       active: document.activeElement === element,
       focus: element.matches(":focus"),
       focusVisible: element.matches(":focus-visible"),
       border: getComputedStyle(element).borderTopColor,
     }));
-    expect(contactFieldStyles).toEqual(loginFieldStyles);
-    expect(contactPanelBorder).toEqual(loginPanelBorder);
+    // Modal fields use the compact height; their shared field styling stays consistent.
+    expect(contactFieldStyles).toEqual({ ...loginFieldStyles, height: "44px" });
+    expect(loginFieldStyles.height).toBe("42px");
+    expect(contactPanelBorder).toMatchObject({ radius: "18px", width: "1px" });
+    expect(loginPanelBorder).toMatchObject({ radius: "16px", width: "1px" });
     expect(contactFocusState.active).toBe(true);
     expect(contactFocusState.focus).toBe(true);
     expect(contactFocusState.focusVisible).toBe(true);
+    expect(loginFocusState.active).toBe(true);
+    expect(loginFocusState.focus).toBe(true);
+    expect(loginFocusState.focusVisible).toBe(true);
     expect(contactFocusState.border).toBe(loginFocusState.border);
     await page.goto("/contact?topic=account");
-    await expect(contactForm.locator('select[name="topic"]')).toHaveValue("account");
+    await expect(contactForm.locator('input[name="topic"]')).toHaveValue("account");
     await expect(requestType).toHaveCount(0);
 
     await contactForm
@@ -256,13 +284,16 @@ test.describe("Privacy and terms pages", () => {
     await replyEmailField.fill("person@example.com");
     await expect(contactForm.getByRole("alert")).toHaveCount(0);
 
-    const topicSelect = contactForm.locator('select[name="topic"]');
-    await topicSelect.selectOption("privacy");
+    const topicTrigger = contactForm.getByRole("combobox", {
+      name: /What is this about|เรื่องที่ต้องการติดต่อ/i,
+    });
+    await topicTrigger.click();
+    await page
+      .getByRole("option", {
+        name: /Personal data request|คำขอเกี่ยวกับข้อมูลส่วนบุคคล/i,
+      })
+      .click();
     await expect(requestType).toBeVisible();
-    await expect(requestType).toHaveAttribute("required", "");
-    await expect(requestType).toContainText(
-      /Access or copy my data|ขอดูหรือขอสำเนาข้อมูล/i
-    );
     await contactForm
       .getByRole("button", { name: /Open email app to send|เปิดแอปอีเมลเพื่อส่ง/i })
       .click();
@@ -271,10 +302,14 @@ test.describe("Privacy and terms pages", () => {
       /Choose what you would like|กรุณาเลือกสิ่งที่ต้องการ/i
     );
     await expect(requestType).toBeFocused();
-    await requestType.selectOption("deletion");
+    await requestType.click();
+    await page.getByRole("option", { name: /Delete my data|ลบข้อมูล/i }).click();
     await expect(requestType).toHaveAttribute("aria-invalid", "false");
     await expect(contactForm.getByRole("alert")).toHaveCount(0);
-    await topicSelect.selectOption("account");
+    await topicTrigger.click();
+    await page
+      .getByRole("option", { name: /Account or usage|บัญชีหรือการใช้งาน/i })
+      .click();
     await expect(requestType).toHaveCount(0);
 
     await page.goto("/terms");
@@ -285,7 +320,7 @@ test.describe("Privacy and terms pages", () => {
     await expect(rightsContactLink).toHaveAttribute("href", "/contact?topic=rights");
     await rightsContactLink.click();
     await expect(page).toHaveURL(/\/contact\?topic=rights$/);
-    await expect(contactForm.locator('select[name="topic"]')).toHaveValue("rights");
+    await expect(contactForm.locator('input[name="topic"]')).toHaveValue("rights");
 
     await page.goto("/terms");
     const privacyRequestLink = page.getByRole("link", {
@@ -294,7 +329,7 @@ test.describe("Privacy and terms pages", () => {
     await expect(privacyRequestLink).toHaveAttribute("href", "/contact?topic=privacy");
     await privacyRequestLink.click();
     await expect(page).toHaveURL(/\/contact\?topic=privacy$/);
-    await expect(contactForm.locator('select[name="topic"]')).toHaveValue("privacy");
+    await expect(contactForm.locator('input[name="topic"]')).toHaveValue("privacy");
   });
 
   test("contact page fits a narrow mobile viewport", async ({ page }) => {
@@ -304,7 +339,7 @@ test.describe("Privacy and terms pages", () => {
     await expect(page.locator("h1")).toBeVisible();
     await expect(page.getByTestId("contact-form")).toBeVisible();
     await expect(
-      page.getByTestId("contact-form").locator('select[name="topic"]')
+      page.getByTestId("contact-form").locator('input[name="topic"]')
     ).toHaveValue("privacy");
     const pageWidth = await page.evaluate(() => document.documentElement.scrollWidth);
     expect(pageWidth).toBeLessThanOrEqual(375);

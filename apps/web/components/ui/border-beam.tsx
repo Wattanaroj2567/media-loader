@@ -13,6 +13,17 @@ const BORDER_BEAM_STYLES = `
   }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  @keyframes border-beam-spin {
+    from {
+      --angle: 0deg;
+    }
+    to {
+      --angle: 0deg;
+    }
+  }
+}
+
 @property --angle {
   syntax: "<angle>";
   initial-value: 0deg;
@@ -40,6 +51,7 @@ interface BorderBeamProps {
   colorFrom?: string;
   colorTo?: string;
   borderWidth?: number;
+  iterations?: number | "infinite";
 }
 
 export function BorderBeam({
@@ -47,9 +59,10 @@ export function BorderBeam({
   size = 180,
   duration = 8,
   delay = 0,
-  colorFrom = "#00c8ff",
-  colorTo = "#0070f3",
+  colorFrom = "var(--primary)",
+  colorTo = "color-mix(in srgb, var(--primary) 50%, white)",
   borderWidth = 1.5,
+  iterations = "infinite",
 }: BorderBeamProps) {
   useGlobalStyles(BORDER_BEAM_STYLES, "border-beam-styles");
 
@@ -92,7 +105,7 @@ export function BorderBeam({
             WebkitMask:
               "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
             WebkitMaskComposite: "xor",
-            animation: `border-beam-spin var(--duration) linear infinite var(--delay)`,
+            animation: `border-beam-spin var(--duration) linear ${iterations} var(--delay)`,
           } as React.CSSProperties
         }
       />

@@ -1,5 +1,5 @@
-import { AuthForm } from "@/components/auth-form";
+import { AuthRoute } from "@/components/auth-route";
 
 export default function AuthPage() {
-  return <AuthForm mode="forgot-password" />;
+  return <AuthRoute mode="forgot-password" />;
 }

@@ -35,7 +35,9 @@ export function MediaUrlInput({
   return (
     <div className={submitLabel ? undefined : "mb-5"}>
       <p className="ui-kicker mb-3">{t("download.placeholderLabel")}</p>
-      <div className="group relative flex min-h-16 gap-2 overflow-hidden rounded-2xl border border-border bg-bg-surface/60 p-2 transition-all duration-200 focus-within:border-primary/60 focus-within:bg-bg-elevated focus-within:ring-3 focus-within:ring-primary/15">
+      <div
+        className={`${styles.urlInput} group relative flex min-h-16 gap-2 overflow-hidden rounded-2xl border border-border bg-bg-surface/60 p-2 transition-colors duration-200 focus-within:bg-bg-elevated`}
+      >
         {pasteFeedback > 0 && (
           <span
             key={pasteFeedback}
@@ -44,9 +46,7 @@ export function MediaUrlInput({
             className={styles.pasteFeedback}
           />
         )}
-        {analyzing && (
-          <BorderBeam size={200} duration={4} colorFrom="#00c8ff" colorTo="#0070f3" />
-        )}
+        {analyzing && <BorderBeam size={200} duration={4} />}
         <span className="grid size-11 shrink-0 place-items-center self-center rounded-lg bg-primary/12 text-primary">
           <Search className="size-5" />
         </span>

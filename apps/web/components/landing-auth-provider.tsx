@@ -5,13 +5,17 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
   type ReactNode,
 } from "react";
 import { X } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { AuthForm } from "@/components/auth-form";
+import { useAuthFormState } from "@/components/auth-form-state";
+import { FULL_PAGE_AUTH_MEDIA_QUERY } from "@/lib/auth-viewport";
 import { requestMediaAnalysis } from "@/lib/analyzer-session";
 import { useT } from "@/lib/i18n/context";
 import styles from "./auth-form.module.css";
@@ -28,6 +32,8 @@ export function useLandingAuth() {
 
 export function LandingAuthProvider({ children }: { children: ReactNode }) {
   const { t } = useT();
+  const router = useRouter();
+  const { reset: resetForm } = useAuthFormState();
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<
     "login" | "register" | "forgot-password" | "reset-password"
@@ -35,14 +41,58 @@ export function LandingAuthProvider({ children }: { children: ReactNode }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const openAuth = useCallback((url?: string) => {
-    if (url) requestMediaAnalysis(url);
-    setMode("login");
-    setOpen(true);
-  }, []);
+  const openAuth = useCallback(
+    (url?: string) => {
+      resetForm();
+      if (url) requestMediaAnalysis(url);
+      if (window.matchMedia(FULL_PAGE_AUTH_MEDIA_QUERY).matches) {
+        router.push("/auth/login");
+        return;
+      }
+      setMode("login");
+      setOpen(true);
+    },
+    [router, resetForm]
+  );
   const context = useMemo(() => ({ openAuth }), [openAuth]);
 
   useEffect(() => {
+    if (!open) return;
+    const media = window.matchMedia(FULL_PAGE_AUTH_MEDIA_QUERY);
+    const updatePresentation = () => {
+      if (!media.matches) return;
+      const params = new URLSearchParams(window.location.search);
+      const error = params.has("error")
+        ? `?error=${params.get("error") === "callback" ? "callback" : "auth"}`
+        : "";
+      const reset =
+        params.get("reset") === "success" ? `${error ? "&" : "?"}reset=success` : "";
+      router.replace(`/auth/${mode}${error}${reset}`);
+    };
+    updatePresentation();
+    media.addEventListener("change", updatePresentation);
+    return () => media.removeEventListener("change", updatePresentation);
+  }, [open, mode, router]);
+
+  useLayoutEffect(() => {
+    const requestedMode = new URLSearchParams(window.location.search).get("auth");
+    if (
+      requestedMode !== "login" &&
+      requestedMode !== "register" &&
+      requestedMode !== "forgot-password"
+    )
+      return;
+    if (window.matchMedia(FULL_PAGE_AUTH_MEDIA_QUERY).matches) {
+      const params = new URLSearchParams(window.location.search);
+      params.delete("auth");
+      router.replace(`/auth/${requestedMode}${params.size ? `?${params}` : ""}`);
+      return;
+    }
+    setMode(requestedMode);
+    setOpen(true);
+  }, [router]);
+
+  useLayoutEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) return;
     if (open && !dialog.open) {
@@ -81,8 +131,12 @@ export function LandingAuthProvider({ children }: { children: ReactNode }) {
   }, [open, mode]);
 
   function closeAuth() {
+    resetForm();
     setOpen(false);
     setMode("login");
+    if (new URLSearchParams(window.location.search).has("auth")) {
+      router.replace("/", { scroll: false });
+    }
   }
 
   return (
@@ -93,13 +147,13 @@ export function LandingAuthProvider({ children }: { children: ReactNode }) {
         aria-labelledby="auth-title"
         onClose={closeAuth}
         onCancel={closeAuth}
-        className={`${styles.modalSurface} fixed inset-0 m-auto w-[calc(100%-2rem)] max-w-[392px] overflow-hidden rounded-2xl border p-0 text-text`}
+        className={`${styles.modalSurface} fixed inset-0 m-auto w-[calc(100%-2rem)] max-w-[392px] h-fit max-h-[calc(100dvh-2rem)] overflow-hidden rounded-2xl border p-0 text-text`}
       >
         <button
           type="button"
           aria-label={t("common.close")}
           onClick={closeAuth}
-          className={`${styles.modalClose} absolute top-3.5 right-3.5 z-10 grid size-8 cursor-pointer place-items-center rounded-md border border-border/80 bg-bg-elevated text-text-muted shadow-sm transition-colors hover:bg-bg-surface hover:text-text outline-none focus-visible:outline-2 focus-visible:outline-primary`}
+          className={`${styles.modalClose} absolute top-[max(14px,env(safe-area-inset-top))] right-[max(14px,env(safe-area-inset-right))] sm:top-3.5 sm:right-3.5 z-10 grid size-9 sm:size-8 cursor-pointer place-items-center rounded-full sm:rounded-md border border-border/80 bg-bg-surface sm:bg-bg-elevated text-text-muted shadow-sm transition-colors outline-none focus-visible:outline-2 focus-visible:outline-primary`}
         >
           <X className="size-4" aria-hidden="true" />
         </button>

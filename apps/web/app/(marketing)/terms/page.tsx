@@ -7,6 +7,11 @@ export const metadata: Metadata = {
   description: "ข้อกำหนดการใช้บริการ Media Loader",
 };
 
-export default function TermsPage() {
-  return <LegalPage kind="terms" />;
+export default async function TermsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ from?: string | string[] }>;
+}) {
+  const { from } = await searchParams;
+  return <LegalPage kind="terms" origin={from} />;
 }

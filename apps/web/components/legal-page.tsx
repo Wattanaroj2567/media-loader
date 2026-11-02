@@ -1,19 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import {
-  ArrowLeft,
-  ArrowUpRight,
-  Check,
-  FileText,
-  List,
-  ShieldCheck,
-} from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { ArrowUpRight, Check, FileText, List, ShieldCheck } from "lucide-react";
 
+import { BackButton } from "@/components/back-button";
+import { useFullPageAuth } from "@/lib/auth-viewport";
 import { SiteFooter } from "@/components/site-footer";
 import { useT } from "@/lib/i18n/context";
 import { CONTACT_EMAIL } from "@/lib/contact-mailto";
+import { cn } from "@/lib/utils";
 
 type LocaleCopy = { th: string; en: string };
 type PolicyBullet = LocaleCopy & { label?: LocaleCopy };
@@ -549,8 +545,118 @@ function PolicyTableView({
   );
 }
 
-export function LegalPage({ kind }: { kind: PolicyKind }) {
-  const { locale } = useT();
+function TableOfContentsNav({
+  kind,
+  sections,
+  activeSectionIndex,
+  onSelectSection,
+  isThai,
+}: {
+  kind: PolicyKind;
+  sections: PolicySection[];
+  activeSectionIndex: number;
+  onSelectSection: (index: number) => void;
+  isThai: boolean;
+}) {
+  const itemRefs = useRef<(HTMLLIElement | null)[]>([]);
+  const [indicatorStyle, setIndicatorStyle] = useState<{
+    top: number;
+    height: number;
+    ready: boolean;
+  }>({
+    top: 0,
+    height: 0,
+    ready: false,
+  });
+
+  const updateIndicator = useCallback(() => {
+    const activeEl = itemRefs.current[activeSectionIndex];
+    if (activeEl) {
+      setIndicatorStyle({
+        top: activeEl.offsetTop,
+        height: activeEl.offsetHeight,
+        ready: true,
+      });
+    }
+  }, [activeSectionIndex]);
+
+  useEffect(() => {
+    updateIndicator();
+  }, [updateIndicator]);
+
+  useEffect(() => {
+    window.addEventListener("resize", updateIndicator);
+    return () => window.removeEventListener("resize", updateIndicator);
+  }, [updateIndicator]);
+
+  return (
+    <nav aria-label={isThai ? "สารบัญ" : "Table of contents"}>
+      <ol className="relative mt-3 space-y-1">
+        {/* Animated sliding active pill */}
+        <li
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 rounded-xl bg-primary/10 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] dark:bg-primary/15"
+          style={{
+            transform: `translateY(${indicatorStyle.top}px)`,
+            height: `${indicatorStyle.height}px`,
+            opacity: indicatorStyle.ready ? 1 : 0,
+          }}
+        />
+
+        {sections.map((section, index) => {
+          const isActive = activeSectionIndex === index;
+          return (
+            <li
+              key={section.title.en}
+              ref={(el) => {
+                itemRefs.current[index] = el;
+              }}
+              className="relative"
+            >
+              <Link
+                href={`#${getPolicySectionId(kind, index)}`}
+                aria-current={isActive ? "location" : undefined}
+                onClick={(e) => {
+                  e.preventDefault();
+                  onSelectSection(index);
+                }}
+                className={cn(
+                  "group relative z-10 flex items-start gap-2.5 rounded-xl px-3 py-2 text-sm leading-relaxed transition-colors duration-200 select-none hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60",
+                  isActive
+                    ? "text-primary font-semibold"
+                    : "text-text-muted hover:text-primary"
+                )}
+              >
+                <span
+                  className={cn(
+                    "mt-0.5 font-heading text-[11px] tabular-nums transition-colors duration-200",
+                    isActive
+                      ? "text-primary font-bold"
+                      : "text-text-dim group-hover:text-text-muted"
+                  )}
+                >
+                  {String(index + 1).padStart(2, "0")}
+                </span>
+                <span className="flex-1">{section.title[isThai ? "th" : "en"]}</span>
+              </Link>
+            </li>
+          );
+        })}
+      </ol>
+    </nav>
+  );
+}
+
+export function LegalPage({
+  kind,
+  origin,
+}: {
+  kind: PolicyKind;
+  origin?: string | string[];
+}) {
+  const { locale, t } = useT();
+  const returnMode = origin === "login" || origin === "register" ? origin : null;
+  const fullPageAuth = useFullPageAuth();
   const [activeSectionIndex, setActiveSectionIndex] = useState(0);
   const isThai = locale === "th";
   const content = policyContent[kind];
@@ -559,6 +665,18 @@ export function LegalPage({ kind }: { kind: PolicyKind }) {
   const otherKind: PolicyKind = kind === "privacy" ? "terms" : "privacy";
   const contentLanguage = isThai ? "th" : "en";
   const sectionTitle = (section: PolicySection) => section.title[isThai ? "th" : "en"];
+  const handleSelectSection = useCallback(
+    (index: number) => {
+      setActiveSectionIndex(index);
+      const targetId = getPolicySectionId(kind, index);
+      const el = document.getElementById(targetId);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+        window.history.pushState(null, "", `#${targetId}`);
+      }
+    },
+    [kind]
+  );
 
   useEffect(() => {
     let animationFrame = 0;
@@ -566,21 +684,29 @@ export function LegalPage({ kind }: { kind: PolicyKind }) {
     const updateActiveSection = () => {
       window.cancelAnimationFrame(animationFrame);
       animationFrame = window.requestAnimationFrame(() => {
-        const readingLine = window.innerHeight * 0.35;
-        let nextActiveIndex = 0;
+        const scrollBottom = window.scrollY + window.innerHeight;
+        const scrollHeight = document.documentElement.scrollHeight;
+        const remainingScroll = scrollHeight - scrollBottom;
 
+        // Reading line for active section detection
+        const standardLine = Math.min(420, window.innerHeight * 0.46);
+
+        let nextActiveIndex = 0;
         for (let index = 0; index < sectionsCount; index += 1) {
           const section = document.getElementById(getPolicySectionId(kind, index));
-          if (section && section.getBoundingClientRect().top <= readingLine) {
-            nextActiveIndex = index;
+          if (section) {
+            const rect = section.getBoundingClientRect();
+            if (index === sectionsCount - 1) {
+              if (rect.top <= standardLine || remainingScroll <= 35) {
+                nextActiveIndex = index;
+              }
+            } else if (rect.top <= standardLine) {
+              nextActiveIndex = index;
+            }
           }
         }
 
-        const reachedPageEnd =
-          window.scrollY + window.innerHeight >=
-          document.documentElement.scrollHeight - 2;
-
-        setActiveSectionIndex(reachedPageEnd ? sectionsCount - 1 : nextActiveIndex);
+        setActiveSectionIndex(nextActiveIndex);
       });
     };
 
@@ -595,48 +721,28 @@ export function LegalPage({ kind }: { kind: PolicyKind }) {
     };
   }, [kind, sectionsCount]);
 
-  const tableOfContents = (
-    <nav aria-label={isThai ? "สารบัญ" : "Table of contents"}>
-      <ol className="mt-3 space-y-1.5">
-        {content.sections.map((section, index) => (
-          <li key={section.title.en}>
-            <Link
-              href={`#${getPolicySectionId(kind, index)}`}
-              aria-current={activeSectionIndex === index ? "location" : undefined}
-              className={`group flex items-start gap-2 rounded-lg px-2.5 py-2 text-sm leading-5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
-                activeSectionIndex === index
-                  ? "bg-black/10 text-text-muted dark:bg-white/10"
-                  : "text-text-dim hover:bg-black/5 dark:hover:bg-white/5"
-              }`}
-            >
-              <span
-                className={`mt-0.5 font-heading text-[11px] ${
-                  activeSectionIndex === index ? "text-text-muted" : "text-text-dim"
-                }`}
-              >
-                {String(index + 1).padStart(2, "0")}
-              </span>
-              <span>{sectionTitle(section)}</span>
-            </Link>
-          </li>
-        ))}
-      </ol>
-    </nav>
-  );
-
   return (
     <main className="relative flex min-h-dvh flex-col overflow-x-clip bg-bg-base text-text">
-      <article className="relative z-10 mx-auto w-full max-w-6xl flex-1 px-4 pb-12 pt-[calc(1.25rem+env(safe-area-inset-top))] sm:px-6 sm:pt-8 lg:px-8">
-        <Link
-          href="/"
-          className="mb-5 inline-flex items-center gap-2 rounded-lg py-2 text-sm text-text-muted transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-        >
-          <ArrowLeft aria-hidden="true" className="size-4" />
-          {isThai ? "กลับหน้าหลัก" : "Back to home"}
-        </Link>
-
+      <article className="relative z-10 mx-auto w-full max-w-6xl flex-1 px-4 pb-12 pt-[calc(2rem+env(safe-area-inset-top))] sm:px-6 sm:pt-12 lg:px-8">
         <div className="grid items-start gap-5 lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-7">
-          <aside className="lg:sticky lg:top-6">
+          <aside className="flex flex-col gap-3 lg:sticky lg:top-12">
+            <BackButton
+              href={
+                returnMode
+                  ? fullPageAuth
+                    ? `/auth/${returnMode}`
+                    : `/?auth=${returnMode}`
+                  : "/"
+              }
+              className="px-1"
+            >
+              {returnMode
+                ? t(returnMode === "login" ? "auth.backToLogin" : "auth.backToRegister")
+                : isThai
+                  ? "กลับหน้าหลัก"
+                  : "Back to home"}
+            </BackButton>
+
             <details className="group rounded-2xl border border-border/70 bg-bg-surface p-3 shadow-none backdrop-blur-none dark:border-white/10 dark:bg-bg-surface dark:shadow-none sm:bg-bg-surface/75 sm:shadow-sm sm:backdrop-blur-xl sm:dark:bg-bg-surface/65 lg:hidden">
               <summary className="flex cursor-pointer list-none items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-semibold marker:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary [&::-webkit-details-marker]:hidden">
                 <List aria-hidden="true" className="size-4 text-primary" />
@@ -648,14 +754,26 @@ export function LegalPage({ kind }: { kind: PolicyKind }) {
                   {isThai ? "ซ่อน" : "Hide"}
                 </span>
               </summary>
-              {tableOfContents}
+              <TableOfContentsNav
+                kind={kind}
+                sections={content.sections}
+                activeSectionIndex={activeSectionIndex}
+                onSelectSection={handleSelectSection}
+                isThai={isThai}
+              />
             </details>
 
             <div className="hidden rounded-2xl border border-border/70 bg-bg-surface/75 p-3 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-bg-surface/65 lg:block">
               <p className="px-2.5 pt-1 text-xs font-semibold tracking-wide text-text-dim uppercase">
                 {isThai ? "ในหน้านี้" : "On this page"}
               </p>
-              {tableOfContents}
+              <TableOfContentsNav
+                kind={kind}
+                sections={content.sections}
+                activeSectionIndex={activeSectionIndex}
+                onSelectSection={handleSelectSection}
+                isThai={isThai}
+              />
             </div>
           </aside>
 
@@ -808,7 +926,7 @@ export function LegalPage({ kind }: { kind: PolicyKind }) {
 
             <div className="mt-9 flex flex-wrap items-center justify-end gap-3 border-t border-border/60 pt-5 text-xs text-text-dim dark:border-white/10">
               <Link
-                href={otherKind === "privacy" ? "/privacy" : "/terms"}
+                href={`/${otherKind}${returnMode ? `?from=${returnMode}` : ""}`}
                 className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
               >
                 {policyContent[otherKind].title[isThai ? "th" : "en"]}
@@ -819,7 +937,7 @@ export function LegalPage({ kind }: { kind: PolicyKind }) {
         </div>
       </article>
 
-      <SiteFooter className="relative z-10 mx-auto max-w-6xl px-4 py-5 sm:px-6 lg:px-8" />
+      <SiteFooter className="relative z-10 mt-auto mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8" />
     </main>
   );
 }

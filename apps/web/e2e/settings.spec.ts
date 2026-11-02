@@ -144,9 +144,11 @@ test.describe("Account Settings Page UI", () => {
     );
     await page.goto("/how-it-works");
     const workflowWidth = await page
-      .locator("main")
+      .getByTestId("how-it-works-page-content")
       .evaluate((element) => element.getBoundingClientRect().width);
-    expect(accountWidth).toBe(workflowWidth);
+    expect(accountWidth).toBeLessThanOrEqual(1024);
+    expect(workflowWidth).toBeGreaterThan(accountWidth);
+    expect(workflowWidth).toBeLessThanOrEqual(1152);
   });
 
   test("subscribes to push alerts and removes the subscription when disabled", async ({

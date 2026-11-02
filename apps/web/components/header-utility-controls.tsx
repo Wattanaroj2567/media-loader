@@ -5,6 +5,7 @@ import { Check, ChevronDown, Globe, Laptop, MoreHorizontal } from "lucide-react"
 
 import { ThemeToggle } from "@/components/theme-toggle";
 import { cn } from "@/lib/utils";
+import triggerStyles from "./utility-trigger.module.css";
 import { useT } from "@/lib/i18n/context";
 import type { Locale } from "@/lib/i18n/config";
 
@@ -77,13 +78,13 @@ export function HeaderUtilityControls({
             onClick={() => setIsOpen((prev) => !prev)}
             className={cn(
               "group flex h-8 cursor-pointer items-center gap-1.5 rounded-full border px-2.5 text-xs font-semibold transition-all duration-200 outline-none select-none",
-              "border-border/70 bg-bg-surface/50 text-text-muted backdrop-blur-sm shadow-2xs",
+              "border-border/70 bg-bg-surface/50 text-text-muted backdrop-blur-sm shadow-none",
               "dark:border-white/12 dark:bg-white/6",
-              "hover:border-border hover:bg-bg-surface hover:text-text",
-              "dark:hover:border-white/20 dark:hover:bg-white/10 dark:hover:text-text",
+              "hover:bg-bg-surface",
+              "dark:hover:bg-white/10",
               "focus-visible:ring-2 focus-visible:ring-primary/40",
-              isOpen &&
-                "border-primary/50 bg-primary/5 text-primary ring-2 ring-primary/20 dark:border-primary/50 dark:bg-primary/10 dark:text-primary"
+              triggerStyles.trigger,
+              isOpen && "bg-primary/5 text-primary dark:bg-primary/10 dark:text-primary"
             )}
             title={locale === "th" ? "เลือกภาษา" : "Select language"}
             aria-label={
@@ -171,11 +172,12 @@ export function HeaderUtilityControls({
             "flex size-8 cursor-pointer items-center justify-center rounded-full border text-text-muted transition-all duration-200 outline-none select-none",
             "border-border bg-bg-surface shadow-none",
             "dark:border-white/12 dark:bg-bg-elevated",
-            "hover:border-border hover:bg-bg-surface hover:text-text",
-            "dark:hover:border-white/20 dark:hover:bg-white/10 dark:hover:text-text",
+            "hover:bg-bg-surface",
+            "dark:hover:bg-white/10",
             "focus-visible:ring-2 focus-visible:ring-primary/40",
+            triggerStyles.trigger,
             isMoreOpen &&
-              "border-primary/50 bg-primary/5 text-primary ring-2 ring-primary/20 dark:border-primary/50 dark:bg-primary/10 dark:text-primary"
+              "bg-primary/5 text-primary dark:bg-primary/10 dark:text-primary"
           )}
           title={locale === "th" ? "ตัวเลือกเพิ่มเติม" : "More options"}
           aria-label={

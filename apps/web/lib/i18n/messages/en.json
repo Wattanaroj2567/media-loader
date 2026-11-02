@@ -167,6 +167,7 @@
   "landing.codecGifExistingLabel": "If the source is already GIF",
   "landing.codecGifExistingDescription": "Keeps the original file without converting it again.",
   "landing.codecTechnicalDetails": "View conversion details",
+  "landing.hideCodecTechnicalDetails": "Hide conversion details",
 
   "download.newTitle": "New load",
   "download.newSubtitle": "Paste a link, inspect metadata, and choose the quality you want to download.",
@@ -504,6 +505,7 @@
   "auth.links": "Account links",
   "auth.forgotLink": "Forgot password?",
   "auth.backToLogin": "Back to sign in",
+  "auth.backToRegister": "Back to create account",
   "auth.guest": "Back to paste a link",
   "download.paste": "Paste link",
   "download.pasteTitle": "Paste a link from the clipboard",

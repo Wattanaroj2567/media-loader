@@ -6,6 +6,8 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { cookies, headers } from "next/headers";
 import { detectLocaleFromAcceptLanguage, isLocale } from "@/lib/i18n/config";
 import { BrowserSafetyGuard } from "@/components/browser-safety-guard";
+import { TopProgressBar } from "@/components/top-progress-bar";
+import { AuthFormStateProvider } from "@/components/auth-form-state";
 import thMessages from "@/lib/i18n/messages/th.json";
 import enMessages from "@/lib/i18n/messages/en.json";
 import "./globals.css";
@@ -49,6 +51,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html
       lang={initialLocale}
       className={`${ibmPlexSansThai.variable} ${inter.variable}`}
+      data-scroll-behavior="smooth"
       suppressHydrationWarning
     >
       <body suppressHydrationWarning>
@@ -61,7 +64,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <I18nProvider initialLocale={initialLocale} initialMessages={initialMessages}>
             <ToastProvider>
               <BrowserSafetyGuard />
-              {children}
+              <TopProgressBar />
+              <AuthFormStateProvider>{children}</AuthFormStateProvider>
             </ToastProvider>
           </I18nProvider>
         </ThemeProvider>

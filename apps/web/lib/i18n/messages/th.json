@@ -167,6 +167,7 @@
   "landing.codecGifExistingLabel": "ถ้าต้นทางเป็น GIF อยู่แล้ว",
   "landing.codecGifExistingDescription": "คงไฟล์เดิมไว้โดยไม่แปลงซ้ำ",
   "landing.codecTechnicalDetails": "ดูรายละเอียดการแปลง",
+  "landing.hideCodecTechnicalDetails": "ซ่อนรายละเอียดการแปลง",
 
   "download.newTitle": "โหลดใหม่",
   "download.newSubtitle": "วางลิงก์วิดีโอหรือเสียงที่คุณต้องการดาวน์โหลด และเลือกความละเอียดไฟล์ตามต้องการ",
@@ -504,6 +505,7 @@
   "auth.links": "ลิงก์บัญชี",
   "auth.forgotLink": "ลืมรหัสผ่าน?",
   "auth.backToLogin": "กลับไปเข้าสู่ระบบ",
+  "auth.backToRegister": "กลับไปสมัครสมาชิก",
   "auth.guest": "กลับไปหน้าวางลิงก์",
   "download.paste": "วางลิงก์",
   "download.pasteTitle": "วางลิงก์จากคลิปบอร์ด",
