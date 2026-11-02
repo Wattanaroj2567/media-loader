@@ -40,7 +40,7 @@ test("password visibility preserves input and never submits the login form", asy
   await expect(password).toHaveAttribute("type", "text");
   await expect(page.locator("form [role=alert]")).toHaveCount(0);
   expect(authRequests).toBe(0);
-  await expect(page).toHaveURL(/\/auth\/login$/);
+  await expect(page).toHaveURL(/\/\?auth=login$/);
 });
 
 test("registration password and confirmation visibility are independent", async ({
@@ -84,11 +84,17 @@ test("login validates email and password before contacting auth", async ({ page 
   await password.evaluate((element) => (element as HTMLInputElement).blur());
   await expect(password).not.toHaveAttribute("aria-invalid", "true");
   await expect(page.locator("#auth-password-error")).toBeEmpty();
-  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Sign in", exact: true })
+    .click();
   await expect(page.locator("#auth-email-error")).toHaveText("Enter your email.");
   await page.getByLabel("Email", { exact: true }).fill("invalid");
   await page.getByLabel("Password", { exact: true }).fill("Fixture-password-123");
-  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Sign in", exact: true })
+    .click();
   await expect(page.locator("#auth-email-error")).toContainText("Enter your email.");
   expect(requests).toBe(0);
 });
@@ -104,7 +110,10 @@ for (const [email, expected] of [
     await page.goto("/auth/login");
     await page.getByLabel("Email", { exact: true }).fill(email);
     await page.getByLabel("Password", { exact: true }).fill("Fixture-password-123");
-    await page.getByRole("button", { name: "Sign in", exact: true }).click();
+    await page
+      .getByRole("dialog")
+      .getByRole("button", { name: "Sign in", exact: true })
+      .click();
     await expect(page.locator("form [role=alert]")).toContainText(expected);
     await expect(page.locator("body")).not.toContainText("mock-sensitive-marker");
     expect(logs.join(" ")).not.toContain("mock-sensitive-marker");
@@ -116,7 +125,10 @@ test("valid email login enters dashboard with a durable session", async ({ page 
   await page.goto("/auth/login");
   await page.getByLabel("Email", { exact: true }).fill("tester@example.com");
   await page.getByLabel("Password", { exact: true }).fill("Fixture-password-123");
-  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Sign in", exact: true })
+    .click();
   await expect(page).toHaveURL(/\/dashboard$/);
   await page.reload();
   await expect(page).toHaveURL(/\/dashboard$/);
@@ -159,7 +171,7 @@ test("registration validates passwords and sends optional display name metadata"
   const { data } = request.postDataJSON();
   expect(data).toEqual({ full_name: "Fixture Member", language: "en" });
   await expect(page.locator("form [role=status]")).toContainText("Check your email");
-  await expect(page).toHaveURL(/\/auth\/register$/);
+  await expect(page).toHaveURL(/\/\?auth=register$/);
   await expect(
     page.getByRole("heading", { name: "Check your email", exact: true })
   ).toBeVisible();
@@ -216,7 +228,10 @@ for (const email of ["tester@example.com", "unknown@example.com", "rate@example.
     await page.getByRole("button", { name: "Send reset link" }).click();
     const request = await requestPromise;
     expect(new URL(request.url()).searchParams.get("redirect_to")).toBe(
-      "http://localhost:3100/auth/callback?next=/auth/reset-password"
+      new URL(
+        "/auth/callback?next=/auth/reset-password",
+        test.info().project.use.baseURL
+      ).href
     );
     await expect(page.locator("form [role=status]")).toHaveText(
       "Reset email request sent. If an account exists for this email, we'll send a link. Check your inbox and spam folder."
@@ -263,7 +278,7 @@ test("recovery session updates password and signs out before login", async ({
     if (request.url().includes("/auth/v1/logout")) requests.push("logout");
   });
   await page.getByRole("button", { name: "Save new password" }).click();
-  await expect(page).toHaveURL(/\/auth\/login\?reset=success$/);
+  await expect(page).toHaveURL(/\/\?auth=login&reset=success$/);
   await expect(page.locator("form [role=status]")).toContainText("Password updated");
   expect(requests).toEqual(["update", "logout"]);
   await page.goto("/dashboard");
@@ -278,7 +293,7 @@ test("Google initiation preserves callback and errors stay safe", async ({ page 
   await page.getByRole("button", { name: "Continue with Google" }).click();
   await expect(page).toHaveURL(/\/auth\/v1\/authorize/);
   expect(new URL(page.url()).searchParams.get("redirect_to")).toBe(
-    "http://localhost:3100/auth/callback"
+    new URL("/auth/callback", test.info().project.use.baseURL).href
   );
   await page.goto("/auth/login?error=mock-sensitive-marker");
   await expect(page.locator("form [role=alert]")).toHaveText(
@@ -302,13 +317,16 @@ test("Thai auth labels and public link entry stay available", async ({
   await expect(
     page.getByRole("button", { name: "แสดงรหัสผ่าน", exact: true })
   ).toBeDisabled();
-  await page.getByRole("link", { name: "กลับไปหน้าวางลิงก์" }).click();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "ปิด", exact: true })
+    .click();
   await expect(page).toHaveURL("/");
   await expect(page.getByRole("textbox", { name: /วางลิงก์คลิป/ })).toBeVisible();
   await expect(page.getByRole("link", { name: "สมัครสมาชิก" })).toHaveCount(0);
 });
 
-test("reset retries signout without repeating a successful password update", async ({
+test("reset finishes local signout after a remote error without repeating the update", async ({
   context,
   page,
 }) => {
@@ -351,7 +369,10 @@ test("reset retries signout without repeating a successful password update", asy
   await expect(page.getByLabel("New password", { exact: true })).toHaveValue("");
   await expect(page.getByLabel("New password", { exact: true })).toBeDisabled();
   await page.getByRole("button", { name: "Finish signing out" }).click();
-  await expect(page).toHaveURL(/\/auth\/login\?reset=success$/);
+  await expect(page).toHaveURL(/\/\?auth=login&reset=success$/);
   expect(updates).toBe(1);
-  expect(logouts).toBe(2);
+  // The SDK clears the local session even when the remote logout returns 500.
+  expect(logouts).toBe(1);
+  await page.goto("/dashboard");
+  await expect(page).toHaveURL("/");
 });

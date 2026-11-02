@@ -78,6 +78,10 @@ Signed-in API requests use the current Supabase access token.
 
 Supabase Auth remains the authority for accounts and sessions. The web app offers
 email/password login at `/auth/login` and registration at `/auth/register`.
+Landing-page authentication opens as a modal on wider viewports and navigates to
+the full-page auth routes on phone-sized or short-landscape viewports.
+Direct login, registration, and password-reset-request URLs also open the landing
+page modal on desktop; mobile keeps the full-page form.
 Registration accepts an optional display name stored as `full_name` metadata;
 it is not a username credential. Email signup stores the selected interface
 language as `language` user metadata. When changed, the interface language is

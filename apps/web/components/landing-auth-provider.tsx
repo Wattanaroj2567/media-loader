@@ -11,7 +11,9 @@ import {
   type ReactNode,
 } from "react";
 import { X } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { AuthForm } from "@/components/auth-form";
+import { FULL_PAGE_AUTH_MEDIA_QUERY } from "@/components/auth-route";
 import { requestMediaAnalysis } from "@/lib/analyzer-session";
 import { useT } from "@/lib/i18n/context";
 import styles from "./auth-form.module.css";
@@ -28,6 +30,7 @@ export function useLandingAuth() {
 
 export function LandingAuthProvider({ children }: { children: ReactNode }) {
   const { t } = useT();
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<
     "login" | "register" | "forgot-password" | "reset-password"
@@ -35,12 +38,52 @@ export function LandingAuthProvider({ children }: { children: ReactNode }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const openAuth = useCallback((url?: string) => {
-    if (url) requestMediaAnalysis(url);
-    setMode("login");
-    setOpen(true);
-  }, []);
+  const openAuth = useCallback(
+    (url?: string) => {
+      if (url) requestMediaAnalysis(url);
+      if (window.matchMedia(FULL_PAGE_AUTH_MEDIA_QUERY).matches) {
+        router.push("/auth/login");
+        return;
+      }
+      setMode("login");
+      setOpen(true);
+    },
+    [router]
+  );
   const context = useMemo(() => ({ openAuth }), [openAuth]);
+
+  useEffect(() => {
+    if (!open) return;
+    const media = window.matchMedia(FULL_PAGE_AUTH_MEDIA_QUERY);
+    const updatePresentation = () => {
+      if (!media.matches) return;
+      router.replace(`/auth/${mode}`);
+    };
+    updatePresentation();
+    media.addEventListener("change", updatePresentation);
+    return () => media.removeEventListener("change", updatePresentation);
+  }, [open, mode, router]);
+
+  useEffect(() => {
+    const requestedMode = new URLSearchParams(window.location.search).get("auth");
+    if (
+      requestedMode !== "login" &&
+      requestedMode !== "register" &&
+      requestedMode !== "forgot-password"
+    )
+      return;
+    if (window.matchMedia(FULL_PAGE_AUTH_MEDIA_QUERY).matches) {
+      const params = new URLSearchParams(window.location.search);
+      params.delete("auth");
+      router.replace(`/auth/${requestedMode}${params.size ? `?${params}` : ""}`);
+      return;
+    }
+    const frame = window.requestAnimationFrame(() => {
+      setMode(requestedMode);
+      setOpen(true);
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [router]);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -83,6 +126,9 @@ export function LandingAuthProvider({ children }: { children: ReactNode }) {
   function closeAuth() {
     setOpen(false);
     setMode("login");
+    if (new URLSearchParams(window.location.search).has("auth")) {
+      router.replace("/", { scroll: false });
+    }
   }
 
   return (

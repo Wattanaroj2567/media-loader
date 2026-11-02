@@ -10,13 +10,10 @@ import {
 } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Check, CircleAlert, Eye, EyeOff, Link2 } from "lucide-react";
+import { ArrowLeft, Check, CircleAlert, Eye, EyeOff, Link2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { SiteFooter } from "@/components/site-footer";
-import { BrandMark } from "@/components/brand-mark";
-import { HeaderUtilityControls } from "@/components/header-utility-controls";
 import { peekRequestedMediaAnalysis } from "@/lib/analyzer-session";
 import { useT } from "@/lib/i18n/context";
 import { createClient } from "@/lib/supabase/client";
@@ -365,13 +362,9 @@ export function AuthForm({
   return (
     <Container className={embedded ? styles.embedded : styles.page}>
       {!embedded && (
-        <header className={styles.header}>
-          <Link href="/" className={styles.brand} aria-label="Media Loader">
-            <BrandMark className="size-8" />
-            <span>Media Loader</span>
-          </Link>
-          <HeaderUtilityControls />
-        </header>
+        <Link href="/" className={styles.mobileClose} aria-label={t("common.close")}>
+          <X size={18} aria-hidden="true" />
+        </Link>
       )}
       <div className={embedded ? styles.modalLayout : styles.layout}>
         <section
@@ -826,71 +819,9 @@ export function AuthForm({
                 <span>{t("auth.legalConsent.suffix")}</span>
               </p>
             )}
-            {!embedded && (
-              <Link className={styles.guestLink} href="/">
-                <ArrowLeft size={15} aria-hidden="true" />
-                {t("auth.guest")}
-              </Link>
-            )}
           </div>
         </section>
-        {!embedded && (
-          <aside className={styles.showcase} aria-label={t("auth.storyLabel")}>
-            <div className={styles.showcaseTop}>
-              <span>{t("auth.storyEyebrow")}</span>
-              <span className={styles.formatLabel}>MP4 / MP3 / GIF</span>
-            </div>
-            <div className={styles.artwork} aria-hidden="true">
-              <div className={styles.artworkGlow} />
-              <svg className={styles.ribbons} viewBox="0 0 600 350" fill="none">
-                <defs>
-                  <linearGradient
-                    id="auth-ribbon"
-                    x1="20"
-                    y1="0"
-                    x2="580"
-                    y2="350"
-                    gradientUnits="userSpaceOnUse"
-                  >
-                    <stop stopColor="var(--primary)" stopOpacity="0" />
-                    <stop offset=".35" stopColor="var(--primary)" />
-                    <stop offset=".65" stopColor="var(--color-brand-sky)" />
-                    <stop offset="1" stopColor="var(--primary)" stopOpacity=".1" />
-                  </linearGradient>
-                </defs>
-                {Array.from({ length: 24 }, (_, index) => (
-                  <path
-                    key={index}
-                    d={`M -60 ${65 + index * 7} C 110 ${-45 + index * 4}, 155 ${370 - index * 5}, 315 ${235 - index * 4} S 460 ${-50 + index * 6}, 660 ${85 + index * 8}`}
-                    stroke="url(#auth-ribbon)"
-                    strokeWidth="1.3"
-                  />
-                ))}
-              </svg>
-              <div className={styles.mediaGlyph}>
-                <BrandMark className="size-14" />
-              </div>
-              <span className={styles.artworkCaption}>{t("auth.artworkReady")}</span>
-            </div>
-            <div className={styles.storyCopy}>
-              <h2>
-                {t("auth.storyTitle")}
-                <br />
-                <span>{t("auth.storyAccent")}</span>
-              </h2>
-              <p>{t("auth.storyDescription")}</p>
-            </div>
-            <div className={styles.storyFooter}>
-              <span>
-                <i />
-                {t("auth.workspaceNote")}
-              </span>
-              <span>MEDIA LOADER</span>
-            </div>
-          </aside>
-        )}
       </div>
-      {!embedded && <SiteFooter className={styles.footer} />}
     </Container>
   );
 }
