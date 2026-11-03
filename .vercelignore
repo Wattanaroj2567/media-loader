@@ -6,6 +6,5 @@ storage/
 .agents/
 docs/
 deploy/
-scripts/*
-!scripts/vercel-ignore-build.sh
+scripts/
 tests/

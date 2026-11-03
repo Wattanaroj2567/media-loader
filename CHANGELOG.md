@@ -11,7 +11,7 @@ High-level summary of Media Loader's commit history from the initial commit on 2
 
 ### Changed
 
-- Skip Vercel builds when a commit changes no frontend build inputs, while keeping the ignore helper available to Vercel.
+- Skip Vercel builds when a commit changes no frontend build inputs.
 - Require each project-changing task to update `CHANGELOG.md` in the same task before completion.
 - Streamlined the root `AGENTS.md` and linked to detailed, task-specific project guidance.
 - Set `develop` as the ongoing integration branch and `master` as the release branch; aligned CI and Dependabot version-update/lockfile-sync branch targets.

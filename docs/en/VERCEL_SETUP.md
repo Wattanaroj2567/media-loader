@@ -55,7 +55,6 @@ with the frontend build and deployment inputs. Vercel project-level build
 settings can be overridden by `vercel.json`; keep them aligned if you change
 either. Vercel can still show a skipped or canceled deployment check because
 it runs this command after receiving the Git event; the app build is skipped.
-The ignore helper is explicitly included by `.vercelignore` so Vercel can run it.
 
 Do not set Root Directory to `apps/web`: that would exclude the root workspace
 configuration and the deployment configuration used by this project.
