@@ -2,8 +2,8 @@ name: Dependabot Lockfile Sync
 
 on:
   pull_request_target:
-    branches: [ main, master ]
-    types: [ opened, synchronize, reopened ]
+    branches: [master, develop]
+    types: [opened, synchronize, reopened]
 
 permissions:
   contents: write
@@ -28,7 +28,7 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version: 24
-          cache: 'pnpm'
+          cache: "pnpm"
 
       - name: Update lockfile if needed
         run: |

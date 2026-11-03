@@ -3,6 +3,7 @@ updates:
   # 1. Frontend Web & Monorepo (Next.js & React ecosystem)
   - package-ecosystem: "npm"
     directory: "/"
+    target-branch: "develop"
     schedule:
       interval: "monthly"
     open-pull-requests-limit: 5
@@ -42,6 +43,7 @@ updates:
   # 2. Backend API (FastAPI dependencies in apps/api)
   - package-ecosystem: "pip"
     directory: "/apps/api"
+    target-branch: "develop"
     schedule:
       interval: "monthly"
     open-pull-requests-limit: 3
@@ -62,6 +64,7 @@ updates:
   # 3. Worker Service (Python dependencies in apps/worker)
   - package-ecosystem: "pip"
     directory: "/apps/worker"
+    target-branch: "develop"
     schedule:
       interval: "monthly"
     open-pull-requests-limit: 3
@@ -80,6 +83,7 @@ updates:
   # 4. GitHub Actions (CI & Automation workflows)
   - package-ecosystem: "github-actions"
     directory: "/"
+    target-branch: "develop"
     schedule:
       interval: "monthly"
     open-pull-requests-limit: 3

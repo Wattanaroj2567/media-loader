@@ -7,6 +7,14 @@ description: UI/UX design intelligence with searchable database
 
 Comprehensive design guide for web, mobile, and desktop applications. Contains 67 styles, 161 color palettes, 57 font pairings, 99 UX guidelines, and 25 chart types across 22 technology stacks. Searchable database with priority-based recommendations.
 
+## Media Loader Project Notes
+
+- This workspace skill is available to agents working in this repository. For UI tasks, first follow `AGENTS.md` and the existing Media Loader design system, components, and app architecture.
+- This project is a Next.js web application using React and Tailwind CSS, not React Native. Treat the React Native references and mobile-app specific recommendations below as inapplicable unless the task explicitly targets a native app.
+- Use this skill as a design and UX research resource when its guidance can improve the requested work. Do not require generating or persisting a new design system for routine UI changes; use `--design-system` for new page/feature design when it provides useful direction.
+- For implementation details, use `.agents/skills/ui-styling/SKILL.md` and the project component library. Do not follow setup commands here that conflict with repository rules: use `pnpm`, not `npm`/`npx`, and use `uv` rather than direct `pip`.
+- Keep recommendations subordinate to the project's UI consistency and accessibility mandates in `AGENTS.md`.
+
 # Prerequisites
 
 Check if Python is installed:

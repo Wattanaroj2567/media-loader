@@ -22,11 +22,12 @@ check their presence safely. Never ask users to paste secret values into chat.
 - Explain where to configure deployment environment variables.
 - Check whether required environment variable names are present.
 - Run approved connection or configuration checks that do not reveal values.
+- Run normal build, test, or development commands that automatically load environment files when required by the task, without inspecting or reporting the loaded values.
 - Report only safe statuses such as `OK`, `Missing`, or `Invalid`.
 
 ## Agents Must Not
 
-- Read, print, edit, or commit `.env` files or other credential stores.
+- Directly open, read, print, search, edit, copy, or commit real `.env` files or access other credential stores. Normal project commands may automatically load environment files as described above; this does not permit direct access to other credential stores.
 - Ask the user to paste credentials into chat.
 - Print secret values in command output, logs, or generated artifacts.
 - Put a Supabase service-role key or OAuth client secret in browser code or
@@ -78,6 +79,9 @@ NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 NEXT_PUBLIC_FASTAPI_BASE_URL=
 ```
+
+Next.js inlines `NEXT_PUBLIC_` values into browser JavaScript during `next build`.
+Never use this prefix for secrets; keep private values server-side.
 
 ### Backend-only credentials
 

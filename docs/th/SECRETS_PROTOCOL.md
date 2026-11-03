@@ -21,11 +21,12 @@ Agent อธิบายแหล่งที่มาของ credentials ต�
 - อธิบายตำแหน่งตั้งค่า Environment Variables สำหรับ Deployment
 - ตรวจว่ามีชื่อตัวแปรที่จำเป็นหรือไม่
 - รันคำสั่งตรวจสอบการเชื่อมต่อหรือคอนฟิกที่ไม่เปิดเผยค่าจริง
+- รันคำสั่ง build, test หรือ development ตามปกติที่โหลดไฟล์ environment อัตโนมัติเมื่อจำเป็นกับงาน โดยไม่ตรวจดูหรือรายงานค่าที่โหลด
 - รายงานเฉพาะสถานะที่ปลอดภัย เช่น `OK`, `Missing` หรือ `Invalid`
 
 ## สิ่งที่ Agent ห้ามทำ
 
-- อ่าน พิมพ์ แก้ไข หรือ commit ไฟล์ `.env` หรือแหล่งเก็บ credentials อื่น
+- เปิดอ่าน ตรวจค้น พิมพ์ แก้ไข คัดลอก หรือ commit ไฟล์ `.env` จริงโดยตรง หรือเข้าถึงแหล่งเก็บ credentials อื่น คำสั่งโปรเจกต์อาจโหลดไฟล์ environment อัตโนมัติตามข้อยกเว้นด้านบน แต่ข้อยกเว้นนี้ไม่อนุญาตให้เข้าถึงแหล่งเก็บ credentials อื่นโดยตรง
 - ขอให้ผู้ใช้ส่ง credentials ลงในแชต
 - พิมพ์ค่าความลับใน command output, log หรือไฟล์ที่สร้างขึ้น
 - ใส่ Supabase service-role key หรือ Google OAuth Client Secret ในโค้ดเบราว์เซอร์
@@ -76,6 +77,9 @@ NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 NEXT_PUBLIC_FASTAPI_BASE_URL=
 ```
+
+Next.js จะฝังค่า `NEXT_PUBLIC_` ลงใน JavaScript ที่ส่งให้เบราว์เซอร์ระหว่าง
+`next build` ห้ามใช้ prefix นี้กับ secrets ให้เก็บค่าลับไว้ฝั่ง server เท่านั้น
 
 ### Credentials ที่ใช้เฉพาะฝั่ง Backend
 

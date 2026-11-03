@@ -1,149 +1,26 @@
 # AGENTS.md
 
-Central rules, constitution, and documentation index for every AI Agent working on the Media Loader project.
+Project entry point for AI agents working in Media Loader. Read this file before making changes.
 
-All agents must read this file before making any changes.
+## Project
 
----
+Media Loader is a rights-aware personal media loading web application. Source code lives at the repository root: `apps/web/` (Next.js 16, React 19, Tailwind v4, Drizzle), `apps/api/` (FastAPI), `apps/worker/` (Python worker), `supabase/` (database policies/functions/migrations), and `docs/` (project documentation). Do not create nested repository copies.
 
-## 1. Project Identity & Architecture Root
+## Rules that always apply
 
-Media Loader is a personal, rights-aware media loading web application for daily use.
+- Preserve the rights-aware flow: URL input → validation → policy check → analysis → rights confirmation → queue → worker. Never implement direct downloads, DRM bypass, login-wall circumvention, or access to restricted content using browser cookies.
+- Never directly open, print, search, edit, copy, or commit real `.env` files or files containing actual credentials; never log or expose secret values. Normal build, test, and development commands may load them automatically when required; do not inspect or print loaded values. Placeholder-only examples such as `.env.example` may be read or edited. Frontend code must not contain service-role keys or OAuth client secrets, and secrets must never use the `NEXT_PUBLIC_` prefix.
+- Use `pnpm` for Node.js and `uv` for Python. Do not use `npm`, `yarn`, or direct `pip` commands.
+- `apps/web/lib/db/schema.ts` is the application database schema source of truth. Do not create or alter application tables using raw SQL.
+- Never stage or commit without explicit user instruction. Keep changes unstaged.
+- For every task that changes project files, update the root `CHANGELOG.md` in the same task before completion, summarizing the full change set under applicable categories; skip only edits that change the changelog alone. When editing Markdown, run `pnpm lint:md`. When editing code, run `pnpm deadcode` and the relevant checks. Before final handoff, run the full verification suite listed in `docs/AGENT_GUIDELINES.md`; during rapid UI iteration, defer heavy tests until the milestone or an explicit request.
 
-Source code lives strictly at the repository root:
+## Read more when relevant
 
-```text
-apps/web/      → Next.js 16 frontend (React 19, Tailwind v4, Drizzle ORM)
-apps/api/      → FastAPI backend (Python 3.12, URL analysis & policy engine)
-apps/worker/   → Python media worker (Queue polling, yt-dlp, FFmpeg conversion)
-supabase/      → PostgreSQL schema, RLS policies, and database migrations
-docs/          → Comprehensive architectural, API, and setup documentation
-```
+Open [docs/AGENT_GUIDELINES.md](docs/AGENT_GUIDELINES.md) for the detailed project rules and documentation map. Read the sections relevant to the task:
 
-Do not create nested repository copies. Edit files in place under this repo root.
+- Architecture, API, database, security, RLS, environment, or deployment changes: consult the linked specification listed there before editing.
+- Any UI implementation, redesign, responsive/accessibility change, or UI review: read `.agents/skills/ui-styling/SKILL.md`; also read `.agents/skills/ui-ux-pro-max/SKILL.md` when design direction or UX research will help. Follow project components and tokens first.
+- Work in `apps/web/`: also follow its local `AGENTS.md`, including the Next.js documentation requirement.
 
----
-
-## 2. Non-Negotiable Core Rules (Constitution)
-
-Every agent must strictly adhere to these non-negotiable rules:
-
-### A. Non-Bypass & Rights-Aware Policy
-
-- **Never bypass protections**: No DRM bypass, no login wall circumvention, no private/copyrighted content downloading without permission.
-- **No browser cookies**: Never use browser cookies to access restricted content.
-- **Strict Flow**: Every URL must follow: `URL input → Validation → Policy Check → Analysis → Rights Confirmation → Queue → Worker`. Never implement direct downloads.
-
-### B. Zero Secret Leakage Policy
-
-- **Strictly deny access to `.env` files**: Never read, print, view, edit, or commit any `.env*` file or secret token.
-- Never log or print secret keys in chat, console logs, or artifacts.
-- Frontend code must never contain `SUPABASE_SERVICE_ROLE_KEY` or OAuth client secrets.
-
-### C. Package Manager Constraints
-
-- **Python**: Always use `uv` (`uv venv`, `uv pip install`, `uv run`, `uv lock`, `uv sync`). **Never use `pip` directly**.
-- **Node.js**: Always use `pnpm` (`pnpm install`, `pnpm dev`, `pnpm --filter ...`). **Never use `npm` or `yarn`**.
-
-### D. Database Single Source of Truth
-
-- `apps/web/lib/db/schema.ts` is the **single source of truth** for database tables and columns using **Drizzle ORM**.
-- Never create or alter application tables with raw SQL. Raw SQL in `supabase/` is reserved only for RLS policies, triggers, and PostgreSQL functions.
-
-### E. Markdown Linting Mandate
-
-- Whenever creating or editing Markdown files (`*.md`), agents **MUST** run `pnpm lint:md` (or `pnpm lint:md:fix`) to verify and auto-format clean markdown syntax.
-- Never commit Markdown files with missing blank lines around headings, bad list indentation, or broken tables.
-
-### F. Dead Code Elimination Mandate
-
-- Whenever creating, editing, or refactoring code, agents **MUST** run `pnpm deadcode` (`knip` for Web, `vulture` for API & Worker) to detect and remove dead code.
-- Never leave behind unused exports, orphaned variables, unreferenced helper functions, or dead imports. Clean them up immediately.
-
-### G. UI Component Consistency & Design System Mandate
-
-- **Strict component reuse**: Always reuse existing Design System / UI components (`apps/web/components/ui/` or shared components like `BackButton`, `ThemeToggle`, `SiteFooter`). Never write ad-hoc inline interactive elements with diverging margins, paddings, or font sizes.
-- **Extract new shared components**: If an interactive element, pattern, or link style appears on more than one page (e.g. Back button, TOC pill, details toggle, badge), agents **MUST** extract it into a reusable shared component in `apps/web/components/` instead of duplicating ad-hoc JSX.
-- **Strictly uniform interactive states**:
-  - Hover states, focus rings, and active indicators must be 100% consistent across all pages.
-  - Match hover cues to the action: navigation links that leave the current page (including footer and external links) may underline on hover to signal navigation. In-page disclosure controls (such as table/card details and accordions) must use button or `<summary>` semantics; hover changes text or icon color only, with no underline or link-style background. Rotate the chevron only when the disclosure opens or closes, never on hover.
-  - For interactive pills and triggers other than in-page disclosures, use `transition-colors hover:bg-primary/10 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60`.
-  - Icon micro-interactions (e.g. back button arrow slide `group-hover:-translate-x-0.5`, accordion chevron rotate `group-open:rotate-180`) must behave uniformly everywhere.
-  - Textarea and input controls must have disabled resize (`resize: none !important;`) and internal character counters pinned inside the box with proper padding to prevent text overlap.
-
-### H. Rapid UI Iteration vs. Milestone Verification Protocol
-
-- **Fast iteration loop**: During rapid user-directed UI tweaking and styling adjustments, prioritize turnaround speed. Run quick checks (`pnpm --filter web lint`, `pnpm --filter web build` / TypeScript verification).
-- **Defer heavy test suites**: Full test suites (`pnpm test:web`, Playwright e2e, API worker tests) are deferred to milestone completion checkpoints or explicit user requests ("พวกรันเทสค่อยเก็บตก") to keep UI tweaking fast and agile.
-- **Milestone verification**: Before final task completion or handoff, run the full verification suite to ensure zero regressions.
-
-### I. Verification Before Completion Mandate
-
-- **No completion claims without fresh verification evidence**: Never claim a task, fix, or refactor is complete without running the corresponding verification commands in the current turn.
-- Always inspect exit codes and error logs. Never assume code "should work" or "looks right". Prove it with execution.
-
----
-
-## 3. 🗺️ AI Documentation Map (Progressive Disclosure Router)
-
-Before starting work in any domain, agents **MUST** inspect the relevant specification below:
-
-| Domain / Task | Specification File | Purpose & Contents |
-|---|---|---|
-| **System Overview & Flow** | [docs/en/ARCHITECTURE.md](docs/en/ARCHITECTURE.md) | Blueprint, component boundaries, request flows, status model |
-| **API Endpoints & Contracts** | [docs/en/API_SPEC.md](docs/en/API_SPEC.md) | FastAPI route schemas, request/response models |
-| **Database & Migrations** | [docs/en/DATABASE_SCHEMA.md](docs/en/DATABASE_SCHEMA.md) | Table structures, column definitions, Drizzle vs Supabase rules |
-| **Security & Policy Rules** | [docs/en/SECURITY_AND_POLICY.md](docs/en/SECURITY_AND_POLICY.md) | SSRF prevention, restricted yt-dlp parameters, platform policies |
-| **Row Level Security** | [docs/en/SUPABASE_RLS_POLICY.md](docs/en/SUPABASE_RLS_POLICY.md) | Supabase PostgreSQL user isolation and RLS policies |
-| **Dev Commands & Testing** | [docs/en/DEVELOPER_GUIDE.md](docs/en/DEVELOPER_GUIDE.md) | Local run commands (`pnpm dev`), linting, and testing workflows |
-| **Tunnel & Deployment** | [docs/en/CLOUDFLARE_TUNNEL_GUIDE.md](docs/en/CLOUDFLARE_TUNNEL_GUIDE.md) | Cloudflare Tunnel setup, Docker Compose, production container rules |
-| **Environment Variables** | [docs/en/ENVIRONMENT_VARIABLES.md](docs/en/ENVIRONMENT_VARIABLES.md) | Environment variable definitions, defaults, and validation |
-| **Secrets Protocol** | [docs/en/SECRETS_PROTOCOL.md](docs/en/SECRETS_PROTOCOL.md) | Zero-leakage protocol and secret handling guidelines |
-| **Google OAuth Setup** | [docs/en/GOOGLE_OAUTH_SETUP.md](docs/en/GOOGLE_OAUTH_SETUP.md) | Supabase Google Auth configuration steps |
-| **Vercel Deployment** | [docs/en/VERCEL_SETUP.md](docs/en/VERCEL_SETUP.md) | Frontend Next.js deployment to Vercel |
-
-*(For Thai documentation, see corresponding files in `docs/th/`)*
-
----
-
-## 4. Git Commit Guidelines
-
-### Explicit Commit Approval Rule (Strict)
-
-- **Never commit automatically**: Agents must **NEVER** stage or commit changes without explicit instruction or approval from the user (e.g. user explicitly says "commit", "บันทึก commit", or "สั่งให้ commit").
-- **Editing code != committing code**: Making code edits, refactors, or bug fixes does NOT mean committing right away.
-- **Unauthorized commit cancellation**: If an agent commits changes without explicit user approval, the commit must be immediately undone/reset (`git reset`). Always wait for the user's explicit command.
-
-### Format & Conventions
-
-All agents must follow the Conventional Commits format:
-
-```text
-<type>(<scope>): <subject>
-
-[optional body]
-```
-
-- **Allowed Types**: `feat`, `fix`, `chore`, `docs`, `refactor`, `test`, `ci`
-- **Allowed Scopes**: `(web)`, `(api)`, `(worker)`, `(db)`, `(deploy)`, `(deps)`, `(ci)`, `(docs)`
-- **Rules**: Lowercase, imperative mood, concise (≤ 72 chars), atomic domain commits.
-
----
-
-## 5. Definition of Done
-
-A task is done only when:
-
-1. Code matches the system architecture and design guidelines.
-2. No secrets are exposed or committed.
-3. Policy and non-bypass checks are strictly preserved.
-4. Error handling is clear and user-facing behavior is verified.
-5. Relevant documentation under `docs/` is updated if behavior changes.
-6. **Code Quality, Formatting, & Dead Code Verification commands must pass with verified evidence**:
-   - `pnpm deadcode` (Knip for Web, Vulture for API & Worker: 0 dead code/unused exports)
-   - `pnpm format` (Prettier and Ruff format: clean code style across all services)
-   - `pnpm lint` (ESLint for Web, Ruff for API & Worker, Markdownlint for Docs: 0 errors)
-   - `pnpm lint:md` (Markdown files pass clean linting: 0 issues)
-   - `pnpm build` (TypeScript compilation and Next.js build pass with zero errors)
-   - Automated tests pass (`pnpm test:web`, `pnpm test:api`, `pnpm test:worker`)
-7. **Git safety confirmed**: Changes remain unstaged until the user explicitly commands a commit.
+Detailed guidance supplements this file. If instructions conflict, preserve the always-applicable rules above and the user's current request.
