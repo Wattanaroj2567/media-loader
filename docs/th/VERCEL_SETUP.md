@@ -45,9 +45,13 @@ Vercel ดูเพิ่มเติมที่ [Environment Variables](ENVIRO
 5. ใช้คำสั่ง Install และ Build จาก `vercel.json` ใน Repository
 
 ค่าที่มีอยู่จะ pin pnpm 12.6.0 สำหรับติดตั้ง และเรียกสคริปต์ `build` ที่ Root
-เพื่อ build `apps/web` ส่วน `ignoreCommand` จะจบด้วยรหัสสถานะ 1 เพื่อไม่ให้ Vercel
-ข้ามการ Deploy การตั้งค่า Build ใน Vercel อาจถูก `vercel.json` เขียนทับ
-หากแก้ค่าใดค่าหนึ่ง ให้ตรวจสอบว่าอีกแห่งยังสอดคล้องกัน
+เพื่อ build `apps/web` ส่วน `ignoreCommand` จะตรวจ diff ของ commit ปัจจุบันกับ
+commit ก่อนหน้า และข้าม Build เมื่อไม่มีการเปลี่ยนแปลงที่กระทบ Frontend โดยตรวจ
+`apps/web/`, package manifest ที่ Root, pnpm workspace และ lock files, package
+patches และ Vercel config หากเพิ่ม build input ใหม่ ให้ปรับรายการนี้ด้วย
+การตั้งค่า Build ใน Vercel อาจถูก `vercel.json` เขียนทับ หากแก้ค่าใดค่าหนึ่ง
+ให้ตรวจสอบว่าอีกแห่งยังสอดคล้องกัน Vercel อาจยังแสดง deployment check เป็น
+Skipped หรือ Canceled เพราะคำสั่งนี้ทำงานหลังรับ Git event แต่จะไม่ทำ App Build
 
 อย่าตั้ง Root Directory เป็น `apps/web` เพราะจะตัดการเข้าถึง workspace config
 และ deployment config ที่ Repository นี้ใช้
