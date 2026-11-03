@@ -52,6 +52,7 @@ patches และ Vercel config หากเพิ่ม build input ใหม�
 การตั้งค่า Build ใน Vercel อาจถูก `vercel.json` เขียนทับ หากแก้ค่าใดค่าหนึ่ง
 ให้ตรวจสอบว่าอีกแห่งยังสอดคล้องกัน Vercel อาจยังแสดง deployment check เป็น
 Skipped หรือ Canceled เพราะคำสั่งนี้ทำงานหลังรับ Git event แต่จะไม่ทำ App Build
+และ `.vercelignore` ยกเว้น helper นี้ไว้เพื่อให้ Vercel เรียกใช้ได้
 
 อย่าตั้ง Root Directory เป็น `apps/web` เพราะจะตัดการเข้าถึง workspace config
 และ deployment config ที่ Repository นี้ใช้

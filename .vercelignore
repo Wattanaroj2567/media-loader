@@ -7,4 +7,5 @@ storage/
 docs/
 deploy/
 scripts/
+!scripts/vercel-ignore-build.sh
 tests/
