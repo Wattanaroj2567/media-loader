@@ -1,5 +1,32 @@
 import { expect, test } from "@playwright/test";
 
+test("mobile information pages offer a back-to-top control after scrolling", async ({
+  browser,
+  baseURL,
+}) => {
+  const context = await browser.newContext({
+    viewport: { width: 390, height: 500 },
+    locale: "en-US",
+    reducedMotion: "reduce",
+    hasTouch: true,
+  });
+  try {
+    const page = await context.newPage();
+    for (const path of ["/privacy", "/terms", "/how-it-works", "/contact"]) {
+      await page.goto(new URL(path, baseURL).href);
+      const button = page.getByRole("button", { name: "Back to top" });
+      await expect(button).toHaveCount(0);
+      await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+      await expect(button).toBeVisible();
+      await button.tap();
+      await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
+      await expect(button).toHaveCount(0);
+    }
+  } finally {
+    await context.close();
+  }
+});
+
 test.describe("Privacy and terms pages", () => {
   test("theme menu switches the page between light and dark", async ({ page }) => {
     await page.goto("/");

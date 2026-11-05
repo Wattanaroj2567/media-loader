@@ -4,7 +4,6 @@ import Link from "next/link";
 import {
   Check,
   ChevronDown,
-  ArrowUp,
   CloudOff,
   Download,
   Minus,
@@ -26,6 +25,7 @@ import { LandingLinkForm } from "@/components/landing-link-form";
 import { HeroPlatforms } from "@/components/hero-platforms";
 import heroStyles from "@/components/hero-platforms.module.css";
 import { SiteFooter } from "@/components/site-footer";
+import { ScrollToTop } from "@/components/scroll-to-top";
 import { useT } from "@/lib/i18n/context";
 import { cn } from "@/lib/utils";
 
@@ -34,12 +34,10 @@ function LandingPageContent() {
   const { openAuth } = useLandingAuth();
   const [expandedPlatformId, setExpandedPlatformId] = useState<string | null>(null);
   const [isScrolled, setIsScrolled] = useState(false);
-  const [showScrollToTop, setShowScrollToTop] = useState(false);
 
   useEffect(() => {
     function handleScroll() {
       setIsScrolled(window.scrollY > 20);
-      setShowScrollToTop(window.scrollY > 320);
     }
     handleScroll();
     window.addEventListener("scroll", handleScroll, { passive: true });
@@ -309,7 +307,7 @@ function LandingPageContent() {
   );
 
   return (
-    <main className="relative min-h-dvh w-full bg-bg-base pt-[calc(3.375rem+env(safe-area-inset-top))] text-foreground flex flex-col justify-start items-center overflow-x-clip sm:pt-[calc(3.5rem+env(safe-area-inset-top))] lg:pt-0">
+    <main className="relative min-h-dvh w-full bg-bg-base text-foreground flex flex-col justify-start items-center overflow-x-clip">
       {/* Soft ambient light behind the hero. */}
       <div
         aria-hidden="true"
@@ -321,11 +319,11 @@ function LandingPageContent() {
       </div>
 
       {/* ─── Top Header Navigation ─────────────────────────────────────── */}
-      <header className="pointer-events-none fixed inset-x-0 top-0 z-50 w-full shrink-0 pt-[env(safe-area-inset-top)] transition-none lg:sticky lg:inset-auto lg:top-4 lg:p-0 lg:px-8 lg:transition-all lg:duration-300">
+      <header className="pointer-events-none sticky top-0 z-50 w-full shrink-0 bg-bg-base pt-[env(safe-area-inset-top)] transition-none lg:top-4 lg:bg-transparent lg:p-0 lg:px-8 lg:transition-all lg:duration-300">
         <div
           data-testid="landing-topbar"
           className={cn(
-            "pointer-events-auto mx-auto flex h-13.5 w-full items-center justify-between gap-2 border-b border-border/60 bg-bg-base/90 backdrop-blur-md px-3.5 transition-[background-color,border-color,box-shadow] duration-300 sm:h-14 sm:px-6 lg:h-auto lg:max-w-272 lg:rounded-full lg:border lg:p-2 lg:pl-5",
+            "pointer-events-auto mx-auto flex h-13.5 w-full items-center justify-between gap-2 border-b border-border/60 bg-bg-base px-3.5 transition-[background-color,border-color,box-shadow] duration-300 sm:h-14 sm:px-6 lg:h-auto lg:max-w-272 lg:rounded-full lg:border lg:p-2 lg:pl-5",
             "lg:border-border/60 lg:bg-white/65 lg:shadow-md lg:shadow-black/5 lg:backdrop-blur-xl lg:backdrop-saturate-150",
             "dark:lg:border-white/12 dark:lg:bg-[#16181f]/65 dark:lg:shadow-lg dark:lg:shadow-black/30 dark:lg:backdrop-blur-xl dark:lg:backdrop-saturate-150",
             isScrolled && "lg:shadow-lg dark:lg:shadow-black/50"
@@ -1044,28 +1042,7 @@ function LandingPageContent() {
           </div>
         </section>
       </div>
-      <div className="pointer-events-none fixed inset-x-0 bottom-20 z-40 px-4 sm:bottom-24 sm:px-6 lg:px-8">
-        <div className="mx-auto flex w-full max-w-6xl justify-end">
-          {showScrollToTop && (
-            <button
-              type="button"
-              aria-label={t("landing.scrollToTop")}
-              className="pointer-events-auto grid size-11 place-items-center rounded-full border border-border bg-bg-surface/95 text-text shadow-lg backdrop-blur-xl transition hover:border-primary/40 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
-              onClick={() =>
-                window.scrollTo({
-                  top: 0,
-                  behavior: window.matchMedia("(prefers-reduced-motion: reduce)")
-                    .matches
-                    ? "auto"
-                    : "smooth",
-                })
-              }
-            >
-              <ArrowUp className="size-4" aria-hidden="true" />
-            </button>
-          )}
-        </div>
-      </div>
+      <ScrollToTop />
       <SiteFooter className="mt-auto mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8" />
     </main>
   );

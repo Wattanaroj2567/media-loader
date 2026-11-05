@@ -3,6 +3,7 @@
 import { BackButton } from "@/components/back-button";
 import { ContactForm } from "@/components/contact-form";
 import { SiteFooter } from "@/components/site-footer";
+import { ScrollToTop } from "@/components/scroll-to-top";
 import { CONTACT_EMAIL, type ContactTopic } from "@/lib/contact-mailto";
 import { useT } from "@/lib/i18n/context";
 
@@ -47,6 +48,7 @@ export function ContactPage({ initialTopic }: { initialTopic: ContactTopic }) {
         </div>
       </div>
 
+      <ScrollToTop mobileOnly />
       <SiteFooter className="relative z-10 mt-auto mx-auto w-full max-w-6xl px-4 py-4 sm:px-6 sm:py-6 lg:px-8" />
     </main>
   );
