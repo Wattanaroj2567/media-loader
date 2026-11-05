@@ -1,7 +1,17 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
+
+test("Vercel configuration allows builds even when project settings would skip them", () => {
+  const config: unknown = JSON.parse(
+    readFileSync(new URL("../../../vercel.json", import.meta.url), "utf8")
+  );
+  assert.ok(config && typeof config === "object");
+  assert.ok("ignoreCommand" in config);
+  assert.equal(config.ignoreCommand, "exit 1");
+});
 
 function inspectDrizzleConfig(databaseUrl?: string) {
   const script = `

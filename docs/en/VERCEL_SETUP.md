@@ -47,14 +47,10 @@ Do not expose backend credentials in Vercel frontend variables. See
 5. Keep the build and install commands from the repository's `vercel.json`.
 
 The checked-in configuration pins pnpm 12.6.0 for install and runs the root
-`build` script, which builds `apps/web`. Its `ignoreCommand` checks the current
-commit against its parent and skips the build when no frontend build inputs
-changed. It watches `apps/web/`, the root package manifest, pnpm workspace and
-lock files, package patches, and Vercel configuration. Keep this list aligned
-with the frontend build and deployment inputs. Vercel project-level build
-settings can be overridden by `vercel.json`; keep them aligned if you change
-either. Vercel can still show a skipped or canceled deployment check because
-it runs this command after receiving the Git event; the app build is skipped.
+`build` script, which builds `apps/web`. Its `ignoreCommand` always permits a
+build, overriding the project-level Ignored Build Step even when an earlier
+deployment was skipped or Git history is unavailable. This may build on
+backend-only or documentation changes.
 
 Do not set Root Directory to `apps/web`: that would exclude the root workspace
 configuration and the deployment configuration used by this project.
