@@ -179,6 +179,29 @@ body {
   width: 100%;
 }
 
+/* Touchscreens have no reliable hover state; show feedback only while pressed. */
+@media (hover: none) and (pointer: coarse) {
+  :where(
+      button,
+      a[href],
+      summary,
+      select,
+      input[type="button"],
+      input[type="submit"],
+      input[type="reset"],
+      input[type="checkbox"],
+      input[type="radio"],
+      [role="button"],
+      [role="switch"],
+      [role="tab"],
+      [role="radio"],
+      [role="checkbox"],
+      [role="menuitem"]
+    ):not(:disabled):not([aria-disabled="true"]):is(:active, [data-touch-pressed]) {
+    opacity: 0.7;
+  }
+}
+
 @media (max-width: 1023px) {
   html,
   body {

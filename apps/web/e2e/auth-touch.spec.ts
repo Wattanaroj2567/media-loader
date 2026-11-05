@@ -7,6 +7,33 @@ test.use({
   locale: "en-US",
 });
 
+test("touch controls show feedback only while pressed", async ({ page, context }) => {
+  await page.goto("/");
+  const session = await context.newCDPSession(page);
+  const controls = [
+    page.getByRole("button", { name: "More options (Language & Theme)" }),
+    page.getByRole("link", { name: "Privacy" }).first(),
+  ];
+
+  for (const control of controls) {
+    await control.scrollIntoViewIfNeeded();
+    const bounds = await control.boundingBox();
+    if (!bounds) throw new Error("Touch control has no bounding box");
+    const point = { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 };
+    await expect(control).toHaveCSS("opacity", "1");
+    await session.send("Input.dispatchTouchEvent", {
+      type: "touchStart",
+      touchPoints: [point],
+    });
+    await expect(control).toHaveCSS("opacity", "0.7");
+    await session.send("Input.dispatchTouchEvent", {
+      type: "touchCancel",
+      touchPoints: [],
+    });
+    await expect(control).toHaveCSS("opacity", "1");
+  }
+});
+
 test("touch auth navigation does not leave the close link highlighted", async ({
   page,
 }) => {
