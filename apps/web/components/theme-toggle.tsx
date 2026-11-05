@@ -101,7 +101,7 @@ export function ThemeToggle({
               onClick={() => setTheme(opt.value)}
               title={`${t("theme.selectLabel", {}, "ธีม")}: ${opt.label}`}
               className={cn(
-                "flex h-8 flex-1 min-w-0 cursor-pointer items-center justify-center gap-1.5 rounded-lg px-1 text-xs font-medium transition-all duration-150 select-none outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+                "flex h-8 flex-1 min-w-0 cursor-pointer items-center justify-center gap-1.5 rounded-lg px-1 text-xs font-medium transition-all duration-150 select-none outline-none focus-visible:ring-2 focus-visible:ring-primary/40 active:scale-95 active:bg-primary/15",
                 isActive
                   ? "bg-bg-elevated text-primary font-semibold shadow-xs"
                   : "text-text-muted hover:bg-bg-surface/50 hover:text-text"

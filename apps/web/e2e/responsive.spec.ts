@@ -49,6 +49,51 @@ async function seedAuth(context: {
 }
 
 test.describe("Responsive Layout Safety", () => {
+  test("keeps the mobile browser color in sync on public and account pages", async ({
+    page,
+    context,
+  }) => {
+    test.setTimeout(120_000);
+    await page.setViewportSize({ width: 390, height: 844 });
+    const publicPages = [
+      "/",
+      "/how-it-works",
+      "/contact",
+      "/privacy",
+      "/terms",
+      "/auth/login",
+      "/auth/register",
+      "/auth/forgot-password",
+      "/auth/reset-password?token_hash=responsive-test&type=recovery",
+    ];
+    const accountPages = ["/dashboard", "/history", "/settings"];
+
+    for (const scheme of ["light", "dark"] as const) {
+      await context.clearCookies();
+      await page.emulateMedia({ colorScheme: scheme });
+      for (const [pages, authenticated] of [
+        [publicPages, false],
+        [accountPages, true],
+      ] as const) {
+        if (authenticated) await seedAuth(context);
+        for (const path of pages) {
+          await test.step(`${scheme}: ${path}`, async () => {
+            await page.goto(path, { waitUntil: "domcontentloaded" });
+            await expect(page).toHaveURL(new RegExp(path.split("?")[0] + "(?:\\?|$)"));
+            await expect(page.locator("main")).toBeVisible();
+            await expect(page.locator("html")).toHaveClass(
+              new RegExp(`\\b${scheme}\\b`)
+            );
+            await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute(
+              "content",
+              scheme === "dark" ? "#101010" : "#edf1f6"
+            );
+          });
+        }
+      }
+    }
+  });
+
   test("should render desktop navigation elements on wide viewports (1280px)", async ({
     page,
   }) => {
