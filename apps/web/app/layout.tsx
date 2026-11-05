@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Sans_Thai, Inter } from "next/font/google";
 import { I18nProvider } from "@/lib/i18n/context";
 import { ToastProvider } from "@/components/toast";
@@ -37,6 +37,10 @@ export const metadata: Metadata = {
     title: "Media Loader",
     statusBarStyle: "default",
   },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#edf1f6",
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
