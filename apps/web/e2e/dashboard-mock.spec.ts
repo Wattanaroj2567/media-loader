@@ -1056,6 +1056,25 @@ test.describe("Mocked Dashboard Workflow", () => {
 
     const mobileHeader = page.getByTestId("app-mobile-header");
     const mobileNavigation = page.getByTestId("app-mobile-navigation");
+    await expect(mobileHeader).toHaveCSS("position", "sticky");
+    const headerBackground = await mobileHeader.evaluate(
+      (element) => getComputedStyle(element).backgroundColor
+    );
+    const pageBackground = await page
+      .locator("body")
+      .evaluate((element) => getComputedStyle(element).backgroundColor);
+    expect(headerBackground).toBe(pageBackground);
+    await page.getByRole("button", { name: /More options/ }).click();
+    await page.getByRole("radio", { name: /dark/i }).click();
+    await expect(page.locator("html")).toHaveClass(/\bdark\b/);
+    const darkColors = await page.evaluate(() => ({
+      header: getComputedStyle(
+        document.querySelector('[data-testid="app-mobile-header"]')!
+      ).backgroundColor,
+      body: getComputedStyle(document.body).backgroundColor,
+    }));
+    expect(darkColors.header).toBe(darkColors.body);
+    await page.getByRole("button", { name: /More options/ }).click();
     await expect(mobileHeader).toHaveAttribute("data-scroll-state", "visible");
     await expect(mobileNavigation).toHaveAttribute("data-scroll-state", "expanded");
     const expandedShape = await mobileNavigation.evaluate((element) => ({
@@ -1082,6 +1101,7 @@ test.describe("Mocked Dashboard Workflow", () => {
     await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(72);
     await expect(mobileHeader).toHaveAttribute("data-scroll-state", "visible");
     await expect(mobileHeader).toBeVisible();
+    await expect.poll(async () => (await mobileHeader.boundingBox())?.y).toBe(0);
     await expect(mobileNavigation).toHaveAttribute("data-scroll-state", "compact");
     await expect(mobileNavigation).toBeVisible();
     await expect

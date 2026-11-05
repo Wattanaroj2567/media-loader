@@ -11,6 +11,8 @@ High-level summary of Media Loader's commit history from the initial commit on 2
 
 ### Changed
 
+- Align the mobile download and history header with the account page's solid, sticky theme background to improve iOS status-bar consistency.
+- Run CI on pull requests and pushes to `master`, avoiding duplicate runs on pushes to `develop`.
 - Allow Vercel deployments to build without a Git-diff ignore command so skipped deployments do not leave production stale.
 - Sync the mobile browser theme color with the selected light or dark theme, add press feedback to interactive controls on touchscreens, and cover public and account pages with mobile theme checks.
 - Require each project-changing task to update `CHANGELOG.md` in the same task before completion.
