@@ -13,6 +13,7 @@ import {
 
 import { BackButton } from "@/components/back-button";
 import { SiteFooter } from "@/components/site-footer";
+import { ScrollToTop } from "@/components/scroll-to-top";
 import { useT } from "@/lib/i18n/context";
 
 export function HowItWorksPage() {
@@ -168,6 +169,7 @@ export function HowItWorksPage() {
         </section>
       </div>
 
+      <ScrollToTop mobileOnly />
       <SiteFooter className="relative z-10 mt-auto mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8" />
     </main>
   );

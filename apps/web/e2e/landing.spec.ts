@@ -389,6 +389,15 @@ test.describe("Landing Page & Brand UI", () => {
 
     const topbar = page.getByTestId("landing-topbar");
     await expect(topbar).toBeVisible();
+    const background = await topbar.evaluate((element) => ({
+      topbar: getComputedStyle(element).backgroundColor,
+      header: getComputedStyle(element.parentElement!).backgroundColor,
+      body: getComputedStyle(document.body).backgroundColor,
+      blur: getComputedStyle(element).backdropFilter,
+    }));
+    expect(background.topbar).toBe(background.body);
+    expect(background.header).toBe(background.body);
+    expect(background.blur).toBe("none");
     expect(
       Math.round(
         await topbar.evaluate((element) => element.getBoundingClientRect().top)

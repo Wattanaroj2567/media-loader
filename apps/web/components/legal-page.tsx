@@ -7,6 +7,7 @@ import { ArrowUpRight, Check, FileText, List, ShieldCheck } from "lucide-react";
 import { BackButton } from "@/components/back-button";
 import { useFullPageAuth } from "@/lib/auth-viewport";
 import { SiteFooter } from "@/components/site-footer";
+import { ScrollToTop } from "@/components/scroll-to-top";
 import { useT } from "@/lib/i18n/context";
 import { CONTACT_EMAIL } from "@/lib/contact-mailto";
 import { cn } from "@/lib/utils";
@@ -937,6 +938,7 @@ export function LegalPage({
         </div>
       </article>
 
+      <ScrollToTop mobileOnly />
       <SiteFooter className="relative z-10 mt-auto mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8" />
     </main>
   );

@@ -11,6 +11,7 @@ High-level summary of Media Loader's commit history from the initial commit on 2
 
 ### Changed
 
+- Make the mobile home top bar opaque and add mobile back-to-top controls to policy, how-it-works, and contact pages.
 - Align the mobile download and history header with the account page's solid, sticky theme background to improve iOS status-bar consistency.
 - Run CI on pull requests and pushes to `master`, avoiding duplicate runs on pushes to `develop`.
 - Allow Vercel deployments to build without a Git-diff ignore command so skipped deployments do not leave production stale.
