@@ -213,7 +213,7 @@ export function AppShell({ children, user }: AppShellProps) {
           <header
             data-testid="app-mobile-header"
             data-scroll-state="visible"
-            className="fixed inset-x-0 top-0 z-30 flex min-h-[calc(3.375rem+env(safe-area-inset-top))] items-center border-b border-border bg-bg-elevated/80 px-3.5 pt-[env(safe-area-inset-top)] shadow-md shadow-slate-900/10 backdrop-blur-xl backdrop-saturate-150 sm:min-h-[calc(3.5rem+env(safe-area-inset-top))] sm:px-6 dark:border-white/15 dark:bg-bg-base/80 dark:shadow-black/30 lg:hidden"
+            className="sticky top-0 z-30 flex min-h-[calc(3.375rem+env(safe-area-inset-top))] items-center border-b border-border bg-bg-base px-3.5 pt-[env(safe-area-inset-top)] shadow-md shadow-slate-900/10 sm:min-h-[calc(3.5rem+env(safe-area-inset-top))] sm:px-6 dark:border-white/15 dark:shadow-black/30 lg:hidden"
           >
             <Link
               href="/dashboard"
@@ -258,15 +258,7 @@ export function AppShell({ children, user }: AppShellProps) {
       )}
 
       {/* ─── Main Content (Full Desktop Width / No Sidebar Offset) ──── */}
-      <main
-        id="main-content"
-        className={cn(
-          "flex flex-1 flex-col",
-          isAccountPage
-            ? "pt-0"
-            : "pt-[calc(3.375rem+env(safe-area-inset-top))] sm:pt-[calc(3.5rem+env(safe-area-inset-top))] lg:pt-0"
-        )}
-      >
+      <main id="main-content" className="flex flex-1 flex-col">
         {children}
         <SiteFooter
           className={cn(
