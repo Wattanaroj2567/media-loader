@@ -11,8 +11,8 @@ High-level summary of Media Loader's commit history from the initial commit on 2
 
 ### Changed
 
+- Allow Vercel deployments to build without a Git-diff ignore command so skipped deployments do not leave production stale.
 - Sync the mobile browser theme color with the selected light or dark theme, add press feedback to interactive controls on touchscreens, and cover public and account pages with mobile theme checks.
-- Skip Vercel builds when a commit changes no frontend build inputs.
 - Require each project-changing task to update `CHANGELOG.md` in the same task before completion.
 - Streamlined the root `AGENTS.md` and linked to detailed, task-specific project guidance.
 - Set `develop` as the ongoing integration branch and `master` as the release branch; aligned CI and Dependabot version-update/lockfile-sync branch targets.
