@@ -6,8 +6,14 @@ High-level summary of Media Loader's commit history from the initial commit on 2
 
 ### Added
 
+- Added an advanced CodeQL workflow for GitHub Actions, JavaScript/TypeScript, and Python on pull requests to `develop` and `master`, production pushes, and a weekly schedule.
 - Added this curated history of notable project changes.
 - Added detailed agent guidance in `docs/AGENT_GUIDELINES.md` and shared `CLAUDE.md` and `GEMINI.md` entry points that import `AGENTS.md`.
+
+### Security
+
+- Updated the Drizzle loader's esbuild and TypeScript tooling's minimatch to patched releases for the remaining moderate advisories.
+- Updated vulnerable transitive dependencies to compatible patched releases for Dependabot security advisories.
 
 ### Changed
 
