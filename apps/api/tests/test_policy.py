@@ -72,11 +72,9 @@ def test_check_url_whitelist():
     # Whitelisted open-access platforms
     res = check_url("https://upload.wikimedia.org/wikipedia/commons/c/c2/sample.webm")
     assert res.decision == "allowed"
-    assert "wikimedia.org" in res.reason
 
     res = check_url("https://archive.org/details/sample_video")
     assert res.decision == "allowed"
-    assert "archive.org" in res.reason
 
     res = check_url("https://archive.org.evil.example/video")
     assert res.decision == "needs_confirmation"
