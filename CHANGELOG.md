@@ -12,6 +12,7 @@ High-level summary of Media Loader's commit history from the initial commit on 2
 
 ### Security
 
+- Updated the Drizzle loader's esbuild and TypeScript tooling's minimatch to patched releases for the remaining moderate advisories.
 - Updated vulnerable transitive dependencies to compatible patched releases for Dependabot security advisories.
 
 ### Changed
