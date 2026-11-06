@@ -1,5 +1,13 @@
+import { createSecureGuestSessionId } from "./guest-session-id.ts";
+
 const GUEST_SESSION_KEY = "media_loader_guest_session_id";
 const GUEST_JOBS_KEY = "media_loader_guest_job_ids";
+
+function createGuestSessionId(): string {
+  return createSecureGuestSessionId(
+    typeof globalThis.crypto === "undefined" ? undefined : globalThis.crypto
+  );
+}
 
 let memoryFallbackSessionId = "";
 let memoryFallbackJobs: string[] = [];
@@ -11,20 +19,15 @@ let memoryFallbackJobs: string[] = [];
 export function getGuestSessionId(): string {
   if (typeof window === "undefined") {
     if (!memoryFallbackSessionId) {
-      memoryFallbackSessionId =
-        typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
-          ? crypto.randomUUID()
-          : `guest_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
+      memoryFallbackSessionId = createGuestSessionId();
     }
     return memoryFallbackSessionId;
   }
   try {
     let sessionId = localStorage.getItem(GUEST_SESSION_KEY);
     if (!sessionId) {
-      sessionId =
-        typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
-          ? crypto.randomUUID()
-          : `guest_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
+      sessionId = createGuestSessionId();
+      if (!sessionId) return "";
       localStorage.setItem(GUEST_SESSION_KEY, sessionId);
     }
     return sessionId;

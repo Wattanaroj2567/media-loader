@@ -3,6 +3,14 @@ import { mockEmptyJobs } from "./support/mock-empty-jobs";
 
 test.use({ locale: "en-US", trace: "off", screenshot: "off" });
 
+test("mock Supabase only redirects to the local application", async ({ request }) => {
+  const response = await request.get(
+    "http://localhost:9999/auth/v1/authorize?redirect_to=https%3A%2F%2Fattacker.example"
+  );
+
+  expect(response.status()).toBe(400);
+});
+
 test.beforeEach(async ({ page }) => {
   await mockEmptyJobs(page);
 });

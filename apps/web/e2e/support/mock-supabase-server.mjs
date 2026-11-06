@@ -105,9 +105,20 @@ const server = http.createServer(async (req, res) => {
   }
   if (url.pathname === "/auth/v1/logout") return send(204, {});
   if (url.pathname === "/auth/v1/authorize") {
+    const redirectTo = url.searchParams.get("redirect_to");
+    let redirectUrl;
+    try {
+      redirectUrl = new URL(redirectTo || "");
+    } catch {
+      return send(400, { code: "invalid_redirect", message: "Invalid redirect" });
+    }
+    if (redirectUrl.origin !== "http://localhost:3100") {
+      return send(400, { code: "invalid_redirect", message: "Invalid redirect" });
+    }
+    redirectUrl.searchParams.set("code", "mock-code");
     res.writeHead(302, {
       ...headers,
-      Location: `${url.searchParams.get("redirect_to")}?code=mock-code`,
+      Location: redirectUrl.toString(),
     });
     return res.end();
   }

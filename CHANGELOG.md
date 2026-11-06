@@ -13,6 +13,8 @@ High-level summary of Media Loader's commit history from the initial commit on 2
 ### Security
 
 - Updated vulnerable transitive dependencies, including the Drizzle loader's esbuild, TypeScript tooling's minimatch, and packages with high or critical advisories, to patched compatible releases.
+- Removed the privileged Dependabot lockfile sync workflow that checked out and executed pull request code.
+- Generate guest session identifiers only with cryptographic randomness, match media hosts by hostname boundaries, validate the local auth test redirect, and restrict CI token permissions to read-only contents access.
 
 ### Changed
 

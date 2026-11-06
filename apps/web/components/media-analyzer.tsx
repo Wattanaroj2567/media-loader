@@ -39,6 +39,7 @@ import {
   type MediaFormat,
 } from "@/lib/media-presenters.ts";
 import { useT } from "@/lib/i18n/context";
+import { hostnameMatchesDomain, urlMatchesDomain } from "@/lib/url-domains.ts";
 import { validateUrl } from "@/lib/url-validation";
 
 type AnalyzerState = "idle" | "analyzing" | "ready" | "blocked" | "error";
@@ -325,11 +326,11 @@ function getYouTubeEmbedUrl(url?: string | null): string | null {
   try {
     const parsed = new URL(url);
     if (
-      parsed.hostname.includes("youtube.com") ||
-      parsed.hostname.includes("youtu.be")
+      hostnameMatchesDomain(parsed.hostname, "youtube.com") ||
+      hostnameMatchesDomain(parsed.hostname, "youtu.be")
     ) {
       let videoId: string | null = null;
-      if (parsed.hostname.includes("youtu.be")) {
+      if (hostnameMatchesDomain(parsed.hostname, "youtu.be")) {
         videoId = parsed.pathname.slice(1);
       } else if (parsed.pathname.startsWith("/shorts/")) {
         videoId = parsed.pathname.split("/")[2];
@@ -524,8 +525,8 @@ export function MediaAnalyzer() {
   const isGiphy = useMemo(() => {
     return (
       media?.platform?.toLowerCase() === "giphy" ||
-      Boolean(sourceDomain?.toLowerCase().includes("giphy")) ||
-      analyzedUrl.toLowerCase().includes("giphy.com")
+      hostnameMatchesDomain(sourceDomain, "giphy.com") ||
+      urlMatchesDomain(analyzedUrl, "giphy.com")
     );
   }, [media?.platform, sourceDomain, analyzedUrl]);
 
@@ -651,8 +652,8 @@ export function MediaAnalyzer() {
             const firstAudio = grouped.audio[0];
             const isGiphyMedia =
               result.media?.platform?.toLowerCase() === "giphy" ||
-              Boolean(result.media?.source_domain?.toLowerCase().includes("giphy")) ||
-              validation.url.toLowerCase().includes("giphy.com");
+              hostnameMatchesDomain(result.media?.source_domain, "giphy.com") ||
+              urlMatchesDomain(validation.url, "giphy.com");
 
             if (isGiphyMedia || result.media?.is_animated_gif) {
               setActiveTab("gif");
