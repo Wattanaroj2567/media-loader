@@ -6,6 +6,8 @@ High-level summary of Media Loader's commit history from the initial commit on 2
 
 ### Changed
 
+- Disabled Dependabot monthly version updates across all package ecosystems, restricting automated PRs to security advisories only.
+- Consolidated routine dependency updates for Next.js 16.4.5, Supabase JS 2.119.0, Lucide React 1.70.0, and updated lockfile.
 - Adopted GitHub Flow, standardizing on `master` with short-lived PR branches and retargeting CI, CodeQL, and Dependabot workflows from `develop` to `master`.
 
 ## 2026-11-09
