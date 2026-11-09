@@ -10,6 +10,7 @@ High-level summary of Media Loader's commit history from the initial commit on 2
 
 ### Changed
 
+- Documented pull request requirements in `docs/AGENT_GUIDELINES.md`: require CLI descriptions via `--body-file`, mandatory labels, author assignment, and CI/CD validation before merge.
 - Updated `AGENTS.md` and `docs/AGENT_GUIDELINES.md` to reference the newly added workspace skills.
 - Disabled Dependabot monthly version updates across all package ecosystems, restricting automated PRs to security advisories only.
 - Consolidated routine dependency updates for Next.js 16.4.5, Supabase JS 2.119.0, Lucide React 1.70.0, and updated lockfile.
