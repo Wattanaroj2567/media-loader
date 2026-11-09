@@ -30,7 +30,7 @@ Detailed project rules referenced by the root `AGENTS.md`. Read the sections tha
 - Keep focus, hover, active, and icon micro-interaction states consistent. Use semantic buttons or `<summary>` for disclosures; navigation links may use navigation hover cues. Do not style disclosures as links.
 - Interactive pills use the project's consistent transition, hover, and focus-ring treatment. Inputs and textareas disable resizing; place character counters so they do not overlap entered text.
 - Follow existing app tokens in `apps/web/app/globals.css`; do not introduce a parallel design-token system or arbitrary one-off styles.
-- For UI work, read `.agents/skills/ui-styling/SKILL.md`. Use `.agents/skills/ui-ux-pro-max/SKILL.md` when it helps with design direction, UX review, or broader improvements. These are workspace skills; unrelated skills are not required.
+- For UI work, read `.agents/skills/ui-styling/SKILL.md`. Use `.agents/skills/ui-ux-pro-max/SKILL.md` and `.agents/skills/taste-skill/SKILL.md` when they help with design direction, aesthetic constraints, UX review, or broader improvements. These are workspace skills; unrelated skills are not required.
 - During rapid UI iteration, prioritize relevant quick checks such as `pnpm lint:web` and `pnpm build:web`. Defer full test suites until a milestone or explicit user request. At milestone handoff, run the applicable full verification suite.
 
 ## Documentation map
@@ -54,7 +54,7 @@ Before changing a domain, read its specification. Thai equivalents are under `do
 ## Verification and completion
 
 - For every task that changes project files, update the root `CHANGELOG.md` in the same task with the complete change set, grouped under applicable standard categories. Skip only edits that change the changelog alone.
-- Never claim a change is complete without fresh verification evidence. Check exit codes and relevant output.
+- Never claim a change is complete without fresh verification evidence. Check exit codes and relevant output; follow `.agents/skills/verification-before-completion/SKILL.md`. For bug diagnosis, follow `.agents/skills/systematic-debugging/SKILL.md`. For security evaluations, follow `.agents/skills/security-audit/SKILL.md`. For managing repository skills, follow `.agents/skills/skill-creator/SKILL.md`.
 - Every code change requires `pnpm deadcode` plus relevant format, lint, build, and tests. Markdown edits require `pnpm lint:md`.
 - Before final task handoff or milestone completion, run the repository-wide suite: `pnpm deadcode`, `pnpm format`, `pnpm lint`, `pnpm lint:md`, `pnpm build`, `pnpm test:web`, `pnpm test:api`, and `pnpm test:worker`. Report any command that cannot run or fails; do not claim full verification passed unless all applicable commands pass.
 - During rapid user-directed UI iteration, run quick checks such as `pnpm lint:web` and `pnpm build:web`; defer heavy test suites until the milestone or an explicit user request.

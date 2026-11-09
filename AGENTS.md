@@ -20,7 +20,8 @@ Media Loader is a rights-aware personal media loading web application. Source co
 Open [docs/AGENT_GUIDELINES.md](docs/AGENT_GUIDELINES.md) for the detailed project rules and documentation map. Read the sections relevant to the task:
 
 - Architecture, API, database, security, RLS, environment, or deployment changes: consult the linked specification listed there before editing.
-- Any UI implementation, redesign, responsive/accessibility change, or UI review: read `.agents/skills/ui-styling/SKILL.md`; also read `.agents/skills/ui-ux-pro-max/SKILL.md` when design direction or UX research will help. Follow project components and tokens first.
+- Any UI implementation, redesign, responsive/accessibility change, or UI review: read `.agents/skills/ui-styling/SKILL.md`; also read `.agents/skills/ui-ux-pro-max/SKILL.md` and `.agents/skills/taste-skill/SKILL.md` when design direction, aesthetic constraints, or UX research will help. Follow project components and tokens first.
+- Debugging, verification, security audits, or workspace skills management: use workspace skills in `.agents/skills/` (`systematic-debugging`, `verification-before-completion`, `security-audit`, `skill-creator`).
 - Work in `apps/web/`: also follow its local `AGENTS.md`, including the Next.js documentation requirement.
 
 Detailed guidance supplements this file. If instructions conflict, preserve the always-applicable rules above and the user's current request.
