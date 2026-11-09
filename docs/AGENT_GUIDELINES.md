@@ -58,6 +58,7 @@ Before changing a domain, read its specification. Thai equivalents are under `do
 - Every code change requires `pnpm deadcode` plus relevant format, lint, build, and tests. Markdown edits require `pnpm lint:md`.
 - Before final task handoff or milestone completion, run the repository-wide suite: `pnpm deadcode`, `pnpm format`, `pnpm lint`, `pnpm lint:md`, `pnpm build`, `pnpm test:web`, `pnpm test:api`, and `pnpm test:worker`. Report any command that cannot run or fails; do not claim full verification passed unless all applicable commands pass.
 - During rapid user-directed UI iteration, run quick checks such as `pnpm lint:web` and `pnpm build:web`; defer heavy test suites until the milestone or an explicit user request.
+- Continuous integration employs path filtering: documentation-only changes skip heavy build and test pipelines to accelerate review and merge workflows.
 
 ## Git safety and commit format
 
