@@ -21,10 +21,8 @@ export function ScrollToTop({ mobileOnly = false }: { mobileOnly?: boolean }) {
   return (
     <div
       className={cn(
-        "pointer-events-none fixed inset-x-0 z-40 px-4 sm:px-6 lg:px-8",
-        mobileOnly
-          ? "bottom-[max(1rem,env(safe-area-inset-bottom))] lg:hidden"
-          : "bottom-20 sm:bottom-24"
+        "pointer-events-none fixed inset-x-0 bottom-20 z-40 px-4 sm:bottom-24 sm:px-6 lg:px-8",
+        mobileOnly && "lg:hidden"
       )}
     >
       <div className="mx-auto flex w-full max-w-6xl justify-end">

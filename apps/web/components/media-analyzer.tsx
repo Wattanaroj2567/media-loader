@@ -876,7 +876,7 @@ export function MediaAnalyzer() {
                   {},
                   "คลิกเพื่อรับชมมีเดียแบบเต็มจอ"
                 )}
-                className="group block aspect-video w-full overflow-hidden rounded-xl border border-border/80 bg-bg-surface text-left transition-all duration-200 hover:border-primary/50 active:scale-[0.99] sm:rounded-[1.25rem] cursor-pointer"
+                className="group block aspect-video w-full overflow-hidden rounded-xl border border-border/80 bg-bg-surface text-left transition-all duration-200 hover:border-primary/50 active:scale-99 sm:rounded-[1.25rem] cursor-pointer"
               >
                 {/* The analyzed thumbnail is the dashboard's LCP image. */}
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -886,7 +886,7 @@ export function MediaAnalyzer() {
                   loading="eager"
                   fetchPriority="high"
                   decoding="async"
-                  className="h-full w-full object-cover object-center transition-transform duration-200 group-hover:scale-[1.01]"
+                  className="h-full w-full object-cover object-center transition-transform duration-200 group-hover:scale-101"
                 />
               </button>
             ) : (

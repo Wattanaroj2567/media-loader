@@ -195,7 +195,7 @@ export function HeaderUtilityControls({
             aria-label={
               locale === "th" ? "การตั้งค่าเพิ่มเติม" : "Additional preferences"
             }
-            className="absolute right-0 top-full mt-2 z-50 w-[272px] overflow-hidden rounded-2xl border border-border/80 bg-popover/95 p-2.5 backdrop-blur-xl shadow-xl animate-in fade-in-50 zoom-in-95 duration-150"
+            className="absolute right-0 top-full mt-2 z-50 w-68 overflow-hidden rounded-2xl border border-border/80 bg-popover/95 p-2.5 backdrop-blur-xl shadow-xl animate-in fade-in-50 zoom-in-95 duration-150"
           >
             {/* Language Selection */}
             <div className="space-y-1.5">

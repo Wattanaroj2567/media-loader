@@ -499,7 +499,7 @@ function PolicyTableView({
       >
         <table
           aria-labelledby={captionId}
-          className="w-full min-w-[720px] table-fixed border-collapse text-left text-sm"
+          className="w-full min-w-180 table-fixed border-collapse text-left text-sm"
         >
           <caption className="sr-only">{table.caption[locale]}</caption>
           <thead className="bg-primary/10 text-text dark:bg-white/4">
@@ -560,6 +560,7 @@ function TableOfContentsNav({
   isThai: boolean;
 }) {
   const itemRefs = useRef<(HTMLLIElement | null)[]>([]);
+  const listRef = useRef<HTMLOListElement | null>(null);
   const [indicatorStyle, setIndicatorStyle] = useState<{
     top: number;
     height: number;
@@ -586,17 +587,23 @@ function TableOfContentsNav({
   }, [updateIndicator]);
 
   useEffect(() => {
-    window.addEventListener("resize", updateIndicator);
-    return () => window.removeEventListener("resize", updateIndicator);
+    const list = listRef.current;
+    if (!list) return;
+    const observer = new ResizeObserver(updateIndicator);
+    observer.observe(list);
+    for (const item of itemRefs.current) {
+      if (item) observer.observe(item);
+    }
+    return () => observer.disconnect();
   }, [updateIndicator]);
 
   return (
     <nav aria-label={isThai ? "สารบัญ" : "Table of contents"}>
-      <ol className="relative mt-3 space-y-1">
+      <ol ref={listRef} className="relative mt-3 space-y-1">
         {/* Animated sliding active pill */}
         <li
           aria-hidden="true"
-          className="pointer-events-none absolute inset-x-0 rounded-xl bg-primary/10 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] dark:bg-primary/15"
+          className="pointer-events-none absolute inset-x-0 top-0 rounded-xl bg-primary/10 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] dark:bg-primary/15"
           style={{
             transform: `translateY(${indicatorStyle.top}px)`,
             height: `${indicatorStyle.height}px`,
@@ -659,6 +666,7 @@ export function LegalPage({
   const returnMode = origin === "login" || origin === "register" ? origin : null;
   const fullPageAuth = useFullPageAuth();
   const [activeSectionIndex, setActiveSectionIndex] = useState(0);
+  const selectedSectionRef = useRef<{ index: number; arrived: boolean } | null>(null);
   const isThai = locale === "th";
   const content = policyContent[kind];
   const sectionsCount = content.sections.length;
@@ -668,11 +676,17 @@ export function LegalPage({
   const sectionTitle = (section: PolicySection) => section.title[isThai ? "th" : "en"];
   const handleSelectSection = useCallback(
     (index: number) => {
-      setActiveSectionIndex(index);
       const targetId = getPolicySectionId(kind, index);
       const el = document.getElementById(targetId);
       if (el) {
-        el.scrollIntoView({ behavior: "smooth", block: "start" });
+        selectedSectionRef.current = { index, arrived: false };
+        setActiveSectionIndex(index);
+        el.scrollIntoView({
+          behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+            ? "instant"
+            : "smooth",
+          block: "start",
+        });
         window.history.pushState(null, "", `#${targetId}`);
       }
     },
@@ -689,19 +703,44 @@ export function LegalPage({
         const scrollHeight = document.documentElement.scrollHeight;
         const remainingScroll = scrollHeight - scrollBottom;
 
-        // Reading line for active section detection
-        const standardLine = Math.min(420, window.innerHeight * 0.46);
+        const selected = selectedSectionRef.current;
+        if (selected) {
+          const section = document.getElementById(
+            getPolicySectionId(kind, selected.index)
+          );
+          if (section) {
+            const margin = parseFloat(getComputedStyle(section).scrollMarginTop);
+            const targetY = Math.max(
+              0,
+              Math.min(
+                window.scrollY + section.getBoundingClientRect().top - margin,
+                scrollHeight - window.innerHeight
+              )
+            );
+            const atTarget = Math.abs(window.scrollY - targetY) <= 2;
+            // Keep the clicked item through the animation and at clamped page-end targets.
+            if (!selected.arrived || atTarget) {
+              selected.arrived = atTarget;
+              setActiveSectionIndex(selected.index);
+              return;
+            }
+          }
+          selectedSectionRef.current = null;
+        }
 
         let nextActiveIndex = 0;
         for (let index = 0; index < sectionsCount; index += 1) {
           const section = document.getElementById(getPolicySectionId(kind, index));
           if (section) {
             const rect = section.getBoundingClientRect();
+            // Use the same offset as scrollIntoView instead of the viewport midpoint.
+            const readingLine =
+              parseFloat(getComputedStyle(section).scrollMarginTop) + 2;
             if (index === sectionsCount - 1) {
-              if (rect.top <= standardLine || remainingScroll <= 35) {
+              if (rect.top <= readingLine || remainingScroll <= 2) {
                 nextActiveIndex = index;
               }
-            } else if (rect.top <= standardLine) {
+            } else if (rect.top <= readingLine) {
               nextActiveIndex = index;
             }
           }
@@ -711,22 +750,55 @@ export function LegalPage({
       });
     };
 
+    const resumeScrollTracking = () => {
+      selectedSectionRef.current = null;
+      updateActiveSection();
+    };
+    const handleScrollKey = (event: KeyboardEvent) => {
+      if (
+        ["ArrowUp", "ArrowDown", "PageUp", "PageDown", "Home", "End", " "].includes(
+          event.key
+        )
+      ) {
+        resumeScrollTracking();
+      }
+    };
+    const handleScrollEnd = () => {
+      // Recheck the final position, including animations interrupted before arrival.
+      if (selectedSectionRef.current) {
+        selectedSectionRef.current.arrived = true;
+      }
+      updateActiveSection();
+    };
+
     window.addEventListener("scroll", updateActiveSection, { passive: true });
-    window.addEventListener("resize", updateActiveSection);
+    window.addEventListener("scrollend", handleScrollEnd);
+    window.addEventListener("wheel", resumeScrollTracking, { passive: true });
+    window.addEventListener("touchstart", resumeScrollTracking, { passive: true });
+    window.addEventListener("keydown", handleScrollKey);
+    window.addEventListener("resize", resumeScrollTracking);
+    window.addEventListener("hashchange", resumeScrollTracking);
+    window.addEventListener("popstate", resumeScrollTracking);
     updateActiveSection();
 
     return () => {
       window.cancelAnimationFrame(animationFrame);
       window.removeEventListener("scroll", updateActiveSection);
-      window.removeEventListener("resize", updateActiveSection);
+      window.removeEventListener("scrollend", handleScrollEnd);
+      window.removeEventListener("wheel", resumeScrollTracking);
+      window.removeEventListener("touchstart", resumeScrollTracking);
+      window.removeEventListener("keydown", handleScrollKey);
+      window.removeEventListener("resize", resumeScrollTracking);
+      window.removeEventListener("hashchange", resumeScrollTracking);
+      window.removeEventListener("popstate", resumeScrollTracking);
     };
   }, [kind, sectionsCount]);
 
   return (
     <main className="relative flex min-h-dvh flex-col overflow-x-clip bg-bg-base text-text">
-      <article className="relative z-10 mx-auto w-full max-w-6xl flex-1 px-4 pb-12 pt-[calc(2rem+env(safe-area-inset-top))] sm:px-6 sm:pt-12 lg:px-8">
-        <div className="grid items-start gap-5 lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-7">
-          <aside className="flex flex-col gap-3 lg:sticky lg:top-12">
+      <article className="relative z-10 mx-auto w-full max-w-6xl flex-1 px-4 pt-[calc(2rem+env(safe-area-inset-top))] sm:px-6 sm:pt-12 lg:px-8">
+        <div className="grid items-start gap-5 lg:grid-cols-[16rem_minmax(0,1fr)] lg:gap-7">
+          <aside className="flex flex-col gap-3 lg:sticky lg:top-12 lg:col-start-1 lg:row-span-2 lg:row-start-1">
             <BackButton
               href={
                 returnMode
@@ -735,7 +807,7 @@ export function LegalPage({
                     : `/?auth=${returnMode}`
                   : "/"
               }
-              className="px-1"
+              className="shrink-0 px-1"
             >
               {returnMode
                 ? t(returnMode === "login" ? "auth.backToLogin" : "auth.backToRegister")
@@ -778,7 +850,7 @@ export function LegalPage({
             </div>
           </aside>
 
-          <div className="min-w-0 rounded-3xl border border-border/70 bg-bg-surface p-5 shadow-sm shadow-black/5 backdrop-blur-none dark:border-white/10 dark:bg-bg-surface dark:shadow-none sm:bg-bg-surface/75 sm:p-8 sm:shadow-xl sm:backdrop-blur-xl sm:dark:bg-bg-surface/65 sm:dark:shadow-black/20 md:p-10">
+          <div className="min-w-0 rounded-3xl border border-border/70 bg-bg-surface p-5 shadow-sm shadow-black/5 backdrop-blur-none dark:border-white/10 dark:bg-bg-surface dark:shadow-none sm:bg-bg-surface/75 sm:p-8 sm:shadow-xl sm:backdrop-blur-xl sm:dark:bg-bg-surface/65 sm:dark:shadow-black/20 md:p-10 lg:col-start-2 lg:row-start-1">
             <header className="mb-6 flex items-start gap-4 border-b border-border/60 pb-6 dark:border-white/10 sm:mb-8 sm:pb-7">
               <span className="mt-1 flex size-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary ring-1 ring-primary/15">
                 <Icon aria-hidden="true" className="size-5" />
@@ -935,11 +1007,11 @@ export function LegalPage({
               </Link>
             </div>
           </div>
+          <SiteFooter className="relative z-10 mt-7 py-6 sm:py-8 lg:col-span-2 lg:col-start-1 lg:row-start-2 lg:mt-5" />
         </div>
       </article>
 
       <ScrollToTop mobileOnly />
-      <SiteFooter className="relative z-10 mt-auto mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8" />
     </main>
   );
 }
