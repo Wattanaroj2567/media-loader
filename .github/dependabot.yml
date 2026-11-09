@@ -6,7 +6,7 @@ updates:
     target-branch: "master"
     schedule:
       interval: "monthly"
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 0
     groups:
       nextjs-react:
         patterns:
@@ -46,7 +46,7 @@ updates:
     target-branch: "master"
     schedule:
       interval: "monthly"
-    open-pull-requests-limit: 3
+    open-pull-requests-limit: 0
     groups:
       fastapi-backend:
         patterns:
@@ -67,7 +67,7 @@ updates:
     target-branch: "master"
     schedule:
       interval: "monthly"
-    open-pull-requests-limit: 3
+    open-pull-requests-limit: 0
     groups:
       worker-libs:
         patterns:
@@ -86,4 +86,4 @@ updates:
     target-branch: "master"
     schedule:
       interval: "monthly"
-    open-pull-requests-limit: 3
+    open-pull-requests-limit: 0
