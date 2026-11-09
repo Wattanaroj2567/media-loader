@@ -277,7 +277,7 @@ export function AppShell({ children, user }: AppShellProps) {
           className={`fixed bottom-3 left-1/2 z-40 grid -translate-x-1/2 grid-cols-2 gap-1 border border-border bg-sidebar/95 shadow-lg shadow-black/10 backdrop-blur-2xl transition-[width,padding,border-radius] duration-300 ease-out dark:shadow-black/30 lg:hidden ${
             mobileNavigationCompact
               ? "w-36 rounded-full p-1 pb-[max(0.25rem,env(safe-area-inset-bottom))]"
-              : "w-[calc(100%-1.5rem)] max-w-[420px] rounded-full p-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))]"
+              : "w-[calc(100%-1.5rem)] max-w-105 rounded-full p-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))]"
           }`}
         >
           {navigation.map(({ href, label, icon: Icon }) => {

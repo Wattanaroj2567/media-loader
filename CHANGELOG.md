@@ -1,8 +1,23 @@
 # Changelog
 
-High-level summary of Media Loader's commit history from the initial commit on 2026-07-05 through `HEAD` on 2026-11-02. The repository has no release tags, so historical entries use ISO date ranges rather than invented versions. Change categories follow [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/); merge commits and routine dependency updates are consolidated.
+High-level summary of Media Loader's commit history from the initial commit on 2026-07-05 through `HEAD` on 2026-11-09. The repository has no release tags, so historical entries use ISO date ranges rather than invented versions. Change categories follow [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/); merge commits and routine dependency updates are consolidated.
 
 ## [Unreleased]
+
+## 2026-11-09
+
+### Changed
+
+- Replace redundant Tailwind arbitrary widths and scale values with equivalent utilities; preserve the hero's unitless line height with a documented exception for an invalid lint suggestion.
+- Match the mobile back-to-top button placement on legal, contact, and how-it-works pages to the signed-out landing page.
+- Enable warnings for unnecessary Tailwind CSS arbitrary values in the existing web lint command.
+
+### Fixed
+
+- Extend the legal-page sidebar's sticky boundary through the footer and give contents more width to reduce wrapping, using normal page scrolling without a separate contents scrollbar.
+- Keep Privacy and Terms table-of-contents selection aligned with clicked headings during smooth scrolling and at the page end; resume tracking on manual scrolling and history navigation, respect reduced motion, and remeasure the active indicator when the contents layout changes.
+
+## 2026-11-03–2026-11-06
 
 ### Added
 

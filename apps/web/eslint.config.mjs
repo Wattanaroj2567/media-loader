@@ -25,7 +25,7 @@ const eslintConfig = defineConfig([
       "tailwindcss/no-contradicting-classname": "warn",
       "tailwindcss/important-modifier-suffix": "warn",
       "tailwindcss/enforces-shorthand": "off",
-      "tailwindcss/no-unnecessary-arbitrary-value": "off",
+      "tailwindcss/no-unnecessary-arbitrary-value": "warn",
     },
   },
   // Override default ignores of eslint-config-next.

@@ -28,6 +28,132 @@ test("mobile information pages offer a back-to-top control after scrolling", asy
 });
 
 test.describe("Privacy and terms pages", () => {
+  test("desktop back link stays pinned when scrolling through the final sections", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 659 });
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.setExtraHTTPHeaders({ "Accept-Language": "th" });
+    for (const kind of ["privacy", "terms"]) {
+      await page.goto(`/${kind}`);
+      const aside = page.locator("aside");
+      const links = aside.locator("div nav a");
+      await expect
+        .poll(() =>
+          aside.locator(":scope > div").evaluate((element) => ({
+            overflow: getComputedStyle(element).overflowY,
+            clipped: element.scrollHeight > element.clientHeight,
+          }))
+        )
+        .toEqual({ overflow: "visible", clipped: false });
+      const count = await links.count();
+      for (const index of [count - 2, count - 1]) {
+        await links.nth(index).click();
+        await page.evaluate(() =>
+          window.scrollTo(0, document.documentElement.scrollHeight)
+        );
+        await expect
+          .poll(() => aside.evaluate((element) => element.getBoundingClientRect().top))
+          .toBeCloseTo(48, 0);
+        await expect(aside.locator(":scope > a")).toBeInViewport();
+        await expect(links.last()).toBeInViewport();
+      }
+      const footer = page.getByTestId("site-footer");
+      await expect(footer).toBeInViewport();
+      await expect
+        .poll(() =>
+          aside.evaluate((element) => {
+            const footerNav = document.querySelector('[data-testid="site-footer"] nav');
+            if (!footerNav) return false;
+            const sidebar = element.getBoundingClientRect();
+            const footer = footerNav.getBoundingClientRect();
+            return sidebar.right <= footer.left || sidebar.bottom <= footer.top;
+          })
+        )
+        .toBe(true);
+    }
+  });
+
+  test("contents selection stays on the clicked section after smooth scrolling", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    for (const kind of ["privacy", "terms"]) {
+      await page.goto(`/${kind}`);
+      const contents = page.locator("aside > div nav");
+      const sectionsCount = await contents.locator("a").count();
+      for (const number of [1, 4, 2, sectionsCount, sectionsCount - 1, 1]) {
+        const link = contents.locator(`a[href="#${kind}-section-${number}"]`);
+        await link.click();
+        await expect(link).toHaveAttribute("aria-current", "location");
+        await expect
+          .poll(() =>
+            page.locator(`#${kind}-section-${number}`).evaluate((section) => {
+              const margin = parseFloat(getComputedStyle(section).scrollMarginTop);
+              const target = Math.min(
+                window.scrollY + section.getBoundingClientRect().top - margin,
+                document.documentElement.scrollHeight - window.innerHeight
+              );
+              return Math.abs(window.scrollY - target);
+            })
+          )
+          .toBeLessThanOrEqual(2);
+        // Sample subsequent frames so an optimistic click state cannot pass alone.
+        await page.evaluate(
+          () =>
+            new Promise<void>((resolve) => {
+              requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+            })
+        );
+        await expect(link).toHaveAttribute("aria-current", "location");
+        await expect
+          .poll(() =>
+            contents.evaluate((nav) => {
+              const indicator = nav.querySelector('[aria-hidden="true"]');
+              const active = nav.querySelector('[aria-current="location"]');
+              if (!indicator || !active) return Infinity;
+              const pill = indicator.getBoundingClientRect();
+              const item = active.getBoundingClientRect();
+              return Math.max(
+                Math.abs(pill.top - item.top),
+                Math.abs(pill.height - item.height)
+              );
+            })
+          )
+          .toBeLessThanOrEqual(1);
+      }
+      await page.mouse.move(1100, 500);
+      await page.mouse.click(1100, 500);
+      await page.mouse.wheel(0, 700);
+      await expect(contents.locator('a[href$="-section-1"]')).not.toHaveAttribute(
+        "aria-current",
+        "location"
+      );
+      await page.keyboard.press("Control+End");
+      await expect
+        .poll(() =>
+          page.evaluate(() =>
+            Math.abs(
+              document.documentElement.scrollHeight -
+                window.innerHeight -
+                window.scrollY
+            )
+          )
+        )
+        .toBeLessThanOrEqual(1);
+      await expect(contents.locator("a").last()).toHaveAttribute(
+        "aria-current",
+        "location"
+      );
+      await page.keyboard.press("Control+Home");
+      await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
+      await expect(contents.locator('a[href$="-section-1"]')).toHaveAttribute(
+        "aria-current",
+        "location"
+      );
+    }
+  });
+
   test("theme menu switches the page between light and dark", async ({ page }) => {
     await page.goto("/");
 

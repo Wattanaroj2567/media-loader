@@ -344,7 +344,7 @@ function LandingPageContent() {
                 type="button"
                 size="sm"
                 onClick={() => openAuth()}
-                className="h-8 shrink-0 gap-2 rounded-full px-3 text-xs font-semibold shadow-none transition-[background-color,color,transform] duration-200 active:scale-[0.99] cursor-pointer sm:px-4 lg:h-10 lg:px-5 lg:shadow-xs lg:hover:shadow-primary/20"
+                className="h-8 shrink-0 gap-2 rounded-full px-3 text-xs font-semibold shadow-none transition-[background-color,color,transform] duration-200 active:scale-99 cursor-pointer sm:px-4 lg:h-10 lg:px-5 lg:shadow-xs lg:hover:shadow-primary/20"
               >
                 <span>{t("landing.signInShort")}</span>
               </Button>
@@ -363,6 +363,7 @@ function LandingPageContent() {
               <span>{t("landing.badgeAccount")}</span>
             </div>
 
+            {/* eslint-disable-next-line tailwindcss/no-unnecessary-arbitrary-value -- leading-1.12 generates no CSS; preserve the unitless line height. */}
             <h1 className="mt-3 font-heading text-3xl font-bold leading-[1.12] text-text sm:mt-3.5 sm:text-4xl lg:text-5xl">
               {t("landing.title")}
             </h1>
@@ -571,7 +572,7 @@ function LandingPageContent() {
             <div className="mt-3 hidden overflow-x-auto rounded-2xl border border-border bg-bg-surface/60 backdrop-blur-md md:block">
               <table
                 data-testid="platform-table"
-                className="ui-data-table min-w-[800px] w-full table-fixed text-left text-[13px] leading-relaxed"
+                className="ui-data-table min-w-200 w-full table-fixed text-left text-[13px] leading-relaxed"
               >
                 <colgroup>
                   <col className="w-[22%]" />
@@ -745,7 +746,7 @@ function LandingPageContent() {
             <div className="mt-3 hidden overflow-x-auto rounded-2xl border border-border bg-bg-surface/60 backdrop-blur-md md:block">
               <table
                 data-testid="gif-platform-table"
-                className="ui-data-table min-w-[620px] w-full table-fixed text-left text-[13px] leading-relaxed"
+                className="ui-data-table min-w-155 w-full table-fixed text-left text-[13px] leading-relaxed"
               >
                 <colgroup>
                   <col className="w-[31%]" />
