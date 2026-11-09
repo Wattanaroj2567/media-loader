@@ -10,6 +10,7 @@ High-level summary of Media Loader's commit history from the initial commit on 2
 
 ### Changed
 
+- Configured path filtering in `.github/workflows/codeql.yml` with `paths-ignore` for markdown documentation (`*.md`, `docs/**`) and skill files (`.agents/**`), skipping CodeQL scans on non-code changes.
 - Documented CI path filtering behavior in `docs/AGENT_GUIDELINES.md`.
 - Optimized Continuous Integration workflow in `.github/workflows/ci.yml` with path filtering via `dorny/paths-filter`: skips heavy Next.js build, Python test suites, and Docker builds on both pull requests and `master` pushes that modify only documentation or non-code files, while maintaining passing status for required checks.
 - Documented pull request requirements in `docs/AGENT_GUIDELINES.md`: require CLI descriptions via `--body-file`, mandatory labels, author assignment, and CI/CD validation before merge.
