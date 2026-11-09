@@ -4,6 +4,10 @@ High-level summary of Media Loader's commit history from the initial commit on 2
 
 ## [Unreleased]
 
+### Changed
+
+- Adopted GitHub Flow, standardizing on `master` with short-lived PR branches and retargeting CI, CodeQL, and Dependabot workflows from `develop` to `master`.
+
 ## 2026-11-09
 
 ### Changed

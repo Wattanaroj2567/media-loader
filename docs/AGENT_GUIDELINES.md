@@ -61,7 +61,7 @@ Before changing a domain, read its specification. Thai equivalents are under `do
 
 ## Git safety and commit format
 
-- This project uses `develop` for ongoing integration and `master` for release-ready history. Continue regular development on `develop`; when a release is ready, open a PR from `develop` into `master`. A separate topic branch is optional, not required for every task. Start urgent fixes from `master`, then merge them back into `develop`.
-- CI and Dependabot lockfile sync run for PRs targeting both `develop` and `master`. Dependabot version-update PRs target `develop`; security-update PRs target the repository default branch, so set `develop` as the remote default branch if security fixes must follow the same integration path.
+- This project follows GitHub Flow with `master` as the primary integration and release branch. Create short-lived topic branches (e.g. `feat/*`, `fix/*`, `chore/*`) from `master`, open a pull request targeting `master`, and merge once checks pass. Delete topic branches after merging.
+- CI, CodeQL, and Dependabot pull requests target `master`.
 - Do not stage or commit unless the user explicitly instructs it. Editing code does not imply commit approval.
 - When explicitly asked to commit, use Conventional Commits: `<type>(<scope>): <subject>`, lowercase, imperative, concise (72 characters or fewer). Allowed types: `feat`, `fix`, `chore`, `docs`, `refactor`, `test`, `ci`. Allowed scopes: `web`, `api`, `worker`, `db`, `deploy`, `deps`, `ci`, `docs`.
