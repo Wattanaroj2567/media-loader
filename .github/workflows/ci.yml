@@ -11,26 +11,73 @@ permissions:
   contents: read
 
 jobs:
+  changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      web: ${{ steps.filter.outputs.web }}
+      backend: ${{ steps.filter.outputs.backend }}
+      docker: ${{ steps.filter.outputs.docker }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            web:
+              - 'apps/web/**'
+              - 'supabase/**'
+              - 'package.json'
+              - 'pnpm-lock.yaml'
+              - 'pnpm-workspace.yaml'
+              - '.github/workflows/ci.yml'
+            backend:
+              - 'apps/api/**'
+              - 'apps/worker/**'
+              - 'apps/proxy/**'
+              - 'supabase/**'
+              - 'pyproject.toml'
+              - 'uv.lock'
+              - '.github/workflows/ci.yml'
+            docker:
+              - 'apps/api/**'
+              - 'apps/worker/**'
+              - 'apps/proxy/**'
+              - 'Dockerfile'
+              - 'docker-compose.yml'
+              - '.github/workflows/ci.yml'
+
   web-check:
     name: Frontend Check (Next.js)
+    needs: changes
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
 
+      - name: Skip Notification
+        if: github.event_name == 'pull_request' && needs.changes.outputs.web != 'true'
+        run: echo "No frontend code changes detected in this pull request. Skipping heavy Next.js build."
+
       - uses: pnpm/action-setup@v6
+        if: github.event_name != 'pull_request' || needs.changes.outputs.web == 'true'
 
       - uses: actions/setup-node@v7
+        if: github.event_name != 'pull_request' || needs.changes.outputs.web == 'true'
         with:
           node-version: 24
           cache: "pnpm"
 
       - name: Install dependencies
+        if: github.event_name != 'pull_request' || needs.changes.outputs.web == 'true'
         run: pnpm install
 
       - name: Lint Frontend
+        if: github.event_name != 'pull_request' || needs.changes.outputs.web == 'true'
         run: pnpm --filter web lint
 
       - name: Build Frontend
+        if: github.event_name != 'pull_request' || needs.changes.outputs.web == 'true'
         run: pnpm --filter web build
         env:
           NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
@@ -39,20 +86,28 @@ jobs:
 
   backend-check:
     name: Backend API & Worker Check (Python)
+    needs: changes
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
 
+      - name: Skip Notification
+        if: github.event_name == 'pull_request' && needs.changes.outputs.backend != 'true'
+        run: echo "No backend code changes detected in this pull request. Skipping Python tests."
+
       - uses: astral-sh/setup-uv@v7
+        if: github.event_name != 'pull_request' || needs.changes.outputs.backend == 'true'
         with:
           enable-cache: true
 
       - name: Setup Python
+        if: github.event_name != 'pull_request' || needs.changes.outputs.backend == 'true'
         uses: actions/setup-python@v7
         with:
           python-version: "3.12"
 
       - name: Run API Tests
+        if: github.event_name != 'pull_request' || needs.changes.outputs.backend == 'true'
         env:
           PYTHONPATH: .
         run: |
@@ -61,6 +116,7 @@ jobs:
           uv run pytest
 
       - name: Run Worker Tests
+        if: github.event_name != 'pull_request' || needs.changes.outputs.backend == 'true'
         env:
           PYTHONPATH: .
         run: |
@@ -69,20 +125,28 @@ jobs:
           uv run pytest
 
       - name: Run Proxy Tests
+        if: github.event_name != 'pull_request' || needs.changes.outputs.backend == 'true'
         run: |
           cd apps/api
           uv run pytest ../proxy
 
   docker-check:
     name: Docker Build Validation
+    needs: changes
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
 
+      - name: Skip Notification
+        if: github.event_name == 'pull_request' && needs.changes.outputs.docker != 'true'
+        run: echo "No container or backend/worker code changes detected in this pull request. Skipping Docker build."
+
       - name: Set up Docker Buildx
+        if: github.event_name != 'pull_request' || needs.changes.outputs.docker == 'true'
         uses: docker/setup-buildx-action@v4
 
       - name: Build API Image
+        if: github.event_name != 'pull_request' || needs.changes.outputs.docker == 'true'
         uses: docker/build-push-action@v7
         with:
           context: .
@@ -91,6 +155,7 @@ jobs:
           tags: media-loader-api:test
 
       - name: Build Worker Image
+        if: github.event_name != 'pull_request' || needs.changes.outputs.docker == 'true'
         uses: docker/build-push-action@v7
         with:
           context: .
