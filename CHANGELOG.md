@@ -6,9 +6,13 @@ High-level summary of Media Loader's commit history from the initial commit on 2
 
 ### Added
 
+- Added cross-platform Cloudflare Quick Tunnel launch scripts: TypeScript runner `scripts/tunnel.ts` and Bash script `scripts/tunnel.sh` alongside the existing PowerShell script.
 - Added workspace skills in `.agents/skills/`: `taste-skill` for frontend design taste and art direction, `systematic-debugging` for root-cause diagnosis, `verification-before-completion` for evidence-based verification, `security-audit` for repository security reviews, and `skill-creator` for managing project skills.
 
 ### Changed
+
+- Updated root `pnpm tunnel` script to run `tsx scripts/tunnel.ts` for cross-platform compatibility across Linux, macOS, and Windows.
+- Updated `docs/en/CLOUDFLARE_TUNNEL_GUIDE.md` and `docs/th/CLOUDFLARE_TUNNEL_GUIDE.md` to document Linux and macOS paths and CLI commands alongside Windows.
 
 - Configured path filtering in `.github/workflows/codeql.yml` with `paths-ignore` for markdown documentation (`*.md`, `docs/**`) and skill files (`.agents/**`), skipping CodeQL scans on non-code changes.
 - Documented CI path filtering behavior in `docs/AGENT_GUIDELINES.md`.
