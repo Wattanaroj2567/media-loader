@@ -4,6 +4,11 @@ High-level summary of Media Loader's commit history from the initial commit on 2
 
 ## [Unreleased]
 
+### Fixed
+
+- Send Supabase keep-alive API keys only in the `apikey` header so publishable keys are not rejected as JWT bearer tokens; support publishable-key Actions secrets alongside legacy anon names, bound job runtime, and report authentication failures without retrying them.
+- Add credential-free CI regression checks for the keep-alive workflow's actual Bash script, covering legacy and publishable keys, missing configuration, retries, transport failures, and REST/Auth failures; document Actions setup and recovery in English and Thai.
+
 ### Added
 
 - Added workspace skills in `.agents/skills/`: `taste-skill` for frontend design taste and art direction, `systematic-debugging` for root-cause diagnosis, `verification-before-completion` for evidence-based verification, `security-audit` for repository security reviews, and `skill-creator` for managing project skills.
