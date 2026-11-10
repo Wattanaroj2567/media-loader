@@ -175,3 +175,25 @@ TUNNEL_TOKEN=
 ```
 
 ห้ามใส่ tunnel token ในตัวแปร Frontend, source code หรือ log
+
+## Supabase keep-alive GitHub Action
+
+GitHub Actions ไม่ได้รับค่าจากไฟล์ environment ในเครื่อง ให้ตั้ง repository secrets
+ที่ Settings → Secrets and variables → Actions ด้วยชื่อ `SUPABASE_URL` และ
+`SUPABASE_PUBLISHABLE_KEY` โดยใช้ URL และ publishable key ของ Supabase project เดียวกัน
+workflow ยังรองรับชื่อ `NEXT_PUBLIC_SUPABASE_URL`,
+`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_ANON_KEY` และ
+`NEXT_PUBLIC_SUPABASE_ANON_KEY` โดยเลือกชื่อ publishable key ก่อน ไม่ต้องใช้ service-role key
+
+ส่ง API key ผ่าน header `apikey` เท่านั้น เพราะ publishable key ไม่ใช่ JWT
+REST ใช้ `/rest/v1/profiles?select=id&limit=0` เพื่อเรียกฐานข้อมูลโดยไม่ส่งคืนข้อมูลผู้ใช้
+ห้ามใช้ OpenAPI root `/rest/v1/` เป็น probe สำหรับ anon/publishable key
+เพราะ endpoint นี้ต้องใช้ key ที่มีสิทธิ์สูงแล้ว
+REST และ Auth ต้องตอบ 2xx ทั้งคู่ หากได้ 401/403 จะหยุดทันที พร้อมคำแนะนำให้ตรวจว่า
+URL และ key อยู่ใน project เดียวกัน key ยังใช้งานได้ และ Data API อนุญาตการเข้าถึง
+ข้อผิดพลาดอื่นจะลองซ้ำหนึ่งครั้ง หาก project ถูก pause ให้ restore ผ่าน Supabase Dashboard
+ก่อนสั่งรัน **Supabase Keep-Alive Ping** จากแท็บ Actions ด้วยตนเอง
+การเรียกตามกำหนดเวลาไม่รับประกันว่า free project จะไม่ถูก pause
+
+ทดสอบ shell ของ workflow โดยไม่ใช้ credentials จริงด้วย
+`python scripts/test_keep_alive_supabase.py` ต้องมี Bash ซึ่ง Git for Windows มีให้บน Windows

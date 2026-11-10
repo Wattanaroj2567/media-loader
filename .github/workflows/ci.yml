@@ -48,6 +48,15 @@ jobs:
               - 'docker-compose.yml'
               - '.github/workflows/ci.yml'
 
+  keep-alive-check:
+    name: Supabase Keep-Alive Workflow Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Test keep-alive shell without credentials
+        run: python scripts/test_keep_alive_supabase.py
+
   web-check:
     name: Frontend Check (Next.js)
     needs: changes

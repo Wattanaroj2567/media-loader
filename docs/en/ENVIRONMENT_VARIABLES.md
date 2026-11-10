@@ -183,3 +183,27 @@ TUNNEL_TOKEN=
 ```
 
 Never put a tunnel token in frontend variables, source code, or logs.
+
+## Supabase keep-alive GitHub Action
+
+Local environment files are not available to GitHub Actions. In repository
+Settings → Secrets and variables → Actions, set `SUPABASE_URL` and
+`SUPABASE_PUBLISHABLE_KEY` using the URL and publishable key from the same
+Supabase project. The workflow also accepts `NEXT_PUBLIC_SUPABASE_URL`,
+`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, and the legacy `SUPABASE_ANON_KEY` or
+`NEXT_PUBLIC_SUPABASE_ANON_KEY` secret names. Publishable names take precedence.
+No service-role key is needed.
+
+Keys are sent only through the `apikey` header; publishable keys are not JWTs.
+REST uses `/rest/v1/profiles?select=id&limit=0` to exercise the database without
+returning user rows. The OpenAPI root `/rest/v1/` now requires an elevated key
+and must not be used as an anon/publishable keep-alive probe.
+Both REST and Auth must return 2xx. A 401/403 fails immediately: verify the
+project/key pairing, key validity, and Data API access settings. Other failures
+receive one retry. If the project is paused, restore it in the Supabase Dashboard
+before manually running **Supabase Keep-Alive Ping** from the Actions tab.
+Scheduled requests do not guarantee that a free project will never be paused.
+
+Run the credential-free shell regression checks with
+`python scripts/test_keep_alive_supabase.py` (requires Bash; Git for Windows
+provides it on Windows).

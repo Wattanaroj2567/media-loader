@@ -13,14 +13,16 @@ jobs:
   ping-supabase:
     name: Ping Supabase Database & Auth
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - name: Send keep-alive ping to Supabase
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL || secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY || secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY || secrets.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || secrets.SUPABASE_ANON_KEY || secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+        shell: bash
         run: |
           if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
-            echo "Error: SUPABASE_URL or SUPABASE_ANON_KEY secret is not set in repository secrets."
+            echo "::error::Set SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY (or legacy SUPABASE_ANON_KEY) in repository Actions secrets."
             echo "Please configure them in Repository Settings -> Secrets and variables -> Actions"
             exit 1
           fi
@@ -30,20 +32,25 @@ jobs:
 
           ping_endpoint() {
             local endpoint="$1"
-            shift
+            # API keys belong in apikey. Publishable keys are not JWT bearer tokens.
             curl --connect-timeout 10 --max-time 30 -s -o /dev/null -w "%{http_code}" \
-              -H "apikey: $SUPABASE_ANON_KEY" "$@" "$endpoint" || true
+              -H "apikey: $SUPABASE_ANON_KEY" "$endpoint" || true
           }
 
           for attempt in 1 2; do
-            REST_HTTP_CODE=$(ping_endpoint "$CLEAN_URL/rest/v1/" \
-              -H "Authorization: Bearer $SUPABASE_ANON_KEY")
+            # The OpenAPI root requires elevated keys. Exercise the DB without returning rows.
+            REST_HTTP_CODE=$(ping_endpoint "$CLEAN_URL/rest/v1/profiles?select=id&limit=0")
             AUTH_HTTP_CODE=$(ping_endpoint "$CLEAN_URL/auth/v1/health")
             echo "Attempt $attempt - REST: $REST_HTTP_CODE, Auth: $AUTH_HTTP_CODE"
 
             if [[ "$REST_HTTP_CODE" =~ ^2[0-9]{2}$ ]] && [[ "$AUTH_HTTP_CODE" =~ ^2[0-9]{2}$ ]]; then
               echo "Success: Supabase REST and Auth services are responding."
               exit 0
+            fi
+
+            if [[ "$REST_HTTP_CODE" =~ ^40[13]$ ]] || [[ "$AUTH_HTTP_CODE" =~ ^40[13]$ ]]; then
+              echo "::error::Supabase rejected the request (401/403). Verify that the Actions URL and publishable/anon key belong to the same active project and that the key is valid. Also check Data API access settings."
+              exit 1
             fi
 
             if [ "$attempt" -eq 1 ]; then
