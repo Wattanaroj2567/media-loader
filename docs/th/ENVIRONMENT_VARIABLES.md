@@ -186,6 +186,9 @@ workflow ยังรองรับชื่อ `NEXT_PUBLIC_SUPABASE_URL`,
 `NEXT_PUBLIC_SUPABASE_ANON_KEY` โดยเลือกชื่อ publishable key ก่อน ไม่ต้องใช้ service-role key
 
 ส่ง API key ผ่าน header `apikey` เท่านั้น เพราะ publishable key ไม่ใช่ JWT
+REST ใช้ `/rest/v1/profiles?select=id&limit=0` เพื่อเรียกฐานข้อมูลโดยไม่ส่งคืนข้อมูลผู้ใช้
+ห้ามใช้ OpenAPI root `/rest/v1/` เป็น probe สำหรับ anon/publishable key
+เพราะ endpoint นี้ต้องใช้ key ที่มีสิทธิ์สูงแล้ว
 REST และ Auth ต้องตอบ 2xx ทั้งคู่ หากได้ 401/403 จะหยุดทันที พร้อมคำแนะนำให้ตรวจว่า
 URL และ key อยู่ใน project เดียวกัน key ยังใช้งานได้ และ Data API อนุญาตการเข้าถึง
 ข้อผิดพลาดอื่นจะลองซ้ำหนึ่งครั้ง หาก project ถูก pause ให้ restore ผ่าน Supabase Dashboard

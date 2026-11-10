@@ -195,6 +195,9 @@ Supabase project. The workflow also accepts `NEXT_PUBLIC_SUPABASE_URL`,
 No service-role key is needed.
 
 Keys are sent only through the `apikey` header; publishable keys are not JWTs.
+REST uses `/rest/v1/profiles?select=id&limit=0` to exercise the database without
+returning user rows. The OpenAPI root `/rest/v1/` now requires an elevated key
+and must not be used as an anon/publishable keep-alive probe.
 Both REST and Auth must return 2xx. A 401/403 fails immediately: verify the
 project/key pairing, key validity, and Data API access settings. Other failures
 receive one retry. If the project is paused, restore it in the Supabase Dashboard

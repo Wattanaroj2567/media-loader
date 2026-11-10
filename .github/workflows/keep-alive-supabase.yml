@@ -38,7 +38,8 @@ jobs:
           }
 
           for attempt in 1 2; do
-            REST_HTTP_CODE=$(ping_endpoint "$CLEAN_URL/rest/v1/")
+            # The OpenAPI root requires elevated keys. Exercise the DB without returning rows.
+            REST_HTTP_CODE=$(ping_endpoint "$CLEAN_URL/rest/v1/profiles?select=id&limit=0")
             AUTH_HTTP_CODE=$(ping_endpoint "$CLEAN_URL/auth/v1/health")
             echo "Attempt $attempt - REST: $REST_HTTP_CODE, Auth: $AUTH_HTTP_CODE"
 

@@ -22,7 +22,8 @@ curl() {
   done
   if [ "$has_apikey" != true ]; then printf '401'; return 0; fi
   case "$endpoint" in
-    https://example.supabase.co/rest/v1/|https://example.supabase.co/auth/v1/health) ;;
+    https://example.supabase.co/rest/v1/) printf '401'; return 0 ;;
+    'https://example.supabase.co/rest/v1/profiles?select=id&limit=0'|https://example.supabase.co/auth/v1/health) ;;
     *) printf '404'; return 0 ;;
   esac
   case "$MOCK_MODE" in

@@ -6,6 +6,7 @@ High-level summary of Media Loader's commit history from the initial commit on 2
 
 ### Fixed
 
+- Probe Supabase with a zero-row `profiles` query instead of the OpenAPI root, which now rejects anon/publishable keys; retain RLS and avoid fetching user records or requiring elevated keys.
 - Send Supabase keep-alive API keys only in the `apikey` header so publishable keys are not rejected as JWT bearer tokens; support publishable-key Actions secrets alongside legacy anon names, bound job runtime, and report authentication failures without retrying them.
 - Add credential-free CI regression checks for the keep-alive workflow's actual Bash script, covering legacy and publishable keys, missing configuration, retries, transport failures, and REST/Auth failures; document Actions setup and recovery in English and Thai.
 
