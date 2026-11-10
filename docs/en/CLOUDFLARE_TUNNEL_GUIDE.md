@@ -57,10 +57,22 @@ A Quick Tunnel creates a temporary public HTTPS URL such as
 `https://random-words.trycloudflare.com` for a local service. Do not use it as
 the production endpoint for the public application.
 
-Start the API locally or with Docker, then run:
+Start the API locally or with Docker, then run via the project command:
 
-```powershell
-cloudflared tunnel --url http://localhost:8000
+```bash
+pnpm tunnel
+```
+
+Or run directly with the shell scripts or `cloudflared` CLI:
+
+```bash
+# Linux / macOS
+./scripts/tunnel.sh
+# or: cloudflared tunnel --url http://localhost:8000
+
+# Windows (PowerShell)
+.\scripts\tunnel.ps1
+# or: cloudflared tunnel --url http://localhost:8000
 ```
 
 Copy the generated URL from the terminal. Anyone who has this URL can reach
@@ -78,7 +90,13 @@ tunnels; review its current dashboard instructions before setup.
 
 For a locally-managed tunnel, the basic CLI flow is:
 
-```powershell
+```bash
+# Linux / macOS
+cloudflared tunnel login
+cloudflared tunnel create media-loader
+cloudflared tunnel route dns media-loader api.yourdomain.com
+
+# Windows (PowerShell)
 cloudflared tunnel login
 cloudflared tunnel create media-loader
 cloudflared tunnel route dns media-loader api.yourdomain.com
@@ -91,7 +109,10 @@ A locally-managed tunnel configuration can route the hostname to the API:
 
 ```yaml
 tunnel: <TUNNEL_ID>
-credentials-file: C:\Users\<USERNAME>\.cloudflared\<TUNNEL_ID>.json
+# Linux / macOS:
+credentials-file: /home/<USERNAME>/.cloudflared/<TUNNEL_ID>.json
+# Windows:
+# credentials-file: C:\Users\<USERNAME>\.cloudflared\<TUNNEL_ID>.json
 
 ingress:
   - hostname: api.yourdomain.com
@@ -101,7 +122,11 @@ ingress:
 
 Run it with:
 
-```powershell
+```bash
+# Linux / macOS
+cloudflared tunnel run media-loader
+
+# Windows (PowerShell)
 cloudflared tunnel run media-loader
 ```
 

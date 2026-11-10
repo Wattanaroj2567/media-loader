@@ -54,10 +54,22 @@ Quick Tunnel สร้าง HTTPS URL ชั่วคราว เช่น
 `https://random-words.trycloudflare.com` ไปยังบริการในเครื่อง
 ห้ามใช้เป็น endpoint production ของเว็บสาธารณะ
 
-เริ่ม API ในเครื่องหรือผ่าน Docker แล้วรัน:
+เริ่ม API ในเครื่องหรือผ่าน Docker แล้วรันผ่านคำสั่งโปรเจกต์:
 
-```powershell
-cloudflared tunnel --url http://localhost:8000
+```bash
+pnpm tunnel
+```
+
+หรือรันตรงผ่านสคริปต์หรือ CLI `cloudflared`:
+
+```bash
+# Linux / macOS
+./scripts/tunnel.sh
+# หรือ: cloudflared tunnel --url http://localhost:8000
+
+# Windows (PowerShell)
+.\scripts\tunnel.ps1
+# หรือ: cloudflared tunnel --url http://localhost:8000
 ```
 
 คัดลอก URL จาก Terminal ผู้ที่มี URL นี้จะเข้าถึง API ได้ URL จะเปลี่ยน
@@ -74,7 +86,13 @@ Cloudflare แนะนำ remotely-managed tunnel ในปัจจุบั�
 
 ขั้นตอน CLI พื้นฐานของ locally-managed tunnel:
 
-```powershell
+```bash
+# Linux / macOS
+cloudflared tunnel login
+cloudflared tunnel create media-loader
+cloudflared tunnel route dns media-loader api.yourdomain.com
+
+# Windows (PowerShell)
 cloudflared tunnel login
 cloudflared tunnel create media-loader
 cloudflared tunnel route dns media-loader api.yourdomain.com
@@ -87,7 +105,10 @@ cloudflared tunnel route dns media-loader api.yourdomain.com
 
 ```yaml
 tunnel: <TUNNEL_ID>
-credentials-file: C:\Users\<USERNAME>\.cloudflared\<TUNNEL_ID>.json
+# Linux / macOS:
+credentials-file: /home/<USERNAME>/.cloudflared/<TUNNEL_ID>.json
+# Windows:
+# credentials-file: C:\Users\<USERNAME>\.cloudflared\<TUNNEL_ID>.json
 
 ingress:
   - hostname: api.yourdomain.com
@@ -97,7 +118,11 @@ ingress:
 
 เริ่ม tunnel ด้วยคำสั่ง:
 
-```powershell
+```bash
+# Linux / macOS
+cloudflared tunnel run media-loader
+
+# Windows (PowerShell)
 cloudflared tunnel run media-loader
 ```
 
