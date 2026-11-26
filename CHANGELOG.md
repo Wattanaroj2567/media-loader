@@ -6,6 +6,8 @@ High-level summary of Media Loader's commit history from the initial commit on 2
 
 ### Fixed
 
+- Clarify the signup follow-up in Thai and English and link to sign-in and password recovery without disclosing whether the email already belongs to an account.
+- Open the reset-password form in the shared Auth dialog on desktop after the recovery callback. Preserve the mobile form, password input during viewport changes, and sign-out retry after a successful password update.
 - Probe Supabase with a zero-row `profiles` query instead of the OpenAPI root, which now rejects anon/publishable keys; retain RLS and avoid fetching user records or requiring elevated keys.
 - Send Supabase keep-alive API keys only in the `apikey` header so publishable keys are not rejected as JWT bearer tokens; support publishable-key Actions secrets alongside legacy anon names, bound job runtime, and report authentication failures without retrying them.
 - Add credential-free CI regression checks for the keep-alive workflow's actual Bash script, covering legacy and publishable keys, missing configuration, retries, transport failures, and REST/Auth failures; document Actions setup and recovery in English and Thai.
@@ -21,6 +23,8 @@ High-level summary of Media Loader's commit history from the initial commit on 2
 
 ### Changed
 
+- Clarified Cloudflare Workers build variable placement and Docker Compose recreation after backend CORS changes in both deployment guides.
+- Replaced the English and Thai architecture illustrations and aligned their README descriptions with the Cloudflare Workers frontend, Docker processing, and owner-checked browser delivery from private R2.
 - Updated `apps/web/lib/api-client.ts` and `apps/web/app/api/files/download/[jobId]/route.ts` to use absolute R2 presigned URLs directly and forward `307` redirects without proxying media bytes through web server functions.
 - Updated `apps/web/next.config.ts` to use `fileURLToPath(import.meta.url)` instead of CommonJS `__dirname` for ESM/Vite compatibility.
 - Updated `.env.example`, `README.md`, `README.th.md`, `docs/README.md`, `docs/AGENT_GUIDELINES.md`, and English/Thai `ARCHITECTURE.md`, `ENVIRONMENT_VARIABLES.md`, `SECURITY_AND_POLICY.md`, and `DEVELOPER_GUIDE.md` to document Cloudflare Workers deployment and R2 storage modes.

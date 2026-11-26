@@ -20,7 +20,7 @@ The API and worker use the same local media-output volume in the default
 `media-output` volume. A worker on a different host must not claim jobs whose
 files it cannot share with the API.
 
-See the illustrated architecture in [English](../images/media-loader-architecture-en.png)
+See the Cloudflare Level 1B architecture in [English](../images/media-loader-architecture-en.png)
 or [Thai](../images/media-loader-architecture-th.png). Follow the numbered flow
 from URL entry to owner-checked file delivery; the bottom strip shows the checked
 egress path used for source requests.
@@ -91,6 +91,8 @@ Legal links from login and registration carry an allowlisted `from` mode. Their
 back links restore that auth mode, including the desktop modal; direct legal-page
 visits return home. Switching between legal documents preserves the auth origin.
 Desktop legal back links target the landing modal directly, without an intermediate auth page.
+When sign-up succeeds without a session, the app gives neutral email confirmation
+guidance and links to sign-in and password recovery for returning users.
 Registration accepts an optional display name stored as `full_name` metadata;
 it is not a username credential. Email signup stores the selected interface
 language as `language` user metadata. When changed, the interface language is
@@ -117,8 +119,10 @@ recovery redirect includes only `next=/auth/reset-password`; it does not pass a
 locale query parameter. The app does not select a language for the hosted
 Supabase email template.
 
-`/auth/reset-password` requires a verified authenticated session before updating
-the password. After the update, the app signs out globally and opens
+`/auth/reset-password` opens the same landing-page dialog as password recovery on
+desktop. Phone-sized and short-landscape viewports use the full-page form. Both
+presentations require a verified authenticated session before updating the
+password. After the update, the app signs out globally and opens
 `/auth/login?reset=success` with a full navigation. If sign-out fails after the
 password was changed, retry signs out again without repeating the password update.
 
