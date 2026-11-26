@@ -98,7 +98,9 @@ pnpm deploy:web:cf
 
 ### ตัวแปรสภาพแวดล้อมบน Cloudflare Workers
 
-ตั้งค่าเฉพาะตัวแปรสาธารณะที่ **Workers & Pages → `media-loader` → Settings → Variables and Secrets**:
+ตั้งค่าตัวแปรสาธารณะสำหรับ build ที่ **Workers & Pages → `media-loader` →
+Settings → Build → Build Variables and Secrets** หรือส่งค่าให้ขั้น build ใน CI
+Vinext ฝังค่า `NEXT_PUBLIC_*` ตอน build เมื่อแก้ค่าแล้วให้ build และ deploy ใหม่
 
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
@@ -113,6 +115,8 @@ NEXT_PUBLIC_FASTAPI_BASE_URL=https://api.yourdomain.com
 1. **Supabase Auth:** เพิ่ม origin ของ Workers ใน **Site URL** และ **Redirect URLs**:
    - `https://your-web-domain.workers.dev/auth/callback`
    - `https://your-web-domain.workers.dev/auth/callback?next=/auth/reset-password`
-2. **Backend CORS:** เพิ่ม origin ของ Workers ใน `CORS_ORIGINS` ของ `.env.local` ฝั่ง Backend แล้วรีสตาร์ต `api`
+2. **Backend CORS:** เพิ่ม origin ของ Workers ใน `CORS_ORIGINS` ของ
+   `.env.local` ฝั่ง Backend โดยเก็บ origin เดิมไว้ แล้วรัน
+   `docker compose up -d --force-recreate api worker` เพื่อโหลดค่าที่แก้ไข
 3. **R2 CORS:** ตรวจสอบว่าใส่ origin ของ Workers ใน CORS policy ของ R2 bucket แล้ว
 4. **ทดสอบ End-to-End:** เข้าสู่ระบบ วิเคราะห์ลิงก์ที่ได้รับอนุญาต สร้างงาน ตรวจสอบสถานะ `UPLOADING → COMPLETED` และตรวจสอบว่าเบราว์เซอร์ดาวน์โหลดตรงจาก `*.r2.cloudflarestorage.com`

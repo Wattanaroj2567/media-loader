@@ -98,7 +98,10 @@ pnpm deploy:web:cf
 
 ### Environment variables on Cloudflare Workers
 
-Configure these **public** build/runtime variables in Cloudflare Dashboard (**Workers & Pages → `media-loader` → Settings → Variables and Secrets**) or your CI pipeline:
+Set these **public build variables** in **Workers & Pages → `media-loader` →
+Settings → Build → Build Variables and Secrets**, or provide them to your CI
+build. Vinext inlines `NEXT_PUBLIC_*` when it builds the app. Rebuild and
+redeploy after changing them.
 
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
@@ -113,6 +116,8 @@ Never add `SUPABASE_SERVICE_ROLE_KEY`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY
 1. **Supabase Auth:** Add your Workers origin to **Site URL** and **Redirect URLs**:
    - `https://your-web-domain.workers.dev/auth/callback`
    - `https://your-web-domain.workers.dev/auth/callback?next=/auth/reset-password`
-2. **Backend CORS:** Add the exact Workers origin to `CORS_ORIGINS` in the backend `.env.local` and restart `api`.
+2. **Backend CORS:** Add the exact Workers origin to `CORS_ORIGINS` in the
+   backend `.env.local`, keeping existing origins. Run
+   `docker compose up -d --force-recreate api worker` to load the updated configuration.
 3. **R2 CORS:** Confirm the Workers origin is listed in the R2 bucket's CORS policy.
 4. **Verify end-to-end:** Sign in, analyze an authorized URL, queue a job, confirm the status transitions through `UPLOADING → COMPLETED`, and verify the browser downloads directly from `*.r2.cloudflarestorage.com`.

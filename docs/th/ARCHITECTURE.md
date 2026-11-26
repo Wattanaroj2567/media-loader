@@ -19,7 +19,7 @@ supabase      → Auth และตาราง PostgreSQL ที่ป้อง
 ร่วมกัน ใน Docker Compose ทั้งสอง container mount named volume `media-output`
 Worker ที่อยู่คนละเครื่องต้องไม่รับงานซึ่งไม่สามารถใช้ไฟล์ร่วมกับ API ได้
 
-ดูภาพสถาปัตยกรรมฉบับ[ภาษาไทย](../images/media-loader-architecture-th.png)
+ดูภาพสถาปัตยกรรม Cloudflare ระดับ 1B ฉบับ[ภาษาไทย](../images/media-loader-architecture-th.png)
 หรือ [English](../images/media-loader-architecture-en.png) โดยอ่านตามลำดับเลข
 ตั้งแต่กรอก URL จนส่งไฟล์ให้เจ้าของงาน ส่วนแถบด้านล่างแสดงเส้นทางผ่าน proxy
 สำหรับคำขอไปยังแหล่งสื่อต้นทาง
@@ -94,7 +94,8 @@ email/password ที่ `/auth/login` และสมัครสมาชิ�
 ภาษาในหน้าเว็บ ระบบบันทึกไว้ใน localStorage และ cookie อายุหนึ่งปี เมื่อเข้าสู่ระบบด้วยรหัสผ่านหรือ
 callback สำเร็จ ระบบ sync ค่าภาษาของบัญชีจาก cookie และใช้ภาษาไทยเมื่อ cookie ไม่มี
 หรือค่าไม่ถูกต้อง ส่วน database trigger เดิมสร้าง profile หากสมัครแล้วได้ session
-ระบบเปิด `/dashboard` หากต้องยืนยันอีเมล หน้าสมัครจะแจ้งให้ตรวจอีเมลก่อน
+ระบบเปิด `/dashboard` หากสมัครสำเร็จแต่ยังไม่มี session หน้าเว็บแสดงคำแนะนำ
+เรื่องอีเมลยืนยันแบบกลาง พร้อมลิงก์เข้าสู่ระบบและลืมรหัสผ่านสำหรับคนที่เคยสมัครแล้ว
 
 ทั้งสองหน้ามี Google sign-in โดย callback ของ Google และอีเมลกลับมาที่
 `/auth/callback` เพื่อแลก authorization code เป็น Supabase session ปลายทาง
@@ -112,7 +113,9 @@ callback สำเร็จ ระบบ sync ค่าภาษาของบ�
 มีเฉพาะ `next=/auth/reset-password` และไม่ส่ง locale ใน query แอปไม่ได้เลือกภาษา
 ให้แม่แบบอีเมลที่ตั้งค่าใน Supabase
 
-`/auth/reset-password` ตรวจ authenticated session ก่อนเปลี่ยนรหัสผ่าน
+`/auth/reset-password` เปิดโมดัลชุดเดียวกับ “ลืมรหัสผ่าน” บนเดสก์ท็อป
+ส่วนหน้าจอมือถือและแนวนอนที่มีพื้นที่แนวตั้งน้อยใช้ฟอร์มเต็มหน้า
+ทั้งสองแบบตรวจ authenticated session ก่อนเปลี่ยนรหัสผ่าน
 เมื่อเปลี่ยนสำเร็จ ระบบสั่ง global sign-out และเปิด `/auth/login?reset=success`
 ด้วย full navigation หาก sign-out ล้มเหลวหลังเปลี่ยนรหัสแล้ว การลองใหม่จะสั่ง
 sign-out เท่านั้น ไม่เปลี่ยนรหัสผ่านซ้ำ

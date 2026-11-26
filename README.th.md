@@ -47,13 +47,14 @@ Media Loader เป็นเว็บแอปสำหรับวิเคร�
 
 ## สถาปัตยกรรม
 
-อ่านตามเลข **1–7** ตั้งแต่กรอกลิงก์จนบันทึกไฟล์ที่เสร็จแล้ว ส่วนแถบด้านล่าง
+ภาพนี้แสดงการติดตั้งแบบ Cloudflare ระดับ 1B อ่านตามเลข **1–7** ตั้งแต่กรอกลิงก์
+จนบันทึกไฟล์ที่เสร็จแล้ว ส่วนแถบด้านล่าง
 แสดงเส้นทางที่ API และ Worker ใช้เข้าถึงแหล่งสื่อสาธารณะผ่าน egress proxy
 ที่ตรวจสอบปลายทาง
 
 <p align="center">
   <a href="docs/images/media-loader-architecture-th.png">
-    <img src="docs/images/media-loader-architecture-th.png" alt="ภาพสถาปัตยกรรม Media Loader 7 ขั้น: เว็บแอป ตรวจสอบด้วย API ยืนยันสิทธิ์ คิว Supabase ประมวลผลด้วย Worker เก็บไฟล์ชั่วคราวร่วมกัน และตรวจเจ้าของก่อนส่งไฟล์ผ่าน API กับ Web ถึงผู้ใช้" width="100%">
+    <img src="docs/images/media-loader-architecture-th.png" alt="Cloudflare ระดับ 1B ใน 7 ขั้น ได้แก่ เข้าสู่ระบบบนเว็บ Cloudflare Workers วิเคราะห์ URL ผ่าน Cloudflare Tunnel และ FastAPI ยืนยันสิทธิ์ เข้าคิว Supabase ประมวลผลด้วย Docker worker อัปโหลดเข้า R2 แบบส่วนตัว และโหลดตรงจาก R2 หลังตรวจเจ้าของงาน" width="100%">
   </a>
 </p>
 
@@ -62,21 +63,21 @@ Media Loader เป็นเว็บแอปสำหรับวิเคร�
   <a href="docs/images/media-loader-architecture-en.png">View English image</a>
 </p>
 
-Vercel ใช้โฮสต์เฉพาะ Frontend ส่วน API และ Worker ทำงานแยกต่างหาก โดย Worker
-ไม่ได้ทำงานภายใน Vercel Functions ในโหมด `local_temp` ค่าเริ่มต้น API และ Worker
-ต้องใช้ output volume เดียวกัน Supabase เก็บข้อมูลบัญชีและข้อมูลงาน
-ส่วนไฟล์สื่อที่ประมวลผลแล้วอยู่ใน volume ชั่วคราวร่วมกัน
+ในระดับ 1B เว็บแอปอยู่บน Cloudflare Workers และเข้าถึง FastAPI บน Docker
+ผ่าน Cloudflare Tunnel ส่วน Docker worker อัปโหลดไฟล์ที่เสร็จแล้วเข้า R2 แบบส่วนตัว
+FastAPI ตรวจเจ้าของงานและออก presigned URL อายุสั้นให้เบราว์เซอร์ดาวน์โหลดตรงจาก R2
 
 <details>
 <summary>รายละเอียดองค์ประกอบของระบบ</summary>
 
 | องค์ประกอบ    | หน้าที่                                           | การนำไปใช้งาน                                 |
 | ------------- | ------------------------------------------------- | --------------------------------------------- |
-| `apps/web`    | เว็บแอป Next.js                                   | Vercel                                        |
+| `apps/web`    | เว็บแอป Next.js                                   | Cloudflare Workers ผ่าน vinext                |
 | `apps/api`    | วิเคราะห์ URL ตรวจสอบนโยบาย และสร้างงาน           | โฮสต์แยกใน container                          |
-| `apps/worker` | ตรวจคิวและประมวลผลสื่อด้วย yt-dlp และ FFmpeg      | โฮสต์ Worker ที่ใช้ output volume ร่วมกับ API |
+| `apps/worker` | ตรวจคิวและประมวลผลสื่อด้วย yt-dlp และ FFmpeg      | โฮสต์ Backend บน Docker                       |
 | `apps/proxy`  | Public-IP egress proxy สำหรับ request ต้นทาง      | เครือข่าย Backend แบบ private                 |
 | `supabase`    | การยืนยันตัวตน, PostgreSQL และ Row Level Security | Supabase                                      |
+| R2            | เก็บไฟล์ชั่วคราวแบบส่วนตัวและส่งตรงให้เบราว์เซอร์   | Cloudflare R2                                 |
 
 </details>
 

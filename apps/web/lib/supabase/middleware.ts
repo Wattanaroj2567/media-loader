@@ -62,7 +62,9 @@ export async function updateSession(request: NextRequest) {
     "/auth/forgot-password",
   ].includes(path);
   const hasCallbackError = request.nextUrl.searchParams.get("error") === "callback";
-  if (isAuthEntry && user && !hasCallbackError) {
+  const isRecoveryModal =
+    path === "/" && request.nextUrl.searchParams.get("auth") === "reset-password";
+  if (isAuthEntry && user && !hasCallbackError && !isRecoveryModal) {
     return redirectWithCookies("/dashboard");
   }
 

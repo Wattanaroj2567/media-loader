@@ -47,13 +47,13 @@ URL input → Validation → Policy check → Analysis → Rights confirmation �
 
 ## Architecture
 
-Follow steps **1–7** from entering a URL to saving the finished file. The strip
-below the main flow shows how API and worker requests reach public media sources
-through the checked egress proxy.
+The diagram shows the Cloudflare Level 1B deployment. Follow steps **1–7** from
+entering a URL to saving the finished file. The bottom strip shows how API and
+worker requests reach public media sources through the checked egress proxy.
 
 <p align="center">
   <a href="docs/images/media-loader-architecture-en.png">
-    <img src="docs/images/media-loader-architecture-en.png" alt="Seven-step Media Loader architecture: web app, API checks, rights confirmation, Supabase queue, worker processing, shared temporary files, and owner-checked delivery through API and Web." width="100%">
+    <img src="docs/images/media-loader-architecture-en.png" alt="Cloudflare Level 1B in seven steps: sign in on the Workers frontend, analyze the URL via Cloudflare Tunnel and FastAPI, confirm rights, queue in Supabase, process with the Docker worker, upload to private R2, and download directly from R2 after an ownership check." width="100%">
   </a>
 </p>
 
@@ -62,21 +62,22 @@ through the checked egress proxy.
   <a href="docs/images/media-loader-architecture-th.png">ดูภาพภาษาไทย</a>
 </p>
 
-Vercel hosts the frontend only. The API and worker run separately; the worker
-does not run inside Vercel Functions. In the default `local_temp` mode, the API
-and worker must share the same output volume. Supabase stores account and job
-data; generated media files stay in the shared temporary volume.
+In Level 1B, Cloudflare Workers hosts the frontend and Cloudflare Tunnel exposes
+the Docker-hosted FastAPI service. The Docker worker uploads finished files to
+private R2. FastAPI checks job ownership and issues a short-lived presigned URL
+so the browser can download directly from R2.
 
 <details>
 <summary>Component reference</summary>
 
 | Component     | Responsibility                                            | Deployment                                  |
 | ------------- | --------------------------------------------------------- | ------------------------------------------- |
-| `apps/web`    | Next.js web application                                   | Vercel                                      |
+| `apps/web`    | Next.js web application                                   | Cloudflare Workers via vinext               |
 | `apps/api`    | FastAPI URL analysis, policy checks, and job creation     | Separate container host                     |
-| `apps/worker` | Queue polling and media processing with yt-dlp and FFmpeg | Worker host sharing the API's output volume |
+| `apps/worker` | Queue polling and media processing with yt-dlp and FFmpeg | Docker backend host                         |
 | `apps/proxy`  | Public-IP egress proxy for source requests                | Private backend network                     |
 | `supabase`    | Authentication, PostgreSQL, and Row Level Security        | Supabase                                    |
+| R2            | Private temporary output and direct browser delivery     | Cloudflare R2                               |
 
 </details>
 

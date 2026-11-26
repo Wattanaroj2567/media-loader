@@ -79,7 +79,8 @@ export function LandingAuthProvider({ children }: { children: ReactNode }) {
     if (
       requestedMode !== "login" &&
       requestedMode !== "register" &&
-      requestedMode !== "forgot-password"
+      requestedMode !== "forgot-password" &&
+      requestedMode !== "reset-password"
     )
       return;
     if (window.matchMedia(FULL_PAGE_AUTH_MEDIA_QUERY).matches) {
@@ -167,7 +168,7 @@ export function LandingAuthProvider({ children }: { children: ReactNode }) {
               key={mode}
               mode={mode}
               presentation="modal"
-              onModeChange={setMode}
+              onModeChange={mode === "reset-password" ? undefined : setMode}
             />
           )}
         </div>

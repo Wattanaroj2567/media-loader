@@ -71,7 +71,7 @@ test("signup confirmation and resend cooldown survive presentation redirects", a
   await page.locator("#auth-confirm").fill("Resize-fixture-123");
   await page.clock.install();
   await page.getByRole("button", { name: "Create account", exact: true }).click();
-  const heading = page.getByRole("heading", { name: "Check your email", exact: true });
+  const heading = page.getByRole("heading", { name: "Next steps", exact: true });
   await expect(heading).toBeVisible();
   await page.clock.runFor(20_000);
   for (const viewport of [
@@ -82,6 +82,8 @@ test("signup confirmation and resend cooldown survive presentation redirects", a
     if (viewport.width === 390) await expect(page).toHaveURL(/\/auth\/register$/);
     else await expect(page.getByRole("dialog")).toBeVisible();
     await expect(heading).toBeVisible();
+    await expect(page.getByRole("link", { name: "Back to sign in" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Forgot password?" })).toBeVisible();
     await expect(page.getByRole("button", { name: /Resend in/ })).toBeDisabled();
     await expect(page.getByRole("button", { name: /Resend in/ })).toContainText("40");
     await expect(page.locator("#auth-password")).toHaveCount(0);
@@ -90,6 +92,13 @@ test("signup confirmation and resend cooldown survive presentation redirects", a
   await expect(
     page.getByRole("button", { name: "Resend confirmation email", exact: true })
   ).toBeEnabled();
+  await page.getByRole("link", { name: "Forgot password?" }).click();
+  await expect(
+    page.getByRole("dialog").getByLabel("Email", { exact: true })
+  ).toBeVisible();
+  await expect(
+    page.getByRole("dialog").getByRole("button", { name: "Send reset link" })
+  ).toBeVisible();
 });
 
 test("callback failure remains visible with an existing session across presentations", async ({
@@ -133,7 +142,7 @@ test("pending signup finishes in the new presentation", async ({ page }) => {
   await expect(page).toHaveURL(/\/auth\/register$/);
   release();
   await expect(
-    page.getByRole("heading", { name: "Check your email", exact: true })
+    page.getByRole("heading", { name: "Next steps", exact: true })
   ).toBeVisible();
 });
 
@@ -300,10 +309,12 @@ test("registration validates passwords and sends optional display name metadata"
   const request = await signup;
   const { data } = request.postDataJSON();
   expect(data).toEqual({ full_name: "Fixture Member", language: "en" });
-  await expect(page.locator("form [role=status]")).toContainText("Check your email");
+  await expect(page.locator("form [role=status]")).toContainText(
+    "If your email still needs confirmation"
+  );
   await expect(page).toHaveURL(/\/\?auth=register$/);
   await expect(
-    page.getByRole("heading", { name: "Check your email", exact: true })
+    page.getByRole("heading", { name: "Next steps", exact: true })
   ).toBeVisible();
   await expect(page.getByLabel("Password", { exact: true })).toHaveCount(0);
   await expect(page.getByRole("button", { name: /Resend in/ })).toBeDisabled();
@@ -380,6 +391,7 @@ test("recovery session updates password and signs out before login", async ({
   context,
   page,
 }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
   await context.addCookies([
     {
       name: "sb-localhost-auth-token-code-verifier",
@@ -388,7 +400,17 @@ test("recovery session updates password and signs out before login", async ({
     },
   ]);
   await page.goto("/auth/callback?code=mock-code&next=/auth/reset-password");
-  await expect(page).toHaveURL(/\/auth\/reset-password$/);
+  await expect(page).toHaveURL(/\/\?auth=reset-password$/);
+  const modal = page.getByRole("dialog");
+  await expect(modal).toBeVisible();
+  const bounds = (await modal.boundingBox())!;
+  const viewport = await page.evaluate(() => ({
+    width: document.documentElement.clientWidth,
+    height: document.documentElement.clientHeight,
+  }));
+  // A reserved scrollbar gutter can shift the usable viewport center.
+  expect(Math.abs(bounds.x + bounds.width / 2 - viewport.width / 2)).toBeLessThan(8);
+  expect(Math.abs(bounds.y + bounds.height / 2 - viewport.height / 2)).toBeLessThan(8);
   const newPassword = page.getByLabel("New password", { exact: true });
   const confirmation = page.getByLabel("Confirm password", { exact: true });
   await expect(newPassword).toBeEnabled();
@@ -401,6 +423,14 @@ test("recovery session updates password and signs out before login", async ({
   await expect(page.locator("#auth-confirm-status")).toBeEmpty();
   await newPassword.fill("Fixture-new-password-123");
   await confirmation.fill("Fixture-new-password-123");
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page).toHaveURL(/\/auth\/reset-password$/);
+  await expect(modal).toHaveCount(0);
+  await expect(newPassword).toHaveValue("Fixture-new-password-123");
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await expect(page).toHaveURL(/\/\?auth=reset-password$/);
+  await expect(modal).toBeVisible();
+  await expect(confirmation).toHaveValue("Fixture-new-password-123");
   const requests: string[] = [];
   page.on("request", (request) => {
     if (request.method() === "PUT" && request.url().endsWith("/auth/v1/user"))
@@ -498,11 +528,14 @@ test("reset finishes local signout after a remote error without repeating the up
   await expect(page.locator("form [role=alert]")).toContainText("Password updated");
   await expect(page.getByLabel("New password", { exact: true })).toHaveValue("");
   await expect(page.getByLabel("New password", { exact: true })).toBeDisabled();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page).toHaveURL(/\/auth\/reset-password$/);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await expect(page.getByRole("dialog")).toBeVisible();
   await page.getByRole("button", { name: "Finish signing out" }).click();
   await expect(page).toHaveURL(/\/\?auth=login&reset=success$/);
   expect(updates).toBe(1);
-  // The SDK clears the local session even when the remote logout returns 500.
-  expect(logouts).toBe(1);
+  expect(logouts).toBe(2);
   await page.goto("/dashboard");
   await expect(page).toHaveURL("/");
 });
