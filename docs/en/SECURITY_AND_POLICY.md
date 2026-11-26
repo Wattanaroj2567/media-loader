@@ -36,8 +36,9 @@ The system must never become an unrestricted downloader.
   and has a GIF path; the egress proxy also checks every network destination.
 - Legacy guest session IDs and short-lived file tokens grant access to a guest
   job or file. Treat them as credentials; new jobs require a signed-in account.
-- The default output mode is `local_temp`. Complete Supabase cloud-file storage
-  and delivery are not implemented.
+- The default output mode is `local_temp`. For production delivery, set
+  `MEDIA_OUTPUT_MODE=r2` to store outputs in a private Cloudflare R2 bucket and
+  serve them exclusively through owner-checked, short-lived presigned URLs.
 
 ---
 

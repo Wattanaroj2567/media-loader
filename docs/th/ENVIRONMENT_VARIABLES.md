@@ -66,8 +66,9 @@ LOG_LEVEL=info
   Docker Compose mount named volume เดียวกันให้ทั้งสอง container
 - ค่าเริ่มต้นของ `MAX_FILE_SIZE_MB` คือ `500`
 - ค่าเริ่มต้นของ `TEMP_FILE_RETENTION_MINUTES` คือ `60`
-- `MEDIA_OUTPUT_MODE` มีค่าเริ่มต้นเป็น `local_temp`; การเปลี่ยนค่านี้ไม่ได้เปิดใช้
-  การจัดเก็บไฟล์บน Cloud
+- `MEDIA_OUTPUT_MODE` มีค่าเริ่มต้นเป็น `local_temp` หากต้องการอัปโหลดไฟล์ผลลัพธ์ขึ้น
+  Cloudflare R2 และส่งตรงผ่าน presigned URL อายุสั้น ให้ตั้งเป็น `r2` ทั้งฝั่ง API
+  และ Worker พร้อมกำหนดค่า Cloudflare R2 ด้านล่าง
 - `WORKER_POOL` ต้องตรงกันระหว่าง API กับ Worker ที่ใช้คิวเดียวกัน
   ค่าเริ่มต้นคือ `local`
 - `LOG_LEVEL` มีค่าเริ่มต้นเป็น `info`
@@ -124,9 +125,25 @@ uv run --directory apps/api python -m app.url_storage_migration
 
 คำสั่งจะแสดงเฉพาะจำนวนแถว จนกว่าจะทำเสร็จ URL งานเดิมในฐานข้อมูลยังเป็น plaintext
 
-โหมดจัดเก็บไฟล์ปัจจุบันคือ `local_temp` ฟิลด์สำหรับ Cloud Storage มีอยู่ใน
-service settings แต่เส้นทางจัดเก็บไฟล์บน cloud ยังทำไม่ครบ การกำหนด bucket
-เพียงอย่างเดียวจึงยังไม่เปิดใช้งานโหมดนั้น
+### การจัดเก็บและส่งไฟล์ผ่าน Cloudflare R2 (`MEDIA_OUTPUT_MODE=r2`)
+
+เมื่อตั้ง `MEDIA_OUTPUT_MODE=r2` Worker จะอัปโหลดไฟล์ผลลัพธ์ขึ้น Private R2 Bucket
+ในสถานะ `UPLOADING` แล้วลบไฟล์ชั่วคราวบนดิสก์ทันที และ API จะออก presigned URL
+อายุสั้นหลังตรวจสิทธิ์เจ้าของงาน กำหนดตัวแปรต่อไปนี้เฉพาะฝั่ง Backend (API + Worker)
+เท่านั้น ห้ามใส่ในตัวแปร `NEXT_PUBLIC_`:
+
+```env
+MEDIA_OUTPUT_MODE=r2
+MEDIA_STORAGE_BUCKET=media-downloads
+R2_ACCOUNT_ID=
+R2_ENDPOINT_URL=
+R2_ACCESS_KEY_ID=
+R2_SECRET_ACCESS_KEY=
+R2_PRESIGNED_URL_TTL_SECONDS=300
+```
+
+ดูขั้นตอนสร้าง Bucket, CORS, Lifecycle Rule และ API Token ได้ใน
+[คู่มือการ Deploy บน Cloudflare และตั้งค่า R2](CLOUDFLARE_DEPLOYMENT_GUIDE.md)
 
 ## ค่าของ API
 

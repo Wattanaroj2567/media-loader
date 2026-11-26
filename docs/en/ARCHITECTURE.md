@@ -318,4 +318,4 @@ to `QUEUED` and is picked up by a worker in its target pool.
 - Scope every new job and file operation to its signed-in owner; retain
   owner-checked access for legacy guest sessions.
 - Do not expose service-role keys to browser code.
-- Keep output in `local_temp`; complete cloud object storage and delivery are not implemented.
+- Keep output in `local_temp` for local development or enable `MEDIA_OUTPUT_MODE=r2` for direct Cloudflare R2 delivery through owner-checked presigned URLs.

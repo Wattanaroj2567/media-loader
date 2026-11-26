@@ -2,6 +2,8 @@ node_modules
 .next
 .next*
 dist
+.vinext
+.wrangler
 build
 out
 drizzle/migrations

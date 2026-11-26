@@ -45,7 +45,9 @@ Before changing a domain, read its specification. Thai equivalents are under `do
 | Security and policy rules        | [docs/en/SECURITY_AND_POLICY.md](en/SECURITY_AND_POLICY.md)         |
 | Supabase RLS                     | [docs/en/SUPABASE_RLS_POLICY.md](en/SUPABASE_RLS_POLICY.md)         |
 | Development commands and tests   | [docs/en/DEVELOPER_GUIDE.md](en/DEVELOPER_GUIDE.md)                 |
-| Tunnel and deployment            | [docs/en/CLOUDFLARE_TUNNEL_GUIDE.md](en/CLOUDFLARE_TUNNEL_GUIDE.md) |
+| Tunnel and deployment            | [docs/en/CLOUDFLARE_TUNNEL_GUIDE.md](en/CLOUDFLARE_TUNNEL_GUIDE.md)         |
+| Cloudflare Workers & R2          | [docs/en/CLOUDFLARE_DEPLOYMENT_GUIDE.md](en/CLOUDFLARE_DEPLOYMENT_GUIDE.md) |
+| Cloudflare Workers & R2 deploy   | [docs/en/CLOUDFLARE_DEPLOYMENT_GUIDE.md](en/CLOUDFLARE_DEPLOYMENT_GUIDE.md) |
 | Environment variable definitions | [docs/en/ENVIRONMENT_VARIABLES.md](en/ENVIRONMENT_VARIABLES.md)     |
 | Secrets protocol                 | [docs/en/SECRETS_PROTOCOL.md](en/SECRETS_PROTOCOL.md)               |
 | Google OAuth                     | [docs/en/GOOGLE_OAUTH_SETUP.md](en/GOOGLE_OAUTH_SETUP.md)           |

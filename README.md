@@ -104,12 +104,13 @@ Create a local environment file from the example and set the values described
 in the [environment variables guide](docs/en/ENVIRONMENT_VARIABLES.md).
 
 ```bash
-# macOS and Linux
-cp .env.example .env.local
-
-# PowerShell
-Copy-Item .env.example .env.local
+pnpm env:sync
 ```
+
+The first run copies `.env.example` to `.env.local`. Run it again whenever
+`.env.example` gains new variables: it appends only the missing ones and never
+changes your existing values or prints them. Use `pnpm env:sync --dry-run` to
+preview or `pnpm env:sync --check` to fail when variables are missing.
 
 Validate the configuration with `pnpm check-env`. Keep local environment files
 and credentials out of version control. Set `MEDIA_URL_ENCRYPTION_KEY` to the
@@ -158,6 +159,7 @@ the [developer guide](docs/en/DEVELOPER_GUIDE.md).
 - [Google OAuth setup](docs/en/GOOGLE_OAUTH_SETUP.md)
 - [Secrets protocol](docs/en/SECRETS_PROTOCOL.md)
 - [Vercel deployment](docs/en/VERCEL_SETUP.md)
+- [Cloudflare Workers & R2 deployment](docs/en/CLOUDFLARE_DEPLOYMENT_GUIDE.md)
 - [Cloudflare Tunnel setup](docs/en/CLOUDFLARE_TUNNEL_GUIDE.md)
 - [Contributing](CONTRIBUTING.md)
 - [Security policy](SECURITY.md)

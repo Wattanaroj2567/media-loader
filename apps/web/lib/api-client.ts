@@ -439,6 +439,7 @@ export class ApiClient {
     job_id: string;
     download_token: string;
     download_url: string;
+    storage_mode?: "local_temp" | "r2";
     expires_in: number;
   }> {
     return this.request(`/files/token/${encodeURIComponent(jobId)}`);
@@ -447,6 +448,9 @@ export class ApiClient {
   async getDirectDownloadUrl(jobId: string): Promise<string> {
     try {
       const tokenData = await this.getDownloadToken(jobId);
+      if (/^https?:\/\//i.test(tokenData.download_url)) {
+        return tokenData.download_url;
+      }
       return `${this.baseUrl}/files/download/${encodeURIComponent(jobId)}?token=${encodeURIComponent(tokenData.download_token)}`;
     } catch {
       return jobFileDownloadUrl(jobId);

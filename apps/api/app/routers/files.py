@@ -10,7 +10,7 @@ import unicodedata
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, Header, Query, Response
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse
 
 from app.auth import (
     CurrentUser,
@@ -23,6 +23,7 @@ from app.config import get_settings
 from app.errors import AppError
 from app.file_service import delete_local_output, resolve_local_output
 from app.job_service import clear_job_output, get_job
+from app.r2_storage import delete_r2_object, generate_r2_download_url, r2_object_exists
 from app.response import success_response
 
 logger = logging.getLogger("media_loader_api.files")
@@ -67,7 +68,7 @@ async def get_download_token(
         job_id,
         user_id=user_id,
         guest_session_id=guest_session_id,
-        include_internal=False,
+        include_internal=True,
     )
     if not job:
         raise AppError(404, "JOB_NOT_FOUND", "ไม่พบงานนี้")
@@ -75,13 +76,43 @@ async def get_download_token(
     if job.get("status") != "COMPLETED":
         raise AppError(409, "JOB_NOT_COMPLETED", "งานนี้ยังประมวลผลไม่เสร็จ")
 
+    output_bucket = job.get("output_bucket")
+    output_path = job.get("output_path")
     token_subject = user_id or f"guest:{guest_session_id}"
     token = generate_download_token(job_id, token_subject, expires_in_seconds=300)
+
+    if output_bucket:
+        if not output_path or not r2_object_exists(output_bucket, output_path):
+            clear_job_output(job_id, user_id=user_id, guest_session_id=guest_session_id)
+            raise AppError(
+                410,
+                "FILE_NO_LONGER_AVAILABLE",
+                "ไฟล์ชั่วคราวถูกนำออกแล้ว แต่ประวัติยังคงอยู่",
+            )
+        output_filename = build_download_filename(job, Path(output_path))
+        ttl = get_settings().r2_presigned_url_ttl_seconds
+        presigned_url = generate_r2_download_url(
+            output_bucket,
+            output_path,
+            output_filename,
+            expires_in=ttl,
+        )
+        return success_response(
+            data={
+                "job_id": job_id,
+                "download_token": token,
+                "download_url": presigned_url,
+                "storage_mode": "r2",
+                "expires_in": ttl,
+            }
+        )
+
     return success_response(
         data={
             "job_id": job_id,
             "download_token": token,
             "download_url": f"/files/download/{job_id}?token={token}",
+            "storage_mode": "local_temp",
             "expires_in": 300,
         }
     )
@@ -124,12 +155,34 @@ async def download_file(
     if job.get("status") != "COMPLETED":
         raise AppError(409, "JOB_NOT_COMPLETED", "งานนี้ยังประมวลผลไม่เสร็จ")
 
+    output_bucket = job.get("output_bucket")
     output_path = job.get("output_path")
     if not output_path:
         raise AppError(
             410,
             "FILE_NO_LONGER_AVAILABLE",
             "ไฟล์ชั่วคราวถูกนำออกแล้ว แต่ประวัติยังคงอยู่",
+        )
+
+    if output_bucket:
+        if not r2_object_exists(output_bucket, output_path):
+            clear_job_output(job_id, user_id=user_id, guest_session_id=guest_id)
+            raise AppError(410, "FILE_NO_LONGER_AVAILABLE", "ไม่พบไฟล์ชั่วคราวนี้แล้ว")
+        output_filename = build_download_filename(job, Path(output_path))
+        presigned_url = generate_r2_download_url(
+            output_bucket,
+            output_path,
+            output_filename,
+        )
+        logger.info(
+            "Redirecting job %s to R2 presigned URL for %s",
+            job_id,
+            f"user {user_id}" if user_id else f"guest {guest_id}",
+        )
+        return RedirectResponse(
+            url=presigned_url,
+            status_code=307,
+            headers={"Cache-Control": "no-store"},
         )
 
     file_path = resolve_local_output(output_path, settings.resolved_temp_dir)
@@ -172,12 +225,16 @@ async def delete_file(
     if not job:
         raise AppError(404, "JOB_NOT_FOUND", "ไม่พบงานนี้")
 
+    output_bucket = job.get("output_bucket")
     output_path = job.get("output_path")
     if not output_path:
         raise AppError(410, "FILE_NO_LONGER_AVAILABLE", "ไม่มีไฟล์ชั่วคราวให้ลบ")
 
     try:
-        delete_local_output(output_path, settings.resolved_temp_dir)
+        if output_bucket:
+            delete_r2_object(output_bucket, output_path)
+        else:
+            delete_local_output(output_path, settings.resolved_temp_dir)
         clear_job_output(job_id, user_id=user_id, guest_session_id=guest_session_id)
         return success_response(data={"deleted": True, "job_id": job_id})
     except AppError:

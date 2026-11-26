@@ -12,11 +12,18 @@ High-level summary of Media Loader's commit history from the initial commit on 2
 
 ### Added
 
+- Added Cloudflare R2 storage and direct presigned-URL delivery (`MEDIA_OUTPUT_MODE=r2`) across `apps/worker` (`worker/r2_storage.py`, `UPLOADING` status, automatic R2 retention cleanup) and `apps/api` (`app/r2_storage.py`, presigned download tokens, `307` download redirects, R2 object deletion on file/job/account removal), keeping `local_temp` as the local development default.
+- Added Cloudflare Workers deployment support for `apps/web` via `vinext`, `@cloudflare/vite-plugin`, `apps/web/vite.config.ts`, `apps/web/wrangler.jsonc`, `pnpm build:web:cf` / `pnpm deploy:web:cf` scripts, and a Cloudflare Workers build check in `.github/workflows/ci.yml`.
+- Added `pnpm env:sync` (`scripts/sync-env.ts`) to create `.env.local` from `.env.example` and append variables added to the template later, without modifying or printing existing values; supports `--dry-run` and `--check`, with tests in `scripts/sync-env.test.ts` (`pnpm test:scripts`). Updated the README and user setup guides in English and Thai.
+- Added bilingual Cloudflare deployment and R2 setup guides in `docs/en/CLOUDFLARE_DEPLOYMENT_GUIDE.md` and `docs/th/CLOUDFLARE_DEPLOYMENT_GUIDE.md`.
 - Added cross-platform Cloudflare Quick Tunnel launch scripts: TypeScript runner `scripts/tunnel.ts` and Bash script `scripts/tunnel.sh` alongside the existing PowerShell script.
 - Added workspace skills in `.agents/skills/`: `taste-skill` for frontend design taste and art direction, `systematic-debugging` for root-cause diagnosis, `verification-before-completion` for evidence-based verification, `security-audit` for repository security reviews, and `skill-creator` for managing project skills.
 
 ### Changed
 
+- Updated `apps/web/lib/api-client.ts` and `apps/web/app/api/files/download/[jobId]/route.ts` to use absolute R2 presigned URLs directly and forward `307` redirects without proxying media bytes through web server functions.
+- Updated `apps/web/next.config.ts` to use `fileURLToPath(import.meta.url)` instead of CommonJS `__dirname` for ESM/Vite compatibility.
+- Updated `.env.example`, `README.md`, `README.th.md`, `docs/README.md`, `docs/AGENT_GUIDELINES.md`, and English/Thai `ARCHITECTURE.md`, `ENVIRONMENT_VARIABLES.md`, `SECURITY_AND_POLICY.md`, and `DEVELOPER_GUIDE.md` to document Cloudflare Workers deployment and R2 storage modes.
 - Updated root `pnpm tunnel` script to run `tsx scripts/tunnel.ts` for cross-platform compatibility across Linux, macOS, and Windows.
 - Updated `docs/en/CLOUDFLARE_TUNNEL_GUIDE.md` and `docs/th/CLOUDFLARE_TUNNEL_GUIDE.md` to document Linux and macOS paths and CLI commands alongside Windows.
 

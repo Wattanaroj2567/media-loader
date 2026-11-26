@@ -19,6 +19,7 @@ docs/
 │   ├── DATABASE_SCHEMA.md    # PostgreSQL Tables & Relationships
 │   ├── SECURITY_AND_POLICY.md# SSRF Protection & Rights Policy
 │   ├── SUPABASE_RLS_POLICY.md# Row Level Security Rules
+│   ├── CLOUDFLARE_DEPLOYMENT_GUIDE.md # Cloudflare Workers & R2 Deployment Guide
 │   ├── CLOUDFLARE_TUNNEL_GUIDE.md # Cloudflare Tunnel Setup Guide
 │   ├── ENVIRONMENT_VARIABLES.md# Env Variable Reference
 │   ├── GOOGLE_OAUTH_SETUP.md # Google OAuth Configuration
@@ -32,6 +33,7 @@ docs/
     ├── DATABASE_SCHEMA.md    # โครงสร้างตารางฐานข้อมูล
     ├── SECURITY_AND_POLICY.md# นโยบายความปลอดภัยและการเคารพสิทธิ์
     ├── SUPABASE_RLS_POLICY.md# นโยบาย Row Level Security (RLS)
+    ├── CLOUDFLARE_DEPLOYMENT_GUIDE.md # คู่มือการ Deploy บน Cloudflare Workers และ R2
     ├── CLOUDFLARE_TUNNEL_GUIDE.md # คู่มือการตั้งค่า Cloudflare Tunnel
     ├── ENVIRONMENT_VARIABLES.md# รายการตัวแปรสภาพแวดล้อม
     ├── GOOGLE_OAUTH_SETUP.md # คู่มือการตั้งค่า Google OAuth

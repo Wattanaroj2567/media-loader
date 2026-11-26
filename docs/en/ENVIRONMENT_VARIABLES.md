@@ -67,8 +67,9 @@ LOG_LEVEL=info
   Docker Compose mounts the named output volume into both containers.
 - `MAX_FILE_SIZE_MB` defaults to `500`.
 - `TEMP_FILE_RETENTION_MINUTES` defaults to `60`.
-- `MEDIA_OUTPUT_MODE` defaults to `local_temp`; changing it does not enable
-  cloud-file storage.
+- `MEDIA_OUTPUT_MODE` defaults to `local_temp`. Set it to `r2` on both API and
+  worker (along with the Cloudflare R2 credentials below) to upload completed
+  outputs to Cloudflare R2 and deliver them via short-lived presigned URLs.
 - `WORKER_POOL` should match between the API and workers that share a queue.
   It defaults to `local`.
 - `LOG_LEVEL` defaults to `info`.
@@ -130,9 +131,23 @@ uv run --directory apps/api python -m app.url_storage_migration
 The command prints only row counts. Until it completes, pre-existing job URLs
 remain plaintext in the database.
 
-The current default output mode is `local_temp`. Cloud Storage configuration
-fields exist in service settings, but a complete cloud-output path is not
-implemented; do not treat setting a bucket name as enabling that mode.
+The default output mode for local development is `local_temp`. To enable direct
+Cloudflare R2 delivery in production, set `MEDIA_OUTPUT_MODE=r2` and configure
+these backend-only variables on both the API and worker (see
+[Cloudflare Deployment & R2 Setup Guide](CLOUDFLARE_DEPLOYMENT_GUIDE.md)):
+
+```env
+MEDIA_OUTPUT_MODE=r2
+MEDIA_STORAGE_BUCKET=media-downloads
+R2_ACCOUNT_ID=
+R2_ENDPOINT_URL=
+R2_ACCESS_KEY_ID=
+R2_SECRET_ACCESS_KEY=
+R2_PRESIGNED_URL_TTL_SECONDS=300
+```
+
+Never expose `R2_ACCESS_KEY_ID` or `R2_SECRET_ACCESS_KEY` to frontend code or
+`NEXT_PUBLIC_` variables.
 
 ## API settings
 
@@ -164,9 +179,9 @@ MEDIA_STORAGE_BUCKET=media-downloads
   on `PATH` or its managed Python package binary.
 - `WORKER_SECRET` is required by the environment checker but is not currently
   used to authenticate workers.
-- `MEDIA_STORAGE_BUCKET` is a configuration field but does not enable cloud
-  file storage. `JOB_TIMEOUT_MINUTES` is also defined in worker settings but is
-  not currently enforced.
+- `MEDIA_STORAGE_BUCKET` selects the Cloudflare R2 bucket name when
+  `MEDIA_OUTPUT_MODE=r2` (defaults to `media-downloads`). `JOB_TIMEOUT_MINUTES`
+  sets the worker subprocess timeout (defaults to `30`).
 
 `API_PORT` is defined as `8000`, but the current development and Compose launch
 commands use port `8000` directly; changing the variable alone does not change

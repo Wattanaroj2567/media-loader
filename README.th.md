@@ -104,12 +104,12 @@ pnpm setup:py
 [คู่มือตัวแปรสภาพแวดล้อม](docs/th/ENVIRONMENT_VARIABLES.md)
 
 ```bash
-# macOS และ Linux
-cp .env.example .env.local
-
-# PowerShell
-Copy-Item .env.example .env.local
+pnpm env:sync
 ```
+
+การรันครั้งแรกจะคัดลอก `.env.example` เป็น `.env.local` เมื่อ `.env.example` มีตัวแปรใหม่
+ให้รันซ้ำได้ทุกเมื่อ คำสั่งจะเพิ่มเฉพาะตัวแปรที่ขาดต่อท้ายไฟล์ โดยไม่แก้ไขหรือแสดงค่าเดิมของคุณ
+ใช้ `pnpm env:sync --dry-run` เพื่อดูตัวอย่าง หรือ `pnpm env:sync --check` เพื่อให้คำสั่งล้มเหลวเมื่อมีตัวแปรขาด
 
 ตรวจสอบการตั้งค่าด้วย `pnpm check-env` และเก็บไฟล์สภาพแวดล้อมในเครื่องกับข้อมูลรับรอง
 ให้พ้นจาก version control ตั้ง `MEDIA_URL_ENCRYPTION_KEY` เป็น Fernet key
@@ -157,6 +157,7 @@ pnpm dev
 - [คู่มือตั้งค่า Google OAuth](docs/th/GOOGLE_OAUTH_SETUP.md)
 - [แนวทางจัดการข้อมูลลับ](docs/th/SECRETS_PROTOCOL.md)
 - [การติดตั้งบน Vercel](docs/th/VERCEL_SETUP.md)
+- [การติดตั้งบน Cloudflare Workers และ R2](docs/th/CLOUDFLARE_DEPLOYMENT_GUIDE.md)
 - [การตั้งค่า Cloudflare Tunnel](docs/th/CLOUDFLARE_TUNNEL_GUIDE.md)
 - [แนวทางการร่วมพัฒนา (ภาษาอังกฤษ)](CONTRIBUTING.md)
 - [นโยบายความปลอดภัย (ภาษาอังกฤษ)](SECURITY.md)

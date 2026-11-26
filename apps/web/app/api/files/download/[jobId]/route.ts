@@ -28,8 +28,19 @@ export async function GET(
     {
       headers: { Authorization: `Bearer ${session.access_token}` },
       cache: "no-store",
+      redirect: "manual",
     }
   );
+
+  if (upstream.status >= 300 && upstream.status < 400) {
+    const location = upstream.headers.get("location");
+    if (location && /^https?:\/\//i.test(location)) {
+      return NextResponse.redirect(location, {
+        status: 307,
+        headers: { "Cache-Control": "no-store" },
+      });
+    }
+  }
 
   if (!upstream.ok || !upstream.body) {
     return NextResponse.json(
