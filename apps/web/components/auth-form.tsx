@@ -222,7 +222,7 @@ export function AuthForm({
       setError(t(reset ? "auth.recoveryExpired" : "auth.googleError"));
     if (mode === "login" && params.get("reset") === "success")
       setMessage(t("auth.resetSuccess"));
-    if (reset) {
+    if (reset && !passwordUpdated) {
       createClient()
         .auth.getUser()
         .then(({ data, error: sessionError }) => {
@@ -237,7 +237,7 @@ export function AuthForm({
     return () => {
       active = false;
     };
-  }, [mode, reset, t, setError, setMessage]);
+  }, [mode, reset, passwordUpdated, t, setError, setMessage]);
 
   function safeError(cause: { code?: string; status?: number } | null) {
     if (
@@ -284,7 +284,8 @@ export function AuthForm({
       if (input instanceof HTMLInputElement) input.focus();
       return;
     }
-    if (reset && !recoveryReady) return setError(t("auth.recoveryExpired"));
+    if (reset && !recoveryReady && !passwordUpdated)
+      return setError(t("auth.recoveryExpired"));
     setBusy(true);
     try {
       const supabase = createClient();
@@ -757,9 +758,15 @@ export function AuthForm({
                   role="status"
                   aria-live="polite"
                   aria-atomic="true"
-                  className="flex items-start gap-2 rounded-lg border border-green-500/30 bg-green-500/10 p-3 text-sm text-green-800 dark:text-green-300"
+                  className={
+                    confirmationEmail
+                      ? "rounded-lg border border-border bg-bg-surface p-3 text-sm text-text"
+                      : "flex items-start gap-2 rounded-lg border border-green-500/30 bg-green-500/10 p-3 text-sm text-green-800 dark:text-green-300"
+                  }
                 >
-                  <Check size={16} className="mt-0.5 shrink-0" aria-hidden="true" />
+                  {!confirmationEmail && (
+                    <Check size={16} className="mt-0.5 shrink-0" aria-hidden="true" />
+                  )}
                   <span>{message}</span>
                 </p>
               )}
@@ -806,7 +813,7 @@ export function AuthForm({
                   type="submit"
                   className={styles.submit}
                   data-ready={isFormComplete}
-                  disabled={busy || (reset && !recoveryReady)}
+                  disabled={busy || (reset && !recoveryReady && !passwordUpdated)}
                 >
                   {busy
                     ? t("common.loading")
@@ -825,6 +832,15 @@ export function AuthForm({
                 >
                   <ArrowLeft size={15} aria-hidden="true" />
                   {t("auth.backToLogin")}
+                </Link>
+              )}
+              {confirmationEmail && (
+                <Link
+                  className="inline-flex min-h-11 items-center px-2 text-primary underline-offset-4 hover:underline"
+                  href="/auth/forgot-password"
+                  onClick={(event) => switchMode(event, "forgot-password")}
+                >
+                  {t("auth.forgotLink")}
                 </Link>
               )}
               {mode === "login" && (

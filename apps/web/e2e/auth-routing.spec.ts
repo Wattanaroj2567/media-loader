@@ -87,7 +87,8 @@ test.describe("Authentication routing", () => {
     await expect(page.locator("form [role=alert]")).toBeVisible();
     await expect(page.locator("body")).not.toContainText("private-fixture");
     await page.goto("/auth/callback?next=/auth/reset-password");
-    await expect(page).toHaveURL(/\/auth\/reset-password\?error=callback$/);
+    await expect(page).toHaveURL(/\/\?auth=reset-password&error=callback$/);
+    await expect(page.getByRole("dialog")).toBeVisible();
     await expect(page.locator("form [role=alert]")).toBeVisible();
   });
 

@@ -9,7 +9,7 @@ import styles from "./auth-form.module.css";
 export function AuthRoute({
   mode,
 }: {
-  mode: "login" | "register" | "forgot-password";
+  mode: "login" | "register" | "forgot-password" | "reset-password";
 }) {
   const router = useRouter();
 
