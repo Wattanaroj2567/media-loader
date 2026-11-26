@@ -70,10 +70,10 @@ and Client Secret in Supabase Dashboard → **Authentication** → **Providers**
 In Supabase Dashboard → **Authentication** → **URL Configuration**:
 
 - Set **Site URL** to the production frontend origin when deploying, such as
-  `https://your-domain.vercel.app`.
+  `https://media-loader.example.com`.
 - Add each allowed application callback URL to **Redirect URLs**:
   - Local development: `http://localhost:3000/auth/callback`
-  - Production: `https://your-domain.vercel.app/auth/callback`
+  - Production: `https://media-loader.example.com/auth/callback`
 
 For local-only development, `http://localhost:3000` may be used as Site URL.
 Use the production origin as Site URL for a deployed app.
@@ -117,25 +117,11 @@ and [Architecture](ARCHITECTURE.md) guides.
 
 ---
 
-## 7. Deploy the Frontend to Vercel
+## 7. Deploy the Frontend to Cloudflare Workers
 
-1. Import the repository into Vercel.
-2. Keep **Root Directory** at the repository root. The root `vercel.json`
-   configures the pnpm monorepo build.
-3. Set the public frontend variables in Vercel:
-
-   ```env
-   NEXT_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=your-public-anon-key
-   NEXT_PUBLIC_FASTAPI_BASE_URL=https://your-backend-api-domain.com
-   ```
-
-4. Deploy. Deploy the API and worker separately, and set API CORS to allow the
-   Vercel production origin.
-
-Use a reachable HTTPS backend URL for production; `localhost` only works for
-local development. Follow [Vercel Setup](VERCEL_SETUP.md) for deployment
-details. Never set the service-role key in the Vercel frontend project.
+Follow the [Cloudflare Workers and R2 deployment guide](CLOUDFLARE_DEPLOYMENT_GUIDE.md)
+for the frontend build, the public API URL, Supabase redirects, and CORS. Use a
+reachable HTTPS API origin in production and keep private credentials on the backend.
 
 ---
 

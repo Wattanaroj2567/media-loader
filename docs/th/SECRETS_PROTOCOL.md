@@ -84,7 +84,7 @@ Next.js จะฝังค่า `NEXT_PUBLIC_` ลงใน JavaScript ที�
 ### Credentials ที่ใช้เฉพาะฝั่ง Backend
 
 เก็บ Supabase service credentials และคอนฟิก runtime ส่วนตัวไว้บนโฮสต์ของ API หรือ
-Worker เท่านั้น ห้ามตั้ง `SUPABASE_SERVICE_ROLE_KEY` ในโปรเจกต์ Frontend บน Vercel
+Worker เท่านั้น ห้ามตั้ง `SUPABASE_SERVICE_ROLE_KEY` ในโปรเจกต์ Frontend บน Cloudflare Workers
 
 `DATABASE_URL` ใช้กับเครื่องมือ Drizzle Kit และควรใส่เฉพาะ environment ที่รัน
 คำสั่งเหล่านั้น ปัจจุบัน `WORKER_SECRET` เป็นค่าที่ `pnpm check-env` ตรวจ แต่โค้ด
@@ -94,7 +94,7 @@ Google OAuth Client ID และ Client Secret ให้ตั้งใน Dashb
 ห้ามใส่ Client Secret ในคอนฟิก Frontend หรือไฟล์ของ Repository
 
 ดูรายการตัวแปรปัจจุบันที่ [Environment Variables](ENVIRONMENT_VARIABLES.md) และ
-วิธี Deploy Frontend ที่ [Vercel Setup](VERCEL_SETUP.md)
+วิธี Deploy Frontend ที่ [คู่มือ Cloudflare](CLOUDFLARE_DEPLOYMENT_GUIDE.md)
 
 ---
 

@@ -17,7 +17,7 @@ import yt_dlp
 from yt_dlp.networking.common import Response
 from yt_dlp.networking.exceptions import HTTPError
 from yt_dlp.networking.impersonate import ImpersonateTarget
-from yt_dlp.utils import parse_count
+from yt_dlp.utils import DownloadError, parse_count
 
 from app.config import get_settings
 from app.errors import AppError
@@ -355,6 +355,12 @@ def _run_yt_dlp_sync(url: str) -> dict[str, Any]:
                 target_name,
                 type(error).__name__,
             )
+            if isinstance(error, DownloadError):
+                detail = str(error)
+                if detail.startswith("ERROR: [youtube]") and (
+                    "Requested format is not available." in detail
+                ):
+                    raise
             if attempt < _MAX_EXTRACT_ATTEMPTS:
                 time.sleep(_RETRY_DELAY_SECONDS)
 

@@ -8,7 +8,7 @@ Media Loader separates the web app, API, worker, and checked egress proxy so
 each service has a clear responsibility.
 
 ```text
-apps/web      → Next.js frontend on Vercel
+apps/web      → Next.js frontend on Cloudflare Workers
 apps/api      → FastAPI URL policy, analysis, job, and file API
 apps/worker   → Python worker for queued media processing
 apps/proxy    → Public-IP egress proxy for user-derived requests
@@ -42,15 +42,16 @@ non-root `media-loader` user, share a named media-output volume, and have no
 direct internet route. User-derived requests go through the proxy, which checks
 all DNS answers and connects to a validated public IP. Compose also runs a
 one-shot, network-isolated output initializer before the API so the directory
-is owned by UID/GID `10001`. Vercel hosts only the Next.js app and calls the API
-over HTTPS.
+is owned by UID/GID `10001`. Cloudflare Workers hosts the frontend, which
+calls the API over HTTPS through Cloudflare Tunnel.
 
 ```text
-apps/web on Vercel       → HTTPS → containerized FastAPI
+apps/web on Workers      → Cloudflare Tunnel → containerized FastAPI
 containerized API        → checked egress proxy → public source hosts
 containerized worker     → checked egress proxy → public source hosts
-containerized worker     → polls Supabase and writes to shared media output
-containerized FastAPI    → serves authorized files from the same volume
+containerized worker     → polls Supabase and uploads finished files to private R2
+containerized FastAPI    → checks ownership and issues short-lived R2 URLs
+browser                  → downloads directly from R2
 ```
 
 ## Why split the worker?
@@ -64,7 +65,7 @@ The worker handles:
 - Job progress and status updates
 - Retention cleanup for expired local outputs
 
-This keeps heavy processing out of Vercel Functions and Supabase Edge Functions.
+The Docker worker runs media processing separately from the frontend and Supabase.
 
 ## Request flow
 
@@ -317,7 +318,7 @@ to `QUEUED` and is picked up by a worker in its target pool.
   egress from API and worker deployments.
 - Set the same protected `MEDIA_URL_ENCRYPTION_KEY` on API and worker.
 - Require rights confirmation when creating a job.
-- Keep media processing in the worker, outside Vercel Functions.
+- Keep media processing in the Docker worker.
 - Keep the API and worker on the same shared output volume in local-temp mode.
 - Scope every new job and file operation to its signed-in owner; retain
   owner-checked access for legacy guest sessions.

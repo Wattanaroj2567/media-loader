@@ -14,7 +14,7 @@
 <p align="center">
   <a href="docs/en/DEVELOPER_GUIDE.md">Developer guide</a> ·
   <a href="docs/en/ARCHITECTURE.md">Architecture</a> ·
-  <a href="docs/en/VERCEL_SETUP.md">Deployment</a> ·
+  <a href="docs/en/CLOUDFLARE_DEPLOYMENT_GUIDE.md">Deployment</a> ·
   <a href="SECURITY.md">Security</a>
 </p>
 
@@ -159,7 +159,6 @@ the [developer guide](docs/en/DEVELOPER_GUIDE.md).
 - [Environment variables](docs/en/ENVIRONMENT_VARIABLES.md)
 - [Google OAuth setup](docs/en/GOOGLE_OAUTH_SETUP.md)
 - [Secrets protocol](docs/en/SECRETS_PROTOCOL.md)
-- [Vercel deployment](docs/en/VERCEL_SETUP.md)
 - [Cloudflare Workers & R2 deployment](docs/en/CLOUDFLARE_DEPLOYMENT_GUIDE.md)
 - [Cloudflare Tunnel setup](docs/en/CLOUDFLARE_TUNNEL_GUIDE.md)
 - [Contributing](CONTRIBUTING.md)

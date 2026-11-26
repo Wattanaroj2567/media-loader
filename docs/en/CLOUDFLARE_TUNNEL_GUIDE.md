@@ -9,7 +9,7 @@ to the API without router port forwarding.
 ## Architecture
 
 ```text
-Vercel frontend
+Cloudflare Workers frontend
     ↓ HTTPS API request
 Cloudflare public hostname
     ↓ encrypted outbound tunnel
@@ -78,9 +78,8 @@ Or run directly with the shell scripts or `cloudflared` CLI:
 Copy the generated URL from the terminal. Anyone who has this URL can reach
 the API. The URL changes when the process stops and starts again.
 
-To test through Vercel, set the URL as `NEXT_PUBLIC_FASTAPI_BASE_URL` in the
-Vercel project and redeploy. This public variable is included in the frontend
-build.
+For a frontend test build, provide the temporary URL as
+`NEXT_PUBLIC_FASTAPI_BASE_URL` at build time.
 
 ## Option 2: Named Tunnel for a stable hostname
 
@@ -157,23 +156,22 @@ in the local environment file.
 To test without a named tunnel, change the tunnel command in
 `docker-compose.yml` from `tunnel --no-autoupdate run --url http://api:8000`
 to `tunnel --no-autoupdate --url http://api:8000`, start the service, and copy
-the generated HTTPS URL from the logs into `NEXT_PUBLIC_FASTAPI_BASE_URL` in
-Vercel. Redeploy the frontend after changing this value, and restore the
-command afterwards.
+the generated HTTPS URL from the logs into `NEXT_PUBLIC_FASTAPI_BASE_URL` for
+your test build. Restore the command after testing.
 
 ## CORS configuration
 
-Add the exact Vercel origin to `CORS_ORIGINS` in the local environment used by
+Add the exact Workers frontend origin to `CORS_ORIGINS` in the local environment used by
 the API. Replace the example domain with the deployed frontend domain:
 
 ```env
-CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000,https://media-loader.vercel.app
+CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000,https://media-loader.example.com
 ```
 
-Restart the API after changing CORS configuration:
+Recreate the API after changing CORS configuration:
 
 ```powershell
-docker compose restart api
+docker compose up -d --force-recreate api
 ```
 
 ## Verification

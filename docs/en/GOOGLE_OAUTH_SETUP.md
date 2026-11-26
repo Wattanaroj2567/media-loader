@@ -76,11 +76,11 @@ public logs.
 In Supabase Dashboard → **Authentication** → **URL Configuration**:
 
 - Set **Site URL** to the deployed frontend origin for production, such as
-  `https://your-domain.vercel.app`.
+  `https://media-loader.example.com`.
 - Add the local callback to **Redirect URLs**:
   `http://localhost:3000/auth/callback`.
 - Add the production callback to **Redirect URLs**:
-  `https://your-domain.vercel.app/auth/callback`.
+  `https://media-loader.example.com/auth/callback`.
 
 Use the exact frontend domain and callback path. Supabase documents this list in
 its [Redirect URLs guide](https://supabase.com/docs/guides/auth/redirect-urls).

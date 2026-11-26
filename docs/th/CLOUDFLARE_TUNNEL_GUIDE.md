@@ -8,7 +8,7 @@
 ## สถาปัตยกรรม
 
 ```text
-Vercel Frontend
+Cloudflare Workers Frontend
     ↓ คำขอ API ผ่าน HTTPS
 Public hostname ของ Cloudflare
     ↓ encrypted outbound tunnel
@@ -75,8 +75,8 @@ pnpm tunnel
 คัดลอก URL จาก Terminal ผู้ที่มี URL นี้จะเข้าถึง API ได้ URL จะเปลี่ยน
 เมื่อหยุดแล้วเริ่ม process ใหม่
 
-หากทดสอบผ่าน Vercel ให้กำหนด URL ใน `NEXT_PUBLIC_FASTAPI_BASE_URL`
-ของ Vercel project แล้ว redeploy ตัวแปร public นี้ถูกรวมใน frontend build
+หากทดสอบผ่านเว็บ ให้ส่ง URL ชั่วคราวเป็น `NEXT_PUBLIC_FASTAPI_BASE_URL`
+ตอน build สำหรับทดสอบ
 
 ## วิธีที่ 2: Named Tunnel สำหรับ hostname คงที่
 
@@ -153,22 +153,22 @@ docker compose logs tunnel
 ถ้าต้องการทดสอบโดยไม่ใช้ named tunnel ให้เปลี่ยน command ของ tunnel ใน
 `docker-compose.yml` จาก `tunnel --no-autoupdate run --url http://api:8000`
 เป็น `tunnel --no-autoupdate --url http://api:8000` แล้วเริ่มบริการ คัดลอก
-HTTPS URL จาก log ไปกำหนดเป็น `NEXT_PUBLIC_FASTAPI_BASE_URL` ใน Vercel
-หลังเปลี่ยนค่านี้ต้อง redeploy Frontend และเปลี่ยน command กลับเมื่อทดสอบเสร็จ
+HTTPS URL จาก log ไปกำหนดเป็น `NEXT_PUBLIC_FASTAPI_BASE_URL` ตอน build
+สำหรับทดสอบ แล้วเปลี่ยน command กลับเมื่อทดสอบเสร็จ
 
 ## ตั้งค่า CORS
 
-เพิ่ม Vercel origin ที่ใช้งานจริงลงใน `CORS_ORIGINS` ของ environment
+เพิ่ม Workers frontend origin ที่ใช้งานจริงลงใน `CORS_ORIGINS` ของ environment
 ที่ API ใช้ เปลี่ยนโดเมนตัวอย่างให้เป็นโดเมน Frontend ที่ deploy แล้ว:
 
 ```env
-CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000,https://media-loader.vercel.app
+CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000,https://media-loader.example.com
 ```
 
-หลังแก้ CORS ให้ restart API:
+หลังแก้ CORS ให้ recreate API:
 
 ```powershell
-docker compose restart api
+docker compose up -d --force-recreate api
 ```
 
 ## ตรวจสอบการทำงาน

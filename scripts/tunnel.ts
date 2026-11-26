@@ -20,7 +20,7 @@ console.log('  Starting Cloudflare Quick Tunnel for Media Loader Backend');
 console.log(`  Forwarding HTTPS traffic to http://localhost:${port}`);
 console.log('============================================================\n');
 console.log("Tip: Copy the generated 'https://*.trycloudflare.com' URL and set it in:");
-console.log('     Vercel Dashboard -> Settings -> Environment Variables -> NEXT_PUBLIC_FASTAPI_BASE_URL\n');
+console.log('     NEXT_PUBLIC_FASTAPI_BASE_URL for a frontend test build\n');
 
 const child = spawn(cloudflaredCmd, ['tunnel', '--url', `http://localhost:${port}`], {
   stdio: 'inherit',

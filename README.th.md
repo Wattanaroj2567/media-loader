@@ -14,7 +14,7 @@
 <p align="center">
   <a href="docs/th/DEVELOPER_GUIDE.md">คู่มือนักพัฒนา</a> ·
   <a href="docs/th/ARCHITECTURE.md">สถาปัตยกรรม</a> ·
-  <a href="docs/th/VERCEL_SETUP.md">การติดตั้ง</a> ·
+  <a href="docs/th/CLOUDFLARE_DEPLOYMENT_GUIDE.md">การติดตั้ง</a> ·
   <a href="SECURITY.md">ความปลอดภัย</a>
 </p>
 
@@ -157,7 +157,6 @@ pnpm dev
 - [ตัวแปรสภาพแวดล้อม](docs/th/ENVIRONMENT_VARIABLES.md)
 - [คู่มือตั้งค่า Google OAuth](docs/th/GOOGLE_OAUTH_SETUP.md)
 - [แนวทางจัดการข้อมูลลับ](docs/th/SECRETS_PROTOCOL.md)
-- [การติดตั้งบน Vercel](docs/th/VERCEL_SETUP.md)
 - [การติดตั้งบน Cloudflare Workers และ R2](docs/th/CLOUDFLARE_DEPLOYMENT_GUIDE.md)
 - [การตั้งค่า Cloudflare Tunnel](docs/th/CLOUDFLARE_TUNNEL_GUIDE.md)
 - [แนวทางการร่วมพัฒนา (ภาษาอังกฤษ)](CONTRIBUTING.md)

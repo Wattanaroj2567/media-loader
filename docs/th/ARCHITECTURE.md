@@ -8,7 +8,7 @@ Media Loader แยกเว็บแอป, API, Worker และ egress proxy 
 เพื่อให้แต่ละบริการรับผิดชอบงานชัดเจน
 
 ```text
-apps/web      → เว็บแอป Next.js บน Vercel
+apps/web      → เว็บแอป Next.js บน Cloudflare Workers
 apps/api      → FastAPI สำหรับนโยบาย URL การวิเคราะห์ งาน และไฟล์
 apps/worker   → Python Worker สำหรับประมวลผลสื่อจากคิว
 apps/proxy    → Public-IP egress proxy สำหรับ request จาก URL ของผู้ใช้
@@ -41,14 +41,15 @@ Docker Compose ใช้เปิด API, Worker และ egress proxy สำ�
 โดยตรง request ที่มาจาก URL ผู้ใช้ต้องผ่าน proxy ซึ่งตรวจ DNS answers ทั้งหมดและ
 เชื่อมต่อไปยัง public IP ที่ตรวจแล้ว Compose ยังรันตัวตั้งสิทธิ์ output แบบครั้งเดียว
 โดยแยกเครือข่ายก่อนเปิด API เพื่อกำหนดเจ้าของโฟลเดอร์เป็น UID/GID `10001`
-ส่วน Vercel โฮสต์เฉพาะ Next.js และเรียก API ผ่าน HTTPS
+เว็บแอปอยู่บน Cloudflare Workers และเรียก API ผ่าน Cloudflare Tunnel ทาง HTTPS
 
 ```text
-apps/web บน Vercel       → HTTPS → FastAPI ใน container
+apps/web บน Workers      → Cloudflare Tunnel → FastAPI ใน container
 API ใน container         → checked egress proxy → public source hosts
 Worker ใน container      → checked egress proxy → public source hosts
-Worker ใน container      → ตรวจคิวและเขียนไฟล์ลง shared media volume
-FastAPI ใน container     → ส่งไฟล์ที่ผ่านการตรวจสิทธิ์จาก volume เดียวกัน
+Worker ใน container      → ตรวจคิวและอัปโหลดไฟล์ที่เสร็จแล้วเข้า R2 แบบส่วนตัว
+FastAPI ใน container     → ตรวจสิทธิ์เจ้าของงานและออก R2 URL อายุสั้น
+เบราว์เซอร์               → ดาวน์โหลดตรงจาก R2
 ```
 
 ## ทำไมต้องแยก Worker?
@@ -62,8 +63,7 @@ Worker รับผิดชอบ:
 - อัปเดตความคืบหน้าและสถานะงาน
 - ล้างไฟล์ชั่วคราวที่หมดอายุ
 
-การแยก Worker ทำให้งานประมวลผลหนักไม่อยู่ใน Vercel Functions หรือ
-Supabase Edge Functions
+Docker worker ประมวลผลสื่อแยกจากเว็บแอปและ Supabase
 
 ## ลำดับการทำงาน
 
@@ -302,7 +302,7 @@ API อนุญาตให้หยุดชั่วคราวเฉพา�
   ของ API/Worker ใน deployment
 - ตั้ง `MEDIA_URL_ENCRYPTION_KEY` ค่าเดียวกันและเก็บอย่างปลอดภัยให้ API กับ Worker
 - ต้องให้ผู้ใช้ยืนยันสิทธิ์เมื่อสร้างงาน
-- ประมวลผลสื่อใน Worker นอก Vercel Functions
+- ประมวลผลสื่อใน Docker worker
 - โหมด local temp ต้องให้ API และ Worker ใช้ output volume ร่วมกัน
 - จำกัดงานใหม่และไฟล์ตามเจ้าของที่ล็อกอิน และตรวจเจ้าของของ guest session เดิม
 - ห้ามเปิดเผย service-role key ในโค้ดเบราว์เซอร์
