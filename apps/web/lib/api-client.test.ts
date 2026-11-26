@@ -189,6 +189,36 @@ test("ApiClient fetches direct download token and builds direct URL", async () =
   );
 });
 
+test("ApiClient returns absolute R2 presigned download URLs directly", async () => {
+  const presigned =
+    "https://acct.r2.cloudflarestorage.com/media-downloads/jobs/job-r2/clip.mp4?X-Amz-Signature=abc";
+  const client = new ApiClient(
+    "http://api.test",
+    async () => "access-token",
+    async (url) => {
+      if (String(url).includes("/files/token/job-r2")) {
+        return new Response(
+          JSON.stringify({
+            ok: true,
+            data: {
+              job_id: "job-r2",
+              download_token: "signed-token-xyz",
+              download_url: presigned,
+              storage_mode: "r2",
+              expires_in: 300,
+            },
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } }
+        );
+      }
+      return new Response("not found", { status: 404 });
+    }
+  );
+
+  const directUrl = await client.getDirectDownloadUrl("job-r2");
+  assert.equal(directUrl, presigned);
+});
+
 test("ApiClient analyzes before rights confirmation", async () => {
   let body = "";
   const client = new ApiClient(

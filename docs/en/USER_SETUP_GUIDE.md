@@ -29,10 +29,10 @@ Keep them out of frontend variables, chat, and Git.
 
 ## 2. Configure Local Environment
 
-1. Copy the example file to the local environment file:
+1. Create the local environment file from the example. Run it again whenever `.env.example` gains new variables; it only appends missing names and never changes or prints existing values:
 
    ```bash
-   cp .env.example .env.local
+   pnpm env:sync
    ```
 
 2. Enter the values locally. Do not paste real values into chat or documentation.

@@ -42,9 +42,17 @@ class Settings(BaseSettings):
 
     # Media output
     media_output_mode: str = "local_temp"
+    media_storage_bucket: str = "media-downloads"
     temp_dir: str = "tmp/media-loader"
     max_file_size_mb: int = 500
     temp_file_retention_minutes: int = 60
+
+    # Cloudflare R2 (used when MEDIA_OUTPUT_MODE=r2 or reading R2-backed jobs)
+    r2_account_id: str = ""
+    r2_endpoint_url: str = ""
+    r2_access_key_id: str = ""
+    r2_secret_access_key: str = ""
+    r2_presigned_url_ttl_seconds: int = 300
 
     @property
     def resolved_temp_dir(self) -> Path:
@@ -115,6 +123,16 @@ class Settings(BaseSettings):
     def has_supabase(self) -> bool:
         """Check if Supabase credentials are configured (without printing them)."""
         return bool(self.supabase_url) and bool(self.supabase_service_role_key)
+
+    def has_r2(self) -> bool:
+        """Check if Cloudflare R2 credentials are configured (without printing them)."""
+        has_endpoint = bool(self.r2_endpoint_url.strip() or self.r2_account_id.strip())
+        return (
+            has_endpoint
+            and bool(self.r2_access_key_id.strip())
+            and bool(self.r2_secret_access_key.strip())
+            and bool(self.media_storage_bucket.strip())
+        )
 
 
 @lru_cache

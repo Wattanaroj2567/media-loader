@@ -13,6 +13,7 @@ from typing import Any
 from app.config import get_settings
 from app.errors import AppError
 from app.file_service import delete_local_output, local_output_exists
+from app.r2_storage import delete_r2_object
 from app.supabase_client import get_supabase_client
 from app.url_storage import (
     UrlStorageError,
@@ -152,17 +153,23 @@ def _normalize_job(job: dict, *, include_internal: bool = False) -> dict:
         job["total_size_mb"] = round(job["total_bytes_estimate"] / (1024 * 1024), 2)
     if "selected_format_id" in job and "selected_format" not in job:
         job["selected_format"] = job["selected_format_id"]
+    storage_bucket = job.get("storage_bucket")
     storage_path = job.get("storage_path")
-    # Local output metadata can remain after retention cleanup. Do not expose a
-    # share/download action until the owner-scoped file is still deliverable.
-    job["file_available"] = local_output_exists(
-        storage_path,
-        get_settings().resolved_temp_dir,
-    )
+    settings = get_settings()
+    if storage_bucket:
+        job["file_available"] = bool(storage_path and settings.has_r2())
+    else:
+        # Local output metadata can remain after retention cleanup. Do not expose a
+        # share/download action until the owner-scoped file is still deliverable.
+        job["file_available"] = local_output_exists(
+            storage_path,
+            settings.resolved_temp_dir,
+        )
     if storage_path:
         job["output_filename"] = Path(storage_path).name
     if include_internal:
         job["output_path"] = storage_path
+        job["output_bucket"] = storage_bucket
     else:
         job.pop("storage_path", None)
         job.pop("storage_bucket", None)
@@ -331,7 +338,10 @@ def delete_job(
             "กรุณายกเลิกงานที่กำลังทำงานก่อนลบ",
         )
     try:
-        delete_local_output(job.get("output_path"), temp_root)
+        if job.get("output_bucket"):
+            delete_r2_object(job.get("output_bucket"), job.get("output_path"))
+        else:
+            delete_local_output(job.get("output_path"), temp_root)
     except AppError as error:
         if error.code != "UNSAFE_FILE_PATH":
             raise

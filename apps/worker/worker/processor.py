@@ -29,6 +29,11 @@ from worker.job_queue import (
     update_job_progress,
     update_job_status,
 )
+from worker.r2_storage import (
+    build_r2_object_key,
+    delete_r2_object,
+    upload_file_to_r2,
+)
 from worker.url_storage import UrlStorageError, decrypt_url, safe_url_reference
 
 logger = logging.getLogger("media_loader_worker.processor")
@@ -937,11 +942,41 @@ async def process_job(job: dict) -> bool:
             return False
 
         # Update job with output file info
+        file_size = output_file.stat().st_size
+        if settings.is_r2_mode:
+            if not settings.has_r2():
+                raise RuntimeError("MEDIA_OUTPUT_MODE=r2 requires R2 credentials")
+            if is_job_cancelled(job_id):
+                raise JobCancelled(f"Job {job_id} was cancelled")
+            update_job_status(job_id, "UPLOADING")
+            object_key = build_r2_object_key(job_id, output_file.name)
+            bucket = settings.media_storage_bucket.strip()
+            await asyncio.to_thread(
+                upload_file_to_r2,
+                output_file,
+                bucket=bucket,
+                key=object_key,
+            )
+            if not update_job_status(
+                job_id,
+                "COMPLETED",
+                storage_bucket=bucket,
+                storage_path=object_key,
+                file_size=file_size,
+                progress=100,
+                completed_at=datetime.now(timezone.utc).isoformat(),
+            ):
+                await asyncio.to_thread(delete_r2_object, bucket, object_key)
+                raise RuntimeError("Could not persist completed R2 output")
+            # Local temp dir is cleaned up in finally once uploaded to R2.
+            logger.info("Job %s completed and uploaded to R2 (%s)", job_id, object_key)
+            return True
+
         if not update_job_status(
             job_id,
             "COMPLETED",
             storage_path=str(output_file),
-            file_size=output_file.stat().st_size,
+            file_size=file_size,
             progress=100,
             completed_at=datetime.now(timezone.utc).isoformat(),
         ):

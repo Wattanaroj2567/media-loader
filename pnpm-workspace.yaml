@@ -27,12 +27,14 @@ allowBuilds:
   esbuild: true
   sharp: true
   unrs-resolver: true
+  workerd: true
 
 # Allow these packages to run post-install build scripts across the workspace
 onlyBuiltDependencies:
   - sharp
   - unrs-resolver
   - esbuild
+  - workerd
 
 patchedDependencies:
   drizzle-kit: patches/drizzle-kit.patch

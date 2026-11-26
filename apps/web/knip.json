@@ -2,7 +2,16 @@
   "$schema": "https://unpkg.com/knip@5/schema.json",
   "project": ["app/**/*.{ts,tsx}", "components/**/*.{ts,tsx}", "lib/**/*.{ts,tsx}"],
   "ignore": ["components/ui/**"],
-  "ignoreDependencies": ["tw-animate-css", "drizzle-orm", "postgres", "shadcn"],
+  "ignoreDependencies": [
+    "tw-animate-css",
+    "drizzle-orm",
+    "postgres",
+    "shadcn",
+    "@vitejs/plugin-react",
+    "@vitejs/plugin-rsc",
+    "react-server-dom-webpack",
+    "wrangler"
+  ],
   "rules": {
     "exports": "warn",
     "types": "warn"

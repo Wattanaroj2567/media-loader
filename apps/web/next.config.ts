@@ -2,9 +2,12 @@ import type { NextConfig } from "next";
 import path from "path";
 import fs from "fs";
 import os from "os";
+import { fileURLToPath } from "url";
+
+const currentDir = path.dirname(fileURLToPath(import.meta.url));
 
 // Load monorepo root .env.local manually to populate process.env in the monorepo context
-const rootEnvPath = path.resolve(__dirname, "../../.env.local");
+const rootEnvPath = path.resolve(currentDir, "../../.env.local");
 if (process.env.MEDIA_LOADER_SKIP_ENV_FILES !== "1" && fs.existsSync(rootEnvPath)) {
   const content = fs.readFileSync(rootEnvPath, "utf8");
   for (const line of content.split("\n")) {
@@ -48,7 +51,7 @@ try {
 
 const nextConfig: NextConfig = {
   turbopack: {
-    root: path.resolve(__dirname, "../../"),
+    root: path.resolve(currentDir, "../../"),
   },
   allowedDevOrigins: devOrigins,
   // Allow e2e tests to run an isolated dev instance with its own build dir

@@ -9,7 +9,7 @@ import logging
 import signal
 import sys
 
-from worker.cleanup import cleanup_expired_outputs
+from worker.cleanup import cleanup_expired_outputs, cleanup_expired_r2_outputs
 from worker.config import get_settings
 from worker.job_queue import (
     get_job_status,
@@ -48,6 +48,11 @@ async def worker_loop():
     """Main worker loop that polls and processes jobs."""
     if settings.has_supabase() and not settings.media_url_encryption_key.strip():
         raise RuntimeError("MEDIA_URL_ENCRYPTION_KEY must be configured for the worker")
+    if settings.is_r2_mode and not settings.has_r2():
+        raise RuntimeError(
+            "MEDIA_OUTPUT_MODE=r2 requires R2_ACCOUNT_ID (or R2_ENDPOINT_URL), "
+            "R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, and MEDIA_STORAGE_BUCKET"
+        )
     logger.info(f"Worker {settings.worker_id} starting...")
     logger.info(f"Worker pool: {settings.resolved_worker_pool}")
     js_runtime = settings.resolved_js_runtime
@@ -75,6 +80,11 @@ async def worker_loop():
                     settings.resolved_temp_dir,
                     settings.temp_file_retention_minutes,
                 )
+                if settings.is_r2_mode and settings.has_r2():
+                    await asyncio.to_thread(
+                        cleanup_expired_r2_outputs,
+                        settings.temp_file_retention_minutes,
+                    )
                 last_cleanup_at = loop.time()
 
             # Poll for a queued job

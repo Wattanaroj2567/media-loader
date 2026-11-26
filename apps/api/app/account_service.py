@@ -7,6 +7,7 @@ from pathlib import Path
 from app.errors import AppError
 from app.file_service import delete_local_output
 from app.job_service import CANCELLABLE_STATUSES
+from app.r2_storage import delete_r2_object
 from app.supabase_client import get_supabase_client
 
 logger = logging.getLogger("media_loader_api.account_service")
@@ -19,7 +20,7 @@ def delete_account(user_id: str, *, temp_root: str | Path) -> None:
     try:
         result = (
             supabase.table("download_jobs")
-            .select("id,status,storage_path")
+            .select("id,status,storage_bucket,storage_path")
             .eq("user_id", user_id)
             .execute()
         )
@@ -38,7 +39,10 @@ def delete_account(user_id: str, *, temp_root: str | Path) -> None:
                     .execute()
                 )
             try:
-                delete_local_output(job.get("storage_path"), temp_root)
+                if job.get("storage_bucket"):
+                    delete_r2_object(job.get("storage_bucket"), job.get("storage_path"))
+                else:
+                    delete_local_output(job.get("storage_path"), temp_root)
             except AppError:
                 logger.warning("Skipped unsafe output while deleting account")
         supabase.auth.admin.delete_user(user_id)
