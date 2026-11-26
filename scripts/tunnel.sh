@@ -18,7 +18,7 @@ echo "  Forwarding HTTPS traffic to http://localhost:${PORT}"
 echo "============================================================"
 echo ""
 echo "Tip: Copy the generated 'https://*.trycloudflare.com' URL and set it in:"
-echo "     Vercel Dashboard -> Settings -> Environment Variables -> NEXT_PUBLIC_FASTAPI_BASE_URL"
+echo "     NEXT_PUBLIC_FASTAPI_BASE_URL for a frontend test build"
 echo ""
 
 exec cloudflared tunnel --url "http://localhost:${PORT}"

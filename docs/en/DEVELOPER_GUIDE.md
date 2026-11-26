@@ -226,7 +226,6 @@ Detailed domain-specific specifications are available in this directory:
 | **[SUPABASE_RLS_POLICY.md](SUPABASE_RLS_POLICY.md)** | Row Level Security (RLS) policies for user data isolation. |
 | **[ENVIRONMENT_VARIABLES.md](ENVIRONMENT_VARIABLES.md)** | Full listing of required and optional environment variables. |
 | **[GOOGLE_OAUTH_SETUP.md](GOOGLE_OAUTH_SETUP.md)** | Guide to configuring Google OAuth in Supabase Dashboard. |
-| **[VERCEL_SETUP.md](VERCEL_SETUP.md)** | Guide to deploying the Next.js frontend to Vercel. |
 | **[CLOUDFLARE_DEPLOYMENT_GUIDE.md](CLOUDFLARE_DEPLOYMENT_GUIDE.md)** | Guide to deploying `apps/web` to Cloudflare Workers (`vinext`) and configuring Cloudflare R2 direct delivery. |
 | **[SECRETS_PROTOCOL.md](SECRETS_PROTOCOL.md)** | Zero-secret leakage protocol for developers and AI agents. |
 

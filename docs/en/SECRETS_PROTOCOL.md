@@ -86,8 +86,8 @@ Never use this prefix for secrets; keep private values server-side.
 ### Backend-only credentials
 
 Keep Supabase service credentials and other private runtime configuration on
-the API/worker host. `SUPABASE_SERVICE_ROLE_KEY` must never be set in the Vercel
-frontend project.
+the API/worker host. `SUPABASE_SERVICE_ROLE_KEY` must never be set in the
+Cloudflare Workers frontend project.
 
 `DATABASE_URL` is used by Drizzle Kit tooling and should be supplied only to the
 environment that runs those commands. The current `WORKER_SECRET` is checked
@@ -99,7 +99,7 @@ provider dashboard. Do not put the Client Secret in frontend configuration or
 repository files.
 
 See [Environment Variables](ENVIRONMENT_VARIABLES.md) for the current variable
-inventory and [Vercel Setup](VERCEL_SETUP.md) for frontend deployment.
+inventory and [Cloudflare deployment guide](CLOUDFLARE_DEPLOYMENT_GUIDE.md) for frontend deployment.
 
 ---
 

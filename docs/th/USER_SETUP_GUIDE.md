@@ -69,10 +69,10 @@ Frontend, แชต หรือ Git
 ใน Supabase Dashboard → **Authentication** → **URL Configuration**:
 
 - เมื่อนำแอปขึ้นใช้งาน ให้ตั้ง **Site URL** เป็น Production Origin ของ Frontend
-  เช่น `https://your-domain.vercel.app`
+  เช่น `https://media-loader.example.com`
 - เพิ่ม Callback URL ของแอปที่อนุญาตแต่ละ URL ใน **Redirect URLs**:
   - พัฒนาในเครื่อง: `http://localhost:3000/auth/callback`
-  - Production: `https://your-domain.vercel.app/auth/callback`
+  - Production: `https://media-loader.example.com/auth/callback`
 
 หากพัฒนาในเครื่องอย่างเดียว สามารถใช้ `http://localhost:3000` เป็น Site URL
 ได้ เมื่อนำขึ้นใช้งานจริง ให้เปลี่ยน Site URL เป็น Production Origin
@@ -114,25 +114,11 @@ pnpm --filter web db:push
 
 ---
 
-## 7. Deploy Frontend บน Vercel
+## 7. Deploy Frontend บน Cloudflare Workers
 
-1. Import Repository เข้า Vercel
-2. คง **Root Directory** ไว้ที่ไดเรกทอรีหลักของ Repository เพราะ `vercel.json`
-   ที่ Root ใช้ตั้งค่า pnpm monorepo build
-3. ตั้งค่าตัวแปร Frontend ที่เปิดเผยได้ใน Vercel:
-
-   ```env
-   NEXT_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=your-public-anon-key
-   NEXT_PUBLIC_FASTAPI_BASE_URL=https://your-backend-api-domain.com
-   ```
-
-4. Deploy จากนั้น deploy API และ Worker แยกกัน และตั้งค่า CORS ของ API ให้
-   อนุญาต Production Origin ของ Vercel
-
-Production ต้องใช้ HTTPS URL ของ Backend ที่เข้าถึงได้จากภายนอก ค่า `localhost`
-ใช้ได้เฉพาะการพัฒนาในเครื่อง ดูรายละเอียดที่ [คู่มือ Vercel](VERCEL_SETUP.md)
-ห้ามตั้ง service-role key ในโปรเจกต์ Frontend บน Vercel
+ทำตาม [คู่มือ Cloudflare Workers และ R2](CLOUDFLARE_DEPLOYMENT_GUIDE.md)
+สำหรับ build เว็บ, URL ของ API, Supabase redirect และ CORS ใช้ API URL แบบ HTTPS
+ที่เข้าถึงได้จากภายนอกสำหรับ production และเก็บ credentials ส่วนตัวไว้ที่ Backend
 
 ---
 

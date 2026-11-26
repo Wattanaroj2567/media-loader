@@ -18,7 +18,7 @@ Write-Host "  Forwarding HTTPS traffic to http://localhost:$Port" -ForegroundCol
 Write-Host "============================================================" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "Tip: Copy the generated 'https://*.trycloudflare.com' URL and set it in:" -ForegroundColor Yellow
-Write-Host "     Vercel Dashboard -> Settings -> Environment Variables -> NEXT_PUBLIC_FASTAPI_BASE_URL" -ForegroundColor Yellow
+Write-Host "     NEXT_PUBLIC_FASTAPI_BASE_URL for a frontend test build" -ForegroundColor Yellow
 Write-Host ""
 
 & $cloudflared.Source tunnel --url "http://localhost:$Port"

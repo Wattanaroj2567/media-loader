@@ -23,7 +23,6 @@ docs/
 │   ├── CLOUDFLARE_TUNNEL_GUIDE.md # Cloudflare Tunnel Setup Guide
 │   ├── ENVIRONMENT_VARIABLES.md# Env Variable Reference
 │   ├── GOOGLE_OAUTH_SETUP.md # Google OAuth Configuration
-│   ├── VERCEL_SETUP.md       # Vercel Deployment Guide
 │   └── SECRETS_PROTOCOL.md   # Zero-leakage Secrets Guidelines
 └── th/                       # Thai Documentation (คู่มือภาษาไทย)
     ├── DEVELOPER_GUIDE.md    # ศูนย์รวมคู่มือพัฒนา และ Sequence Diagram
@@ -37,6 +36,5 @@ docs/
     ├── CLOUDFLARE_TUNNEL_GUIDE.md # คู่มือการตั้งค่า Cloudflare Tunnel
     ├── ENVIRONMENT_VARIABLES.md# รายการตัวแปรสภาพแวดล้อม
     ├── GOOGLE_OAUTH_SETUP.md # คู่มือการตั้งค่า Google OAuth
-    ├── VERCEL_SETUP.md       # คู่มือการ Deploy บน Vercel
     └── SECRETS_PROTOCOL.md   # โปรโตคอลการรักษาความปลอดภัยของรหัสผ่าน
 ```

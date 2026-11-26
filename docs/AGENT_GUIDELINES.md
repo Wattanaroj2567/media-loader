@@ -51,7 +51,6 @@ Before changing a domain, read its specification. Thai equivalents are under `do
 | Environment variable definitions | [docs/en/ENVIRONMENT_VARIABLES.md](en/ENVIRONMENT_VARIABLES.md)     |
 | Secrets protocol                 | [docs/en/SECRETS_PROTOCOL.md](en/SECRETS_PROTOCOL.md)               |
 | Google OAuth                     | [docs/en/GOOGLE_OAUTH_SETUP.md](en/GOOGLE_OAUTH_SETUP.md)           |
-| Vercel deployment                | [docs/en/VERCEL_SETUP.md](en/VERCEL_SETUP.md)                       |
 
 ## Verification and completion
 

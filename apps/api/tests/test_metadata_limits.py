@@ -7,6 +7,7 @@ import pytest
 from yt_dlp.extractor.common import InfoExtractor
 from yt_dlp.networking.common import Response
 from yt_dlp.networking.exceptions import HTTPError
+from yt_dlp.utils import DownloadError
 
 import app.yt_dlp_service as service
 from app.errors import AppError
@@ -105,6 +106,43 @@ def test_real_downloader_wraps_responses_and_does_not_retry_oversized_html(monke
     assert error.value.code == "ANALYSIS_FAILED"
     assert len(streams) == 1
     assert streams[0].bytes_read == 65
+
+
+@pytest.mark.parametrize(
+    ("message", "expected_attempts"),
+    [
+        ("ERROR: [youtube] test: Requested format is not available.", 1),
+        ("ERROR: [youtube] test: HTTP Error 429: Too Many Requests", 3),
+    ],
+)
+def test_youtube_metadata_retry_distinguishes_missing_formats(
+    monkeypatch, message, expected_attempts
+):
+    monkeypatch.setattr(
+        service,
+        "get_settings",
+        lambda: SimpleNamespace(
+            media_egress_proxy="http://proxy.example:3128", resolved_js_runtime=None
+        ),
+    )
+    attempts = 0
+    delays = []
+
+    def fail_extraction(_self, _url, *, download):
+        nonlocal attempts
+        assert download is False
+        attempts += 1
+        raise DownloadError(message)
+
+    monkeypatch.setattr(service.yt_dlp.YoutubeDL, "extract_info", fail_extraction)
+    monkeypatch.setattr(service.time, "sleep", delays.append)
+
+    with pytest.raises(AppError) as error:
+        asyncio.run(service.extract_metadata("https://www.youtube.com/watch?v=test"))
+
+    assert error.value.code == "ANALYSIS_FAILED"
+    assert attempts == expected_attempts
+    assert delays == [5] * (expected_attempts - 1)
 
 
 def test_metadata_response_at_exact_limit_is_accepted(monkeypatch):

@@ -72,11 +72,11 @@ Google จะแสดง **Client ID** และ **Client Secret** ใน Supab
 ใน Supabase Dashboard → **Authentication** → **URL Configuration**:
 
 - ตั้ง **Site URL** เป็น Frontend Origin ที่ deploy แล้วสำหรับ Production เช่น
-  `https://your-domain.vercel.app`
+  `https://media-loader.example.com`
 - เพิ่ม callback สำหรับพัฒนาในเครื่องใน **Redirect URLs**:
   `http://localhost:3000/auth/callback`
 - เพิ่ม callback สำหรับ Production ใน **Redirect URLs**:
-  `https://your-domain.vercel.app/auth/callback`
+  `https://media-loader.example.com/auth/callback`
 
 ใช้โดเมนและ callback path ที่ตรงกับแอป ดูรายละเอียดใน
 [คู่มือ Redirect URLs ของ Supabase](https://supabase.com/docs/guides/auth/redirect-urls)

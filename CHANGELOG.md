@@ -6,6 +6,7 @@ High-level summary of Media Loader's commit history from the initial commit on 2
 
 ### Fixed
 
+- Stop retrying YouTube metadata extraction when yt-dlp reports that the requested format is unavailable, avoiding two redundant attempts and their retry delays.
 - Clarify the signup follow-up in Thai and English and link to sign-in and password recovery without disclosing whether the email already belongs to an account.
 - Open the reset-password form in the shared Auth dialog on desktop after the recovery callback. Preserve the mobile form, password input during viewport changes, and sign-out retry after a successful password update.
 - Probe Supabase with a zero-row `profiles` query instead of the OpenAPI root, which now rejects anon/publishable keys; retain RLS and avoid fetching user records or requiring elevated keys.
@@ -23,6 +24,7 @@ High-level summary of Media Loader's commit history from the initial commit on 2
 
 ### Changed
 
+- Documented example values and where to find them for runtime paths, R2, and Web Push in `.env.example`.
 - Clarified Cloudflare Workers build variable placement and Docker Compose recreation after backend CORS changes in both deployment guides.
 - Replaced the English and Thai architecture illustrations and aligned their README descriptions with the Cloudflare Workers frontend, Docker processing, and owner-checked browser delivery from private R2.
 - Updated `apps/web/lib/api-client.ts` and `apps/web/app/api/files/download/[jobId]/route.ts` to use absolute R2 presigned URLs directly and forward `307` redirects without proxying media bytes through web server functions.
@@ -39,6 +41,10 @@ High-level summary of Media Loader's commit history from the initial commit on 2
 - Disabled Dependabot monthly version updates across all package ecosystems, restricting automated PRs to security advisories only.
 - Consolidated routine dependency updates for Next.js 16.4.5, Supabase JS 2.119.0, Lucide React 1.70.0, and updated lockfile.
 - Adopted GitHub Flow, standardizing on `master` with short-lived PR branches and retargeting CI, CodeQL, and Dependabot workflows from `develop` to `master`.
+
+### Removed
+
+- Retired the Vercel deployment configuration, starter asset, and configuration test. Updated setup guides and tunnel scripts to use Cloudflare Workers and R2.
 
 ## 2026-11-09
 
