@@ -13,6 +13,10 @@ Loader application.
 Allow users to sign in to the Next.js application with Google through Supabase
 Auth, without placing Google credentials in browser code.
 
+Supabase automatically links Google to the existing account when the verified
+email matches. The account page shows Google's connection status under
+**Sign-in methods**, alongside email verification and password setup guidance.
+
 ---
 
 ## Step 1 — Open Google Auth Platform

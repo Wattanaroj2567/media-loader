@@ -13,12 +13,12 @@ const fakeUser = {
   user_metadata: { full_name: "Settings Test User" },
 };
 
-function fakeJwt() {
+function fakeJwt(userId: string) {
   const encode = (value: object) =>
     Buffer.from(JSON.stringify(value)).toString("base64url");
   const now = Math.floor(Date.now() / 1000);
   return `${encode({ alg: "HS256", typ: "JWT" })}.${encode({
-    sub: fakeUser.id,
+    sub: userId,
     aud: "authenticated",
     role: "authenticated",
     exp: now + 7200,
@@ -27,18 +27,21 @@ function fakeJwt() {
   })}.fakesignature`;
 }
 
-async function seedAuth(context: {
-  addCookies: (
-    cookies: { name: string; value: string; url: string }[]
-  ) => Promise<void>;
-}) {
+async function seedAuth(
+  context: {
+    addCookies: (
+      cookies: { name: string; value: string; url: string }[]
+    ) => Promise<void>;
+  },
+  userId = fakeUser.id
+) {
   const session = {
-    access_token: fakeJwt(),
+    access_token: fakeJwt(userId),
     token_type: "bearer",
     expires_in: 3600,
     expires_at: Math.floor(Date.now() / 1000) + 3600,
     refresh_token: "fake-refresh-token",
-    user: fakeUser,
+    user: { ...fakeUser, id: userId },
   };
   const value = "base64-" + Buffer.from(JSON.stringify(session)).toString("base64url");
   await context.addCookies([{ name: SESSION_COOKIE, value, url: APP_ORIGIN }]);
@@ -49,13 +52,21 @@ test.describe("Account Settings Page UI", () => {
     await mockEmptyJobs(page);
   });
 
-  test("Google OAuth badge meets WCAG AA text contrast", async ({ page, context }) => {
+  test("Google connection status meets WCAG AA text contrast", async ({
+    page,
+    context,
+  }) => {
     await seedAuth(context);
+    await context.addCookies([
+      { name: "media-loader-locale", value: "en", url: APP_ORIGIN },
+    ]);
     await page.emulateMedia({ colorScheme: "dark" });
     await page.goto("/settings");
 
-    const badge = page.getByText("Google OAuth", { exact: true });
-    const colors = await badge.evaluate((element) => {
+    const status = page
+      .getByRole("region", { name: "Sign-in methods" })
+      .getByText("Connected", { exact: true });
+    const colors = await status.evaluate((element) => {
       const parse = (value: string) => {
         const canvas = document.createElement("canvas");
         canvas.width = canvas.height = 1;
@@ -117,6 +128,30 @@ test.describe("Account Settings Page UI", () => {
       `foreground ${colors.foreground}, composited background ${colors.background}`
     ).toBeGreaterThanOrEqual(4.5);
   });
+
+  for (const [userId, googleStatus] of [
+    ["user-settings-email-only", "Not connected"],
+    ["user-settings-linked", "Connected"],
+  ]) {
+    test(`shows Google as ${googleStatus.toLowerCase()} for ${userId}`, async ({
+      page,
+      context,
+    }) => {
+      await seedAuth(context, userId);
+      await context.addCookies([
+        { name: "media-loader-locale", value: "en", url: APP_ORIGIN },
+      ]);
+      await page.goto("/settings");
+
+      await expect(
+        page.getByRole("heading", { name: "Profile", exact: true })
+      ).toBeVisible();
+      const methods = page.getByRole("region", { name: "Sign-in methods" });
+      await expect(methods.getByText(googleStatus, { exact: true })).toBeVisible();
+      await expect(methods.getByText("Email verified", { exact: true })).toBeVisible();
+      await expect(methods.getByText(/to set or reset it/i)).toBeVisible();
+    });
+  }
 
   test("should render settings page container and account sections", async ({
     page,
