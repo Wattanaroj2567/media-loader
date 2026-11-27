@@ -232,6 +232,28 @@ def test_get_file_size_mb_uses_actual_file_size(tmp_path):
     assert get_file_size_mb(output) == 2
 
 
+@pytest.mark.parametrize("bitrate", [None, 128, 192])
+def test_convert_to_mp3_applies_output_preset(monkeypatch, tmp_path, bitrate):
+    output = tmp_path / "output.mp3"
+
+    async def fake_ffmpeg(command, **_kwargs):
+        if bitrate is None:
+            assert command[command.index("-qscale:a") + 1] == "0"
+            assert "-b:a" not in command
+        else:
+            assert command[command.index("-b:a") + 1] == f"{bitrate}k"
+            assert "-qscale:a" not in command
+        output.write_bytes(b"mp3")
+        return True
+
+    monkeypatch.setattr(processor, "_run_cancellable_command", fake_ffmpeg)
+    assert asyncio.run(
+        processor.convert_to_mp3(
+            tmp_path / "source.wav", output, job_id="mp3-job", bitrate_kbps=bitrate
+        )
+    )
+
+
 def test_terminal_status_prevents_worker_overwriting_cancelled_job():
     assert is_terminal_status("CANCELLED") is True
     assert is_terminal_status("COMPLETED") is True

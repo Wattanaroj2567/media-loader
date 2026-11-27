@@ -130,6 +130,22 @@ def test_list_and_get_jobs_are_always_user_scoped(monkeypatch, jobs):
     assert get_job("job-u2", user_id="user-2")["id"] == "job-u2"
 
 
+def test_list_and_get_jobs_reject_non_object_rows(monkeypatch):
+    database = InMemorySupabase([])
+    monkeypatch.setattr("app.job_service.get_supabase_client", lambda: database)
+    monkeypatch.setattr(
+        InMemoryQuery, "execute", lambda _: Result([[["id", "unexpected"]]])
+    )
+
+    with pytest.raises(AppError) as list_error:
+        list_jobs(user_id="user-1")
+    assert list_error.value.code == "JOB_LIST_FAILED"
+
+    with pytest.raises(AppError) as read_error:
+        get_job("unexpected", user_id="user-1")
+    assert read_error.value.code == "JOB_READ_FAILED"
+
+
 def test_history_search_includes_source_domain_and_output_filename(
     monkeypatch,
     jobs,

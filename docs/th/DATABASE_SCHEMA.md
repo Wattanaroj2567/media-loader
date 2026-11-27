@@ -44,6 +44,7 @@ Supabase PostgreSQL เป็นฐานข้อมูลหลักของ
 | `selected_quality` | text | ข้อความแสดงความละเอียดที่เลือก |
 | `selected_has_audio` | boolean | ฟอร์แมตวิดีโอที่เลือกมีเสียงในตัวหรือไม่ |
 | `output_format` | text | ฟอร์แมตไฟล์ผลลัพธ์ (mp4, mp3, gif, original) |
+| `mp3_bitrate_kbps` | integer | บิตเรตคงที่ของ MP3 (128 หรือ 192) ค่า null ใช้การตั้งค่าเริ่มต้น |
 | `status` | text | สถานะงานปัจจุบัน |
 | `progress` | integer | ความคืบหน้า (0-100%) |
 | `error_message` | text | ข้อความแสดงข้อผิดพลาดที่ปลอดภัย |

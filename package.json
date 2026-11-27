@@ -31,6 +31,7 @@
     "lint:web": "pnpm --filter web lint",
     "lint:api": "uv run --no-sync --directory apps/api ruff check .",
     "lint:worker": "uv run --no-sync --directory apps/worker ruff check .",
+    "check:imports": "uv run --no-sync --directory apps/api node ../../node_modules/pyright/index.js && uv run --no-sync --directory apps/worker node ../../node_modules/pyright/index.js",
     "lint:md": "markdownlint-cli2 \"**/*.md\"",
     "lint:md:fix": "markdownlint-cli2 --fix \"**/*.md\"",
     "format": "pnpm format:web && pnpm format:api && pnpm format:worker",
@@ -56,6 +57,7 @@
     "@types/node": "^26.6.6",
     "concurrently": "^10.0.4",
     "markdownlint-cli2": "^0.24.0",
+    "pyright": "1.1.414",
     "tsx": "^4.23.15",
     "typescript": "^5.0.0"
   },

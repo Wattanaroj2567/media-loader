@@ -1,0 +1,1 @@
+ALTER TABLE "download_jobs" ADD COLUMN "mp3_bitrate_kbps" integer;

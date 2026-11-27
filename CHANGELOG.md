@@ -6,6 +6,12 @@ High-level summary of Media Loader's commit history from the initial commit on 2
 
 ### Fixed
 
+- Validate download-job rows before account deletion starts cleanup, so malformed data cannot leave jobs partially cancelled or remove their output files.
+- Validate that download-job rows are JSON objects before normalizing them in the API.
+- Match the API error handler signature to Starlette and check argument types at registration with Pyright.
+- Match the IP policy's address type to the values accepted by `ip_address` and check argument types in the policy module with Pyright.
+- Fix type-checking errors in the API metadata extractor while preserving repeated HTTP headers and response size limits.
+- Restore YouTube metadata extraction by updating yt-dlp to 2026.11.23 in the API and worker lockfiles.
 - Stop retrying YouTube metadata extraction when yt-dlp reports that the requested format is unavailable, avoiding two redundant attempts and their retry delays.
 - Clarify the signup follow-up in Thai and English and link to sign-in and password recovery without disclosing whether the email already belongs to an account.
 - Open the reset-password form in the shared Auth dialog on desktop after the recovery callback. Preserve the mobile form, password input during viewport changes, and sign-out retry after a successful password update.
@@ -15,6 +21,8 @@ High-level summary of Media Loader's commit history from the initial commit on 2
 
 ### Added
 
+- Add high-quality VBR, 192 kbps, and 128 kbps MP3 output options for any selectable audio source, with a Drizzle migration to persist fixed bitrates in the queue.
+- Added a Pyright import check for the API and worker in local development and CI.
 - Added Cloudflare R2 storage and direct presigned-URL delivery (`MEDIA_OUTPUT_MODE=r2`) across `apps/worker` (`worker/r2_storage.py`, `UPLOADING` status, automatic R2 retention cleanup) and `apps/api` (`app/r2_storage.py`, presigned download tokens, `307` download redirects, R2 object deletion on file/job/account removal), keeping `local_temp` as the local development default.
 - Added Cloudflare Workers deployment support for `apps/web` via `vinext`, `@cloudflare/vite-plugin`, `apps/web/vite.config.ts`, `apps/web/wrangler.jsonc`, `pnpm build:web:cf` / `pnpm deploy:web:cf` scripts, and a Cloudflare Workers build check in `.github/workflows/ci.yml`.
 - Added `pnpm env:sync` (`scripts/sync-env.ts`) to create `.env.local` from `.env.example` and append variables added to the template later, without modifying or printing existing values; supports `--dry-run` and `--check`, with tests in `scripts/sync-env.test.ts` (`pnpm test:scripts`). Updated the README and user setup guides in English and Thai.
@@ -24,6 +32,8 @@ High-level summary of Media Loader's commit history from the initial commit on 2
 
 ### Changed
 
+- Simplify the MP3 quality picker by showing a single source as text and keeping source controls for clips with multiple choices.
+- Run the yt-dlp update workflow on the first day of each month, require matching API and worker versions before opening a PR, and document the manual update and Docker rebuild steps in both developer guides.
 - Documented example values and where to find them for runtime paths, R2, and Web Push in `.env.example`.
 - Clarified Cloudflare Workers build variable placement and Docker Compose recreation after backend CORS changes in both deployment guides.
 - Replaced the English and Thai architecture illustrations and aligned their README descriptions with the Cloudflare Workers frontend, Docker processing, and owner-checked browser delivery from private R2.

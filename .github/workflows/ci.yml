@@ -39,6 +39,8 @@ jobs:
               - 'supabase/**'
               - 'pyproject.toml'
               - 'uv.lock'
+              - 'package.json'
+              - 'pnpm-lock.yaml'
               - '.github/workflows/ci.yml'
             docker:
               - 'apps/api/**'
@@ -146,6 +148,21 @@ jobs:
         run: |
           cd apps/api
           uv run pytest ../proxy
+
+      - uses: pnpm/action-setup@v6
+        if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.backend == 'true'
+
+      - uses: actions/setup-node@v7
+        if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.backend == 'true'
+        with:
+          node-version: 24
+          cache: "pnpm"
+
+      - name: Check Python imports with Pyright
+        if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.backend == 'true'
+        run: |
+          pnpm --filter media-loader-monorepo install --frozen-lockfile
+          pnpm check:imports
 
   docker-check:
     name: Docker Build Validation

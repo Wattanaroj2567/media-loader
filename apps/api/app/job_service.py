@@ -1,3 +1,4 @@
+# pyright: reportArgumentType=error
 """
 Job Service.
 
@@ -81,6 +82,7 @@ def create_job(
     selected_quality: str,
     selected_has_audio: bool,
     rights_confirmed: bool = True,
+    mp3_bitrate_kbps: int | None = None,
 ) -> str:
     """Create a new download job in Supabase."""
     supabase = _database()
@@ -123,6 +125,9 @@ def create_job(
         "updated_at": now,
     }
 
+    if mp3_bitrate_kbps is not None:
+        job_data["mp3_bitrate_kbps"] = mp3_bitrate_kbps
+
     try:
         supabase.table("download_jobs").insert(job_data).execute()
         logger.info(
@@ -140,7 +145,9 @@ def create_job(
         ) from error
 
 
-def _normalize_job(job: dict, *, include_internal: bool = False) -> dict:
+def _normalize_job(job: object, *, include_internal: bool = False) -> dict:
+    if not isinstance(job, dict):
+        raise TypeError("Expected a download job object from the database")
     if not job:
         return job
     job = dict(job)

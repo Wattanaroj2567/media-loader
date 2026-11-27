@@ -130,6 +130,17 @@ production-like โดย Docker ไม่ใช่วงจรแก้โค�
 docker compose --profile tunnel up -d --build
 ```
 
+### การอัปเดต yt-dlp
+
+Workflow **Monthly yt-dlp Auto-Update** ตรวจเวอร์ชันใหม่ที่เข้ากันได้ทุกวันที่ 1
+ของเดือน เวลา 10:17 น. ตามเวลาไทย (03:17 UTC) ถ้า lockfile เปลี่ยน จะตรวจว่า
+API และ worker ได้ yt-dlp เวอร์ชันเดียวกัน รันชุดทดสอบทั้งสองบริการ แล้วเปิด
+Pull Request ให้ตรวจสอบ หากวิเคราะห์ลิงก์ไม่ได้ระหว่างเดือน ให้กด **Run workflow**
+ใน GitHub Actions เพื่อเช็กเวอร์ชันได้ทันที
+
+หลังดึงโค้ดที่ merge แล้วบนเครื่อง Docker ให้รัน `pnpm docker:up` เพื่อ rebuild
+และสร้าง container ของ API กับ worker ใหม่ให้ใช้เวอร์ชันที่อัปเดต
+
 ### การทดสอบ (Testing)
 
 ```bash
@@ -167,6 +178,7 @@ pnpm lint:api       # FastAPI (Ruff)
 pnpm lint:worker    # Media Worker (Ruff)
 pnpm lint:md        # Markdown files (markdownlint-cli2)
 pnpm lint:md:fix    # Auto-fix Markdown formatting
+pnpm check:imports  # ใช้ Pyright ตรวจ import ของ API และ worker
 
 # จัดรูปแบบโค้ดอัตโนมัติ (Prettier + Ruff Format)
 pnpm format

@@ -48,6 +48,9 @@ async def create_download_job_endpoint(
     if request.output_format not in {"mp4", "mp3", "gif"}:
         raise AppError(400, "INVALID_OUTPUT_FORMAT", "รองรับเฉพาะ MP4, MP3 และ GIF")
 
+    if request.mp3_bitrate_kbps is not None and request.output_format != "mp3":
+        raise AppError(400, "FORMAT_TYPE_MISMATCH", "กำหนดบิตเรตเสียงได้เฉพาะ MP3")
+
     if not request.rights_confirmed:
         raise AppError(
             400,
@@ -107,6 +110,7 @@ async def create_download_job_endpoint(
         selected_quality=selected.quality_label,
         selected_has_audio=selected.has_audio,
         rights_confirmed=request.rights_confirmed,
+        mp3_bitrate_kbps=request.mp3_bitrate_kbps,
     )
 
     data = DownloadResponseData(job_id=job_id, status="QUEUED")

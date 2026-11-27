@@ -47,7 +47,10 @@ def test_analysis_checks_policy_before_extraction_without_rights_confirmation(
     assert calls == ["policy", "analysis"]
 
 
-def test_queue_creation_rechecks_policy_and_real_format_before_insert(monkeypatch):
+@pytest.mark.parametrize("output_format, bitrate", [("mp4", None), ("mp3", 192)])
+def test_queue_creation_rechecks_policy_and_real_format_before_insert(
+    monkeypatch, output_format, bitrate
+):
     calls: list[str] = []
     captured: dict = {}
 
@@ -90,8 +93,9 @@ def test_queue_creation_rechecks_policy_and_real_format_before_insert(monkeypatc
             DownloadRequest(
                 url="https://example.com/watch/1",
                 selected_format_id="18",
-                output_format="mp4",
+                output_format=output_format,
                 rights_confirmed=True,
+                mp3_bitrate_kbps=bitrate,
             ),
             CurrentUser(id="user-1"),
         )
@@ -101,6 +105,25 @@ def test_queue_creation_rechecks_policy_and_real_format_before_insert(monkeypatc
     assert calls == ["policy", "analysis", "queue"]
     assert captured["selected_has_audio"] is True
     assert captured["rights_confirmed"] is True
+    assert captured["mp3_bitrate_kbps"] == bitrate
+
+
+def test_queue_creation_rejects_mp3_bitrate_for_video_output():
+    with pytest.raises(AppError) as exc_info:
+        asyncio.run(
+            create_download_job_endpoint(
+                DownloadRequest(
+                    url="https://example.com/watch/1",
+                    selected_format_id="18",
+                    output_format="mp4",
+                    rights_confirmed=True,
+                    mp3_bitrate_kbps=128,
+                ),
+                CurrentUser(id="user-1"),
+            )
+        )
+
+    assert exc_info.value.code == "FORMAT_TYPE_MISMATCH"
 
 
 def test_create_download_job_requires_rights_confirmation():

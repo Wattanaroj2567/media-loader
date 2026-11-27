@@ -37,6 +37,7 @@ import {
   groupFormats,
   type MediaOutputFormat,
   type MediaFormat,
+  type Mp3Bitrate,
 } from "@/lib/media-presenters.ts";
 import { useT } from "@/lib/i18n/context";
 import { hostnameMatchesDomain, urlMatchesDomain } from "@/lib/url-domains.ts";
@@ -47,6 +48,11 @@ type FormatTab = "video" | "audio" | "gif";
 
 const ANALYSIS_SESSION_TIMESTAMP_KEY = "media_loader_analyzer_analysis_timestamp";
 const ANALYSIS_SESSION_MAX_AGE_MS = 15 * 60 * 1000;
+const MP3_PRESETS = [
+  { bitrate: null, description: "download.mp3HighQuality" },
+  { bitrate: 192, description: "download.mp3Balanced" },
+  { bitrate: 128, description: "download.mp3Smaller" },
+] as const;
 
 function formatDuration(seconds?: number | null) {
   if (!seconds || seconds < 0) return null;
@@ -99,7 +105,10 @@ function formatCardMeta(
   outputFormat: MediaOutputFormat,
   t: (key: string, vars?: Record<string, string | number>, fallback?: string) => string
 ) {
-  const sizeLabel = estimateFilesize(format, durationSeconds, outputFormat);
+  const sizeLabel =
+    outputFormat === "mp3"
+      ? null
+      : estimateFilesize(format, durationSeconds, outputFormat);
   const pieces = [
     format.type === "video" && format.fps && format.fps > 0
       ? `${format.fps} ${t("download.fps")}`
@@ -358,6 +367,7 @@ export function MediaAnalyzer() {
   const [analysis, setAnalysis] = useState<MediaAnalysis | null>(null);
   const [selectedFormatId, setSelectedFormatId] = useState("");
   const [activeTab, setActiveTab] = useState<FormatTab>("video");
+  const [mp3Bitrate, setMp3Bitrate] = useState<Mp3Bitrate | null>(null);
   const [errorMessage, setErrorMessage] = useState("");
   const [queueing, setQueueing] = useState(false);
   const [justQueued, setJustQueued] = useState(false);
@@ -522,6 +532,10 @@ export function MediaAnalyzer() {
 
   const visibleFormats =
     activeTab === "audio" ? audioSourceFormats : groupedFormats.video;
+  const singleAudioSource =
+    activeTab === "audio" && audioSourceFormats.length === 1
+      ? audioSourceFormats[0]
+      : null;
   const isGiphy = useMemo(() => {
     return (
       media?.platform?.toLowerCase() === "giphy" ||
@@ -721,6 +735,9 @@ export function MediaAnalyzer() {
         selected_format_id: selectedFormat.format_id,
         output_format: outputFormat,
         rights_confirmed: true,
+        ...(outputFormat === "mp3" && mp3Bitrate !== null
+          ? { mp3_bitrate_kbps: mp3Bitrate }
+          : {}),
       });
       if (job) {
         registerPendingDownload(job.job_id, filename, null);
@@ -806,7 +823,7 @@ export function MediaAnalyzer() {
     } finally {
       setQueueing(false);
     }
-  }, [activeTab, analyzedUrl, media, selectedFormat, t, toast]);
+  }, [activeTab, analyzedUrl, media, mp3Bitrate, selectedFormat, t, toast]);
 
   return (
     <div className="w-full">
@@ -947,7 +964,10 @@ export function MediaAnalyzer() {
           <div className="border-t border-border/70 pt-5">
             {/* Video / Audio tab Header */}
             <div className="mb-3.5 flex items-center justify-between gap-3">
-              <p className="text-xs font-semibold uppercase tracking-wider text-text-muted">
+              <p
+                id="media-analyzer-quality-title"
+                className="text-xs font-semibold uppercase tracking-wider text-text-muted"
+              >
                 {t("download.quality")}
               </p>
               <div className="flex gap-1 rounded-xl border border-border/80 bg-bg-base/60 p-1">
@@ -980,43 +1000,100 @@ export function MediaAnalyzer() {
                 ))}
               </div>
             </div>
-            <p className="-mt-2 mb-3.5 text-[11px] text-text-dim">
-              {t(
-                activeTab === "video"
-                  ? "download.estimatedOutputSize"
-                  : "download.genericSizeEstimate",
-                {},
-                activeTab === "video"
-                  ? "ขนาดไฟล์ผลลัพธ์โดยประมาณ; วิดีโอ MP4 รวมเสียง AAC แล้ว"
-                  : "ขนาดไฟล์ผลลัพธ์เป็นค่าประมาณ อาจเปลี่ยนหลังแปลง"
-              )}
-            </p>
+            {activeTab !== "audio" && (
+              <p className="-mt-2 mb-3.5 text-[11px] text-text-dim">
+                {t(
+                  activeTab === "video"
+                    ? "download.estimatedOutputSize"
+                    : "download.genericSizeEstimate",
+                  {},
+                  activeTab === "video"
+                    ? "ขนาดไฟล์ผลลัพธ์โดยประมาณ; วิดีโอ MP4 รวมเสียง AAC แล้ว"
+                    : "ขนาดไฟล์ผลลัพธ์เป็นค่าประมาณ อาจเปลี่ยนหลังแปลง"
+                )}
+              </p>
+            )}
 
-            {/* 100% Full-Width Format Grid (Balanced 4-col layout for 8 quality options) */}
-            {visibleFormats.length === 0 ? (
+            {activeTab === "audio" && audioSourceFormats.length > 0 && (
+              <fieldset
+                aria-labelledby="media-analyzer-quality-title"
+                disabled={queueing}
+              >
+                <div className="grid gap-2 sm:grid-cols-3">
+                  {MP3_PRESETS.map(({ bitrate, description }) => {
+                    const size =
+                      bitrate && media.duration_seconds
+                        ? formatBytes((bitrate * 1000 * media.duration_seconds) / 8)
+                        : null;
+                    return (
+                      <label key={description} className="relative cursor-pointer">
+                        <input
+                          type="radio"
+                          name="mp3-output-quality"
+                          checked={mp3Bitrate === bitrate}
+                          onChange={() => {
+                            setMp3Bitrate(bitrate);
+                            handleSelectFormat(selectedFormatId);
+                          }}
+                          className="peer sr-only"
+                        />
+                        <span className="flex h-full flex-col rounded-xl border border-border/80 bg-bg-base/50 px-3 py-2.5 text-xs text-text transition-colors hover:border-primary/30 peer-checked:border-primary peer-checked:bg-primary/12 peer-focus-visible:ring-2 peer-focus-visible:ring-primary">
+                          <span className="font-semibold">
+                            {bitrate ? `${bitrate} kbps` : t(description)}
+                          </span>
+                          <span className="mt-1 text-[11px] text-text-muted">
+                            {bitrate
+                              ? t(description)
+                              : t("download.mp3VariableBitrate")}
+                            {size && ` · ~${size}`}
+                          </span>
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </fieldset>
+            )}
+
+            {singleAudioSource ? (
+              <p className="mt-2 text-[11px] text-text-muted">
+                {groupedFormats.audio.length > 0
+                  ? t("download.singleAudioSource", {
+                      source: formatCardTitle(singleAudioSource),
+                    })
+                  : t("download.audioFromVideo")}
+              </p>
+            ) : visibleFormats.length === 0 ? (
               <p className="py-6 text-center text-sm text-text-dim">
                 {t("download.noFormats")}
               </p>
             ) : (
-              <div className="grid gap-2.5 grid-cols-2 sm:grid-cols-3 md:grid-cols-4">
-                {visibleFormats.map((format, index) => (
-                  <FormatCard
-                    key={`${format.type}-${format.format_id}`}
-                    format={format}
-                    durationSeconds={media.duration_seconds}
-                    outputFormat={
-                      activeTab === "video"
-                        ? "mp4"
-                        : activeTab === "audio"
-                          ? "mp3"
-                          : "gif"
-                    }
-                    selected={selectedFormatId === format.format_id}
-                    onSelect={() => handleSelectFormat(format.format_id)}
-                    isBest={index === 0}
-                    isGif={activeTab === "gif"}
-                  />
-                ))}
+              <div className={activeTab === "audio" ? "mt-4" : undefined}>
+                {activeTab === "audio" && (
+                  <p className="mb-2 text-xs font-semibold text-text-muted">
+                    {t("download.audioSource")}
+                  </p>
+                )}
+                <div className="grid gap-2.5 grid-cols-2 sm:grid-cols-3 md:grid-cols-4">
+                  {visibleFormats.map((format, index) => (
+                    <FormatCard
+                      key={`${format.type}-${format.format_id}`}
+                      format={format}
+                      durationSeconds={media.duration_seconds}
+                      outputFormat={
+                        activeTab === "video"
+                          ? "mp4"
+                          : activeTab === "audio"
+                            ? "mp3"
+                            : "gif"
+                      }
+                      selected={selectedFormatId === format.format_id}
+                      onSelect={() => handleSelectFormat(format.format_id)}
+                      isBest={activeTab !== "audio" && index === 0}
+                      isGif={activeTab === "gif"}
+                    />
+                  ))}
+                </div>
               </div>
             )}
 

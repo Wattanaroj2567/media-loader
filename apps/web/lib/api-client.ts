@@ -1,5 +1,9 @@
 import { getGuestSessionId } from "./guest-session.ts";
-import { getDownloadFilename, type MediaFormat } from "./media-presenters.ts";
+import {
+  getDownloadFilename,
+  type MediaFormat,
+  type Mp3Bitrate,
+} from "./media-presenters.ts";
 import { ResumableDownload, type TransferProgress } from "./resumable-download.ts";
 
 function getApiBaseUrl(): string {
@@ -68,6 +72,7 @@ interface CreateJobInput {
   selected_format_id: string;
   output_format: "mp4" | "mp3" | "gif";
   rights_confirmed: boolean;
+  mp3_bitrate_kbps?: Mp3Bitrate;
 }
 
 interface ApiEnvelope<T> {

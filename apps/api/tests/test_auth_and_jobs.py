@@ -71,8 +71,9 @@ def test_job_transition_rules_distinguish_cancel_from_delete():
     assert can_delete_job("DOWNLOADING") is False
 
 
+@pytest.mark.parametrize("bitrate", [None, 128])
 def test_create_job_requires_user_and_persists_analysis_metadata(
-    monkeypatch, url_encryption_key
+    monkeypatch, url_encryption_key, bitrate
 ):
     fake = FakeSupabase()
     monkeypatch.setattr("app.job_service.get_supabase_client", lambda: fake)
@@ -81,7 +82,7 @@ def test_create_job_requires_user_and_persists_analysis_metadata(
         user_id="user-123",
         url="https://example.com/watch/1",
         format_id="137",
-        output_format="mp4",
+        output_format="mp3" if bitrate else "mp4",
         title="A real clip",
         platform="Youtube",
         uploader="Clip Owner",
@@ -91,6 +92,7 @@ def test_create_job_requires_user_and_persists_analysis_metadata(
         media_type="video",
         selected_quality="1080p · 30 FPS",
         selected_has_audio=False,
+        mp3_bitrate_kbps=bitrate,
     )
 
     assert job_id
@@ -105,6 +107,10 @@ def test_create_job_requires_user_and_persists_analysis_metadata(
     assert fake.download_jobs.inserted["selected_has_audio"] is False
     assert fake.download_jobs.inserted["locked_by"] == "pool:local"
     assert fake.download_jobs.inserted["locked_at"] is None
+    if bitrate is None:
+        assert "mp3_bitrate_kbps" not in fake.download_jobs.inserted
+    else:
+        assert fake.download_jobs.inserted["mp3_bitrate_kbps"] == bitrate
 
 
 def test_create_job_supports_guest_session(monkeypatch, url_encryption_key):

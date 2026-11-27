@@ -1,6 +1,9 @@
 from pathlib import Path
 
+import pytest
+
 from app.account_service import delete_account
+from app.errors import AppError
 
 
 class Result:
@@ -90,3 +93,25 @@ def test_delete_account_cancels_jobs_cleans_files_and_deletes_auth_user(
     assert rows[1]["status"] == "DOWNLOADING"
     assert output.exists() is False
     assert database.auth.admin.deleted_user == "user-1"
+
+
+def test_delete_account_rejects_malformed_rows_before_cleanup(monkeypatch, tmp_path):
+    rows = [{"id": "job-1", "user_id": "user-1", "status": "DOWNLOADING"}]
+    database = FakeSupabase(rows)
+    monkeypatch.setattr("app.account_service.get_supabase_client", lambda: database)
+    execute = Query.execute
+
+    def execute_with_invalid_row(query):
+        result = execute(query)
+        if query.payload is None:
+            result.data.append(None)
+        return result
+
+    monkeypatch.setattr(Query, "execute", execute_with_invalid_row)
+
+    with pytest.raises(AppError) as error:
+        delete_account("user-1", temp_root=tmp_path)
+
+    assert error.value.code == "ACCOUNT_DELETE_FAILED"
+    assert rows[0]["status"] == "DOWNLOADING"
+    assert database.auth.admin.deleted_user is None

@@ -149,9 +149,12 @@ def test_metadata_response_at_exact_limit_is_accepted(monkeypatch):
     monkeypatch.setattr(service, "_MAX_METADATA_RESPONSE_BYTES", 64)
     budget = SimpleNamespace(remaining_metadata_bytes=64)
     response = Response(io.BytesIO(b"a" * 64), "https://example.com/page", {})
+    response.headers.add_header("Vary", "Accept")
+    response.headers.add_header("Vary", "Accept-Encoding")
     with service._LimitedMetadataResponse(response, budget) as limited:
+        assert limited.headers.get_all("Vary") == ["Accept", "Accept-Encoding"]
         assert limited.read(0) == b""
-        assert limited.read() == b"a" * 64
+        assert limited.read(-1) == b"a" * 64
         assert limited.read() == b""
 
 

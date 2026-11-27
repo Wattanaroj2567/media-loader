@@ -56,7 +56,7 @@ updates:
           - "httpx"
           - "supabase"
     ignore:
-      # Handled via weekly custom workflow with uv.lock sync
+      # Handled by the monthly update-ytdlp workflow with uv.lock sync.
       - dependency-name: "yt-dlp"
       # Pinned to <0.16.0 for TLS impersonation and build stability
       - dependency-name: "curl_cffi"
@@ -75,7 +75,7 @@ updates:
           - "pydantic*"
           - "imageio-ffmpeg"
     ignore:
-      # Handled via weekly custom workflow with uv.lock sync
+      # Handled by the monthly update-ytdlp workflow with uv.lock sync.
       - dependency-name: "yt-dlp"
       # Pinned to <0.16.0 for TLS impersonation and build stability
       - dependency-name: "curl_cffi"

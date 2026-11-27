@@ -4,6 +4,8 @@ Pydantic request/response schemas for Media Loader API.
 These define the contract between frontend and backend.
 """
 
+from typing import Literal
+
 from pydantic import BaseModel, Field, HttpUrl
 
 # ─── Request schemas ───
@@ -22,6 +24,7 @@ class DownloadRequest(BaseModel):
     selected_format_id: str
     output_format: str = "mp4"
     rights_confirmed: bool = False
+    mp3_bitrate_kbps: Literal[128, 192] | None = None
 
 
 # ─── Response data schemas ───

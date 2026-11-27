@@ -40,6 +40,12 @@ filterwarnings = [
 line-length = 88
 target-version = "py312"
 
+[tool.pyright]
+include = ["app"]
+pythonVersion = "3.12"
+typeCheckingMode = "off"
+reportMissingImports = "error"
+
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B"]
 ignore = ["E501", "B008"]

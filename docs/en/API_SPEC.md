@@ -270,6 +270,10 @@ Request:
 the source as animated GIF media. The selected source format must be compatible
 with the requested output.
 
+For MP3, optionally send `mp3_bitrate_kbps` as `128` or `192` to request a
+fixed output bitrate. Omit it for high-quality VBR encoding or to keep a
+source that is already MP3. Other output formats reject a fixed MP3 bitrate.
+
 On success, the response contains the new job ID and `QUEUED` status. The verified
 account owns the job, regardless of any guest header supplied by the caller.
 
