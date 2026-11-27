@@ -199,39 +199,88 @@ function FormatCard({
   const title = isGif ? t("download.gifOutput", {}, "GIF") : formatCardTitle(format);
 
   return (
-    <button
-      type="button"
-      onClick={onSelect}
-      className={`group relative flex items-center justify-between gap-2.5 rounded-2xl border p-3 text-left transition-all duration-150 cursor-pointer ${
-        selected
-          ? "border-primary bg-primary/12 text-primary ring-1 ring-primary/40"
-          : "border-border/80 bg-bg-base/50 text-text hover:border-primary/30 hover:bg-bg-surface"
-      }`}
-    >
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-1.5">
-          <p className="line-clamp-2 wrap-break-word whitespace-normal text-xs font-semibold leading-tight text-text group-hover:text-primary transition-colors">
+    <QualityCard
+      title={title}
+      meta={meta}
+      selected={selected}
+      onSelect={onSelect}
+      isBest={isBest}
+    />
+  );
+}
+
+function QualityCard({
+  title,
+  meta,
+  selected,
+  onSelect,
+  isBest,
+  radioName,
+}: {
+  title: string;
+  meta: string;
+  selected: boolean;
+  onSelect: () => void;
+  isBest?: boolean;
+  radioName?: string;
+}) {
+  const className = `group relative flex items-center justify-between gap-2.5 rounded-2xl border p-3 text-left transition-all duration-150 cursor-pointer ${
+    selected
+      ? "border-primary bg-primary/12 text-primary ring-1 ring-primary/40"
+      : "border-border/80 bg-bg-base/50 text-text hover:border-primary/30 hover:bg-bg-surface"
+  }`;
+  const content = (
+    <>
+      <span className="min-w-0 flex-1">
+        <span className="flex items-center gap-1.5">
+          <span className="line-clamp-2 wrap-break-word whitespace-normal text-xs font-semibold leading-tight text-text group-hover:text-primary transition-colors">
             {title}
-          </p>
+          </span>
           {isBest && (
             <span className="shrink-0 rounded-full border border-primary/30 bg-primary/15 px-1.5 py-0.2 text-[9px] font-bold text-text">
               BEST
             </span>
           )}
-        </div>
-        <p className="mt-1 line-clamp-2 text-[11px] leading-tight text-text-muted">
+        </span>
+        <span className="mt-1 line-clamp-2 text-[11px] leading-tight text-text-muted">
           {meta}
-        </p>
-      </div>
-      <div
+        </span>
+      </span>
+      <span
+        aria-hidden="true"
         className={`grid size-5 shrink-0 place-items-center rounded-full border transition-all ${
           selected
             ? "border-primary bg-primary text-primary-foreground"
-            : "border-border/60 bg-transparent text-transparent group-hover:border-primary/40"
+            : "border-border/60 bg-transparent group-hover:border-primary/40"
         }`}
       >
-        <CheckCircle2 className="size-3.5" />
-      </div>
+        {selected && <CheckCircle2 className="size-3.5" />}
+      </span>
+    </>
+  );
+
+  if (radioName) {
+    return (
+      <label className="relative">
+        <input
+          type="radio"
+          name={radioName}
+          checked={selected}
+          onChange={onSelect}
+          className="peer sr-only"
+        />
+        <span
+          className={`${className} h-full peer-focus-visible:ring-2 peer-focus-visible:ring-primary`}
+        >
+          {content}
+        </span>
+      </label>
+    );
+  }
+
+  return (
+    <button type="button" onClick={onSelect} className={className}>
+      {content}
     </button>
   );
 }
@@ -1019,36 +1068,27 @@ export function MediaAnalyzer() {
                 aria-labelledby="media-analyzer-quality-title"
                 disabled={queueing}
               >
-                <div className="grid gap-2 sm:grid-cols-3">
+                <div className="grid gap-2.5 sm:grid-cols-3">
                   {MP3_PRESETS.map(({ bitrate, description }) => {
                     const size =
                       bitrate && media.duration_seconds
                         ? formatBytes((bitrate * 1000 * media.duration_seconds) / 8)
                         : null;
+                    const meta = bitrate
+                      ? t(description)
+                      : t("download.mp3VariableBitrate");
                     return (
-                      <label key={description} className="relative cursor-pointer">
-                        <input
-                          type="radio"
-                          name="mp3-output-quality"
-                          checked={mp3Bitrate === bitrate}
-                          onChange={() => {
-                            setMp3Bitrate(bitrate);
-                            handleSelectFormat(selectedFormatId);
-                          }}
-                          className="peer sr-only"
-                        />
-                        <span className="flex h-full flex-col rounded-xl border border-border/80 bg-bg-base/50 px-3 py-2.5 text-xs text-text transition-colors hover:border-primary/30 peer-checked:border-primary peer-checked:bg-primary/12 peer-focus-visible:ring-2 peer-focus-visible:ring-primary">
-                          <span className="font-semibold">
-                            {bitrate ? `${bitrate} kbps` : t(description)}
-                          </span>
-                          <span className="mt-1 text-[11px] text-text-muted">
-                            {bitrate
-                              ? t(description)
-                              : t("download.mp3VariableBitrate")}
-                            {size && ` · ~${size}`}
-                          </span>
-                        </span>
-                      </label>
+                      <QualityCard
+                        key={description}
+                        title={bitrate ? `${bitrate} kbps` : t(description)}
+                        meta={size ? `${meta} · ~${size}` : meta}
+                        selected={mp3Bitrate === bitrate}
+                        onSelect={() => {
+                          setMp3Bitrate(bitrate);
+                          handleSelectFormat(selectedFormatId);
+                        }}
+                        radioName="mp3-output-quality"
+                      />
                     );
                   })}
                 </div>

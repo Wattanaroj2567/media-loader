@@ -32,6 +32,7 @@ High-level summary of Media Loader's commit history from the initial commit on 2
 
 ### Changed
 
+- Show a checkmark on the selected MP3 quality card using the same card styling as video formats.
 - Simplify the MP3 quality picker by showing a single source as text and keeping source controls for clips with multiple choices.
 - Run the yt-dlp update workflow on the first day of each month, require matching API and worker versions before opening a PR, and document the manual update and Docker rebuild steps in both developer guides.
 - Documented example values and where to find them for runtime paths, R2, and Web Push in `.env.example`.

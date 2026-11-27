@@ -825,10 +825,18 @@ test.describe("Mocked Dashboard Workflow", () => {
         ).toBeVisible();
         await expect(page.getByText("Uses the audio from the video")).toBeVisible();
         await expect(page.getByText("BEST", { exact: true })).toHaveCount(0);
-        await expect(page.getByRole("radio", { name: /High quality/ })).toBeChecked();
+        const highQuality = page.getByRole("radio", { name: /High quality/ });
+        const fixedQuality = page.getByRole("radio", { name: /192 kbps/ });
+        const highQualityCard = page.locator("label").filter({ has: highQuality });
+        const fixedQualityCard = page.locator("label").filter({ has: fixedQuality });
+        await expect(highQuality).toBeChecked();
+        await expect(highQualityCard.locator("svg")).toBeVisible();
+        await expect(fixedQualityCard.locator("svg")).toHaveCount(0);
         await expect(page.getByRole("radio", { name: /128 kbps/ })).toBeEnabled();
         await page.getByText("192 kbps", { exact: true }).click();
-        await expect(page.getByRole("radio", { name: /192 kbps/ })).toBeChecked();
+        await expect(fixedQuality).toBeChecked();
+        await expect(fixedQualityCard.locator("svg")).toBeVisible();
+        await expect(highQualityCard.locator("svg")).toHaveCount(0);
       } else {
         await page.getByRole("button", { name: "GIF", exact: true }).click();
       }
