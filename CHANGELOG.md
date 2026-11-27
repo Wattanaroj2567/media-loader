@@ -21,6 +21,7 @@ High-level summary of Media Loader's commit history from the initial commit on 2
 
 ### Added
 
+- Let signed-in users disconnect Google after confirming the Media Loader password for the same account.
 - Add high-quality VBR, 192 kbps, and 128 kbps MP3 output options for any selectable audio source, with a Drizzle migration to persist fixed bitrates in the queue.
 - Added a Pyright import check for the API and worker in local development and CI.
 - Added Cloudflare R2 storage and direct presigned-URL delivery (`MEDIA_OUTPUT_MODE=r2`) across `apps/worker` (`worker/r2_storage.py`, `UPLOADING` status, automatic R2 retention cleanup) and `apps/api` (`app/r2_storage.py`, presigned download tokens, `307` download redirects, R2 object deletion on file/job/account removal), keeping `local_temp` as the local development default.

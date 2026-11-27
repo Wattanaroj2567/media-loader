@@ -11,14 +11,14 @@ const fakeUser = {
   app_metadata: { provider: "google" },
   user_metadata: { full_name: "Test User" },
 };
-function fakeJwt() {
+function fakeJwt(user) {
   const encode = (value) => Buffer.from(JSON.stringify(value)).toString("base64url");
   const now = Math.floor(Date.now() / 1000);
-  return `${encode({ alg: "HS256", typ: "JWT" })}.${encode({ sub: fakeUser.id, aud: "authenticated", role: "authenticated", exp: now + 7200, iat: now, email: fakeUser.email })}.fakesignature`;
+  return `${encode({ alg: "HS256", typ: "JWT" })}.${encode({ sub: user.id, aud: "authenticated", role: "authenticated", exp: now + 7200, iat: now, email: user.email })}.fakesignature`;
 }
 function session(user = fakeUser) {
   return {
-    access_token: fakeJwt(),
+    access_token: fakeJwt(user),
     token_type: "bearer",
     expires_in: 3600,
     expires_at: Math.floor(Date.now() / 1000) + 3600,
@@ -26,6 +26,19 @@ function session(user = fakeUser) {
     user,
   };
 }
+
+const unlinkUser = {
+  ...fakeUser,
+  id: "user-settings-unlink",
+  email: "unlink@example.com",
+  app_metadata: { provider: "email", providers: ["email", "google"] },
+  identities: [
+    { provider: "email" },
+    { provider: "google", identity_id: "google-unlink-fixture" },
+  ],
+};
+let googleUnlinked = false;
+
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url || "/", "http://localhost");
   console.log(`[mock-supabase] ${req.method} ${url.pathname}`);
@@ -57,7 +70,7 @@ const server = http.createServer(async (req, res) => {
     delete body.password;
   }
   if (url.pathname === "/auth/v1/health") return send(200, {});
-  if (url.pathname === "/auth/v1/user") {
+  if (url.pathname.startsWith("/auth/v1/user")) {
     if (
       !req.headers.authorization ||
       req.headers.authorization.includes("expired-fixture")
@@ -69,6 +82,23 @@ const server = http.createServer(async (req, res) => {
       subject = JSON.parse(Buffer.from(claims ?? "", "base64url").toString()).sub;
     } catch {
       // Other fixtures may use opaque authorization values.
+    }
+    if (
+      req.method === "DELETE" &&
+      url.pathname === "/auth/v1/user/identities/google-unlink-fixture" &&
+      subject === unlinkUser.id
+    ) {
+      googleUnlinked = true;
+      return send(200, {});
+    }
+    if (url.pathname !== "/auth/v1/user") return send(404, { message: "not mocked" });
+    if (subject === unlinkUser.id) {
+      return send(200, googleUnlinked
+        ? { ...unlinkUser, identities: [{ provider: "email" }] }
+        : unlinkUser);
+    }
+    if (subject === "user-settings-unlink-invalid") {
+      return send(200, { ...unlinkUser, id: subject, email: "invalid@example.com" });
     }
     if (subject === "user-settings-email-only" || subject === "user-settings-linked") {
       const linked = subject === "user-settings-linked";
@@ -98,6 +128,7 @@ const server = http.createServer(async (req, res) => {
           code: "over_request_rate_limit",
           message: "Too many attempts",
         });
+      if (body.email === unlinkUser.email) return send(200, session(unlinkUser));
     }
     return send(200, session());
   }

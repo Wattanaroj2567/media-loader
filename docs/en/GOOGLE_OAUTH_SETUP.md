@@ -17,6 +17,11 @@ Supabase automatically links Google to the existing account when the verified
 email matches. The account page shows Google's connection status under
 **Sign-in methods**, alongside email verification and password setup guidance.
 
+To support **Disconnect Google**, enable manual identity linking in Supabase
+Auth. Media Loader verifies the account's password and requires another linked
+identity before disconnecting Google. Signing in with Google using the same
+verified email can reconnect it through automatic linking.
+
 ---
 
 ## Step 1 — Open Google Auth Platform
