@@ -32,6 +32,7 @@ High-level summary of Media Loader's commit history from the initial commit on 2
 
 ### Changed
 
+- Show the Google icon next to its sign-in method in account settings.
 - Show Google connection and email verification status under Sign-in methods in account settings.
 - Show a checkmark on the selected MP3 quality card using the same card styling as video formats.
 - Simplify the MP3 quality picker by showing a single source as text and keeping source controls for clips with multiple choices.

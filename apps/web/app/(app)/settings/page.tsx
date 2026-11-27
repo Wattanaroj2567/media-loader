@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 
 import { BackButton } from "@/components/back-button";
+import { GoogleIcon } from "@/components/google-icon";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -231,7 +232,10 @@ export default function AccountPage() {
           </h2>
           <dl className="mt-3 divide-y divide-border">
             <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1 py-3">
-              <dt className="text-sm font-medium text-text">Google</dt>
+              <dt className="flex items-center gap-2 text-sm font-medium text-text">
+                <GoogleIcon size={16} />
+                Google
+              </dt>
               <dd className="text-sm text-text-muted">
                 {t(
                   user.googleLinked === null
