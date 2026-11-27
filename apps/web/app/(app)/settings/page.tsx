@@ -179,7 +179,7 @@ export default function AccountPage() {
         <section className="ui-panel rounded-3xl border border-border bg-bg-surface/70 p-5 shadow-none sm:p-6 backdrop-blur-md">
           <div className="flex items-center justify-between">
             <h2 className="text-base font-semibold text-text">
-              {t("account.profile", {}, "โปรไฟล์ Google")}
+              {t("account.profile")}
             </h2>
             <span className="flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-0.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
               <ShieldCheck className="size-3.5" />
@@ -198,14 +198,9 @@ export default function AccountPage() {
                 <p className="truncate text-base font-semibold text-text">
                   {user.name || user.email.split("@")[0] || "User"}
                 </p>
-                <div className="mt-1 flex flex-wrap items-center gap-2">
-                  <p className="truncate text-xs font-sans text-text-muted sm:text-sm">
-                    {user.email}
-                  </p>
-                  <span className="rounded-md border border-border bg-bg-base px-2 py-0.5 text-[10px] font-semibold text-text-muted">
-                    Google OAuth
-                  </span>
-                </div>
+                <p className="mt-1 truncate text-xs text-text-muted sm:text-sm">
+                  {user.email}
+                </p>
               </div>
             </div>
 
@@ -225,6 +220,48 @@ export default function AccountPage() {
               </Button>
             </form>
           </div>
+        </section>
+
+        <section
+          aria-labelledby="sign-in-methods-title"
+          className="ui-panel rounded-3xl border border-border bg-bg-surface/70 p-5 shadow-none backdrop-blur-md sm:p-6"
+        >
+          <h2 id="sign-in-methods-title" className="text-base font-semibold text-text">
+            {t("account.signInMethods")}
+          </h2>
+          <dl className="mt-3 divide-y divide-border">
+            <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1 py-3">
+              <dt className="text-sm font-medium text-text">Google</dt>
+              <dd className="text-sm text-text-muted">
+                {t(
+                  user.googleLinked === null
+                    ? "account.googleStatusUnavailable"
+                    : user.googleLinked
+                      ? "account.googleLinked"
+                      : "account.googleNotLinked"
+                )}
+              </dd>
+            </div>
+            <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1 pt-3">
+              <dt className="text-sm font-medium text-text">
+                {t("account.emailPassword")}
+              </dt>
+              <dd className="text-sm text-text-muted">
+                {t(
+                  !user.email
+                    ? "account.emailMissing"
+                    : user.emailVerified
+                      ? "account.emailVerified"
+                      : "account.emailUnverified"
+                )}
+              </dd>
+              {user.email && (
+                <dd className="basis-full text-xs leading-relaxed text-text-muted">
+                  {t("account.passwordHelp")}
+                </dd>
+              )}
+            </div>
+          </dl>
         </section>
 
         {/* Browser notifications */}

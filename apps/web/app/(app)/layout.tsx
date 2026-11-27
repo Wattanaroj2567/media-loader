@@ -23,6 +23,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       user.email?.split("@")[0] ||
       "User",
     email: user.email || "",
+    emailVerified: Boolean(user.email_confirmed_at),
+    googleLinked:
+      user.identities?.some(({ provider }) => provider === "google") ?? null,
     avatar_url:
       user.user_metadata?.avatar_url ||
       user.user_metadata?.picture ||

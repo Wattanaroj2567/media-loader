@@ -6,6 +6,8 @@ export interface AppUser {
   id: string;
   name: string;
   email: string;
+  emailVerified: boolean;
+  googleLinked: boolean | null;
   avatar_url?: string;
 }
 

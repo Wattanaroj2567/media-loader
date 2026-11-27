@@ -6,6 +6,8 @@ const fakeUser = {
   aud: "authenticated",
   role: "authenticated",
   email: "tester@example.com",
+  email_confirmed_at: "2026-01-01T00:00:00Z",
+  identities: [{ provider: "google" }],
   app_metadata: { provider: "google" },
   user_metadata: { full_name: "Test User" },
 };
@@ -61,6 +63,23 @@ const server = http.createServer(async (req, res) => {
       req.headers.authorization.includes("expired-fixture")
     )
       return send(401, { code: "session_not_found", message: "Invalid session" });
+    const claims = req.headers.authorization.split(".")[1];
+    let subject;
+    try {
+      subject = JSON.parse(Buffer.from(claims ?? "", "base64url").toString()).sub;
+    } catch {
+      // Other fixtures may use opaque authorization values.
+    }
+    if (subject === "user-settings-email-only" || subject === "user-settings-linked") {
+      const linked = subject === "user-settings-linked";
+      const providers = linked ? ["email", "google"] : ["email"];
+      return send(200, {
+        ...fakeUser,
+        id: subject,
+        app_metadata: { provider: "email", providers },
+        identities: providers.map((provider) => ({ provider })),
+      });
+    }
     return send(200, fakeUser);
   }
   if (url.pathname === "/auth/v1/token") {
@@ -83,13 +102,16 @@ const server = http.createServer(async (req, res) => {
     return send(200, session());
   }
   if (url.pathname === "/auth/v1/signup") {
+    const confirmed = body.email === "confirmed@example.com";
     const user = {
       ...fakeUser,
       email: body.email,
-      app_metadata: { provider: "email" },
+      email_confirmed_at: confirmed ? fakeUser.email_confirmed_at : undefined,
+      identities: [{ provider: "email" }],
+      app_metadata: { provider: "email", providers: ["email"] },
       user_metadata: body.data || {},
     };
-    if (body.email === "confirmed@example.com") return send(200, session(user));
+    if (confirmed) return send(200, session(user));
     return send(200, user);
   }
   if (url.pathname === "/auth/v1/resend" && req.method === "POST") {
