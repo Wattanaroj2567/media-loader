@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import {
   AlertTriangle,
   Bell,
@@ -50,6 +50,45 @@ export default function AccountPage() {
   const [notifyEnabled, setNotifyEnabled] = useState(false);
   const [notifyResolved, setNotifyResolved] = useState(false);
   const [notifyBusy, setNotifyBusy] = useState(false);
+  const [showGoogleUnlink, setShowGoogleUnlink] = useState(false);
+  const [googleUnlinkBusy, setGoogleUnlinkBusy] = useState(false);
+  const [googleUnlinkError, setGoogleUnlinkError] = useState("");
+
+  const unlinkGoogle = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (googleUnlinkBusy) return;
+    const form = event.currentTarget;
+    const password = new FormData(form).get("password");
+    form.reset();
+    setGoogleUnlinkBusy(true);
+    setGoogleUnlinkError("");
+    try {
+      const response = await fetch("/auth/unlink-google", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password }),
+      });
+      if (response.status === 204) {
+        setShowGoogleUnlink(false);
+        toast("success", t("account.googleUnlinkSuccess"));
+        router.refresh();
+        return;
+      }
+      const messages: Record<number, string> = {
+        400: "account.googleUnlinkPassword",
+        401: "account.googleUnlinkSession",
+        403: "account.googleUnlinkPassword",
+        409: "account.googleUnlinkFallback",
+        429: "account.googleUnlinkRateLimit",
+        501: "account.googleUnlinkUnavailable",
+      };
+      setGoogleUnlinkError(messages[response.status] ?? "account.googleUnlinkError");
+    } catch {
+      setGoogleUnlinkError("account.googleUnlinkError");
+    } finally {
+      setGoogleUnlinkBusy(false);
+    }
+  };
 
   useEffect(() => {
     // Read browser-only state after mount to avoid hydration mismatches.
@@ -236,15 +275,86 @@ export default function AccountPage() {
                 <GoogleIcon size={16} />
                 Google
               </dt>
-              <dd className="text-sm text-text-muted">
-                {t(
-                  user.googleLinked === null
-                    ? "account.googleStatusUnavailable"
-                    : user.googleLinked
-                      ? "account.googleLinked"
-                      : "account.googleNotLinked"
+              <dd className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-text-muted">
+                <span>
+                  {t(
+                    user.googleLinked === null
+                      ? "account.googleStatusUnavailable"
+                      : user.googleLinked
+                        ? "account.googleLinked"
+                        : "account.googleNotLinked"
+                  )}
+                </span>
+                {user.googleLinked && !showGoogleUnlink && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowGoogleUnlink(true)}
+                  >
+                    {t("account.googleUnlink")}
+                  </Button>
                 )}
               </dd>
+              {user.googleLinked && showGoogleUnlink && (
+                <dd className="mt-2 basis-full">
+                  <form
+                    method="post"
+                    onSubmit={unlinkGoogle}
+                    aria-busy={googleUnlinkBusy}
+                    className="space-y-3 rounded-xl border border-border bg-bg-base/60 p-3"
+                  >
+                    <p className="text-sm text-text-muted">
+                      {t("account.googleUnlinkHelp")}
+                    </p>
+                    <div className="max-w-sm space-y-2">
+                      <Label htmlFor="google-unlink-password">
+                        {t("account.googleUnlinkPasswordLabel")}
+                      </Label>
+                      <Input
+                        id="google-unlink-password"
+                        type="password"
+                        name="password"
+                        autoComplete="current-password"
+                        required
+                        disabled={googleUnlinkBusy}
+                        aria-invalid={Boolean(googleUnlinkError)}
+                        aria-describedby={
+                          googleUnlinkError ? "google-unlink-error" : undefined
+                        }
+                      />
+                    </div>
+                    {googleUnlinkError && (
+                      <p
+                        id="google-unlink-error"
+                        role="alert"
+                        className="text-sm text-rose-500"
+                      >
+                        {t(googleUnlinkError)}
+                      </p>
+                    )}
+                    <div className="flex flex-wrap gap-2">
+                      <Button type="submit" size="sm" disabled={googleUnlinkBusy}>
+                        {t(
+                          googleUnlinkBusy ? "common.loading" : "account.googleUnlink"
+                        )}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={googleUnlinkBusy}
+                        onClick={() => {
+                          setShowGoogleUnlink(false);
+                          setGoogleUnlinkError("");
+                        }}
+                      >
+                        {t("queue.cancel")}
+                      </Button>
+                    </div>
+                  </form>
+                </dd>
+              )}
             </div>
             <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1 pt-3">
               <dt className="text-sm font-medium text-text">

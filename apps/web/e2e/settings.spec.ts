@@ -153,6 +153,43 @@ test.describe("Account Settings Page UI", () => {
     });
   }
 
+  for (const [userId, outcome] of [
+    ["user-settings-unlink", "disconnected"],
+    ["user-settings-unlink-invalid", "invalid password"],
+    [fakeUser.id, "no fallback"],
+  ]) {
+    test(`handles disconnecting Google with ${outcome}`, async ({ page, context }) => {
+      await seedAuth(context, userId);
+      await context.addCookies([
+        { name: "media-loader-locale", value: "en", url: APP_ORIGIN },
+      ]);
+      await page.goto("/settings");
+
+      const methods = page.getByRole("region", { name: "Sign-in methods" });
+      const disconnect = methods.getByRole("button", { name: "Disconnect Google" });
+      await disconnect.click();
+      await expect(methods.getByText(/can connect it again/)).toBeVisible();
+      const password = methods.getByLabel("Media Loader password");
+      await password.fill("mock-password-only");
+      await disconnect.click();
+
+      if (outcome === "disconnected") {
+        await expect(methods.getByText("Not connected", { exact: true })).toBeVisible();
+        await expect(disconnect).toHaveCount(0);
+        await page.reload();
+        await expect(methods.getByText("Not connected", { exact: true })).toBeVisible();
+      } else {
+        await expect(methods.getByRole("alert")).toHaveText(
+          outcome === "invalid password"
+            ? /could not verify your Media Loader password/
+            : /set up email and password sign-in/i
+        );
+        await expect(methods.getByText("Connected", { exact: true })).toBeVisible();
+        await expect(password).toHaveValue("");
+      }
+    });
+  }
+
   test("should render settings page container and account sections", async ({
     page,
     context,
