@@ -1,3 +1,5 @@
+# pyright: reportArgumentType=error, reportAttributeAccessIssue=error
+# pyright: reportOptionalMemberAccess=error, reportOptionalSubscript=error, reportIndexIssue=error
 """User account cleanup and Supabase Auth deletion."""
 
 import logging
@@ -24,8 +26,24 @@ def delete_account(user_id: str, *, temp_root: str | Path) -> None:
             .eq("user_id", user_id)
             .execute()
         )
-        for job in result.data:
-            if job.get("status") in CANCELLABLE_STATUSES:
+        jobs = []
+        for row in result.data:
+            if not isinstance(row, dict):
+                raise TypeError("Expected a download job object from the database")
+            job_id = row.get("id")
+            status = row.get("status")
+            bucket = row.get("storage_bucket")
+            path = row.get("storage_path")
+            if not isinstance(job_id, str) or not isinstance(status, str):
+                raise TypeError("Expected a download job ID and status")
+            if (bucket is not None and not isinstance(bucket, str)) or (
+                path is not None and not isinstance(path, str)
+            ):
+                raise TypeError("Expected string or null storage fields")
+            jobs.append((job_id, status, bucket, path))
+
+        for job_id, status, bucket, path in jobs:
+            if status in CANCELLABLE_STATUSES:
                 (
                     supabase.table("download_jobs")
                     .update(
@@ -34,15 +52,15 @@ def delete_account(user_id: str, *, temp_root: str | Path) -> None:
                             "updated_at": datetime.now(timezone.utc).isoformat(),
                         }
                     )
-                    .eq("id", job["id"])
+                    .eq("id", job_id)
                     .eq("user_id", user_id)
                     .execute()
                 )
             try:
-                if job.get("storage_bucket"):
-                    delete_r2_object(job.get("storage_bucket"), job.get("storage_path"))
+                if bucket:
+                    delete_r2_object(bucket, path)
                 else:
-                    delete_local_output(job.get("storage_path"), temp_root)
+                    delete_local_output(path, temp_root)
             except AppError:
                 logger.warning("Skipped unsafe output while deleting account")
         supabase.auth.admin.delete_user(user_id)

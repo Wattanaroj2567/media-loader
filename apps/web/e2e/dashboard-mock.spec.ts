@@ -731,104 +731,123 @@ test.describe("Mocked Dashboard Workflow", () => {
     await expect(errorToast).not.toContainText("Rate limit exceeded");
   });
 
-  test("queues a GIF file from a video source", async ({ context, page }) => {
-    const appOrigin = new URL(test.info().project.use.baseURL!).origin;
-    await seedAuth(context, appOrigin);
-    await context.addCookies([
-      { name: "media-loader-locale", value: "en", url: appOrigin },
-    ]);
+  for (const output of ["gif", "mp3"] as const) {
+    test(`queues a ${output.toUpperCase()} file from a video source`, async ({
+      context,
+      page,
+    }) => {
+      const appOrigin = new URL(test.info().project.use.baseURL!).origin;
+      await seedAuth(context, appOrigin);
+      await context.addCookies([
+        { name: "media-loader-locale", value: "en", url: appOrigin },
+      ]);
 
-    let createdBody: Record<string, unknown> | null = null;
-    await page.route("**/media/analyze*", async (route) => {
-      if (route.request().method() === "OPTIONS") {
-        await route.fulfill({ status: 204, headers: CORS_HEADERS });
-        return;
-      }
-      await route.fulfill(
-        jsonResponse({
-          ok: true,
-          data: {
-            policy: { decision: "allowed", reason: "Public source" },
-            media: {
-              title: "Animated X post",
-              platform: "Twitter",
-              thumbnail_url: null,
-              duration_seconds: null,
-              uploader: "Creator",
-              source_domain: "x.com",
-              view_count: 43574,
-              like_count: 546,
-              reaction_count: null,
-              is_animated_gif: true,
-            },
-            formats: [
-              {
-                format_id: "http",
-                extension: "mp4",
-                type: "video",
-                quality_label: "Original video",
-                width: null,
-                height: null,
-                fps: null,
-                bitrate: null,
-                video_codec: null,
-                audio_codec: null,
-                filesize: null,
-                has_video: true,
-                has_audio: false,
-              },
-            ],
-          },
-          error: null,
-        })
-      );
-    });
-    await page.route("**/downloads*", async (route) => {
-      if (route.request().method() === "OPTIONS") {
-        await route.fulfill({ status: 204, headers: CORS_HEADERS });
-        return;
-      }
-      if (route.request().method() === "POST") {
-        createdBody = route.request().postDataJSON();
+      let createdBody: Record<string, unknown> | null = null;
+      await page.route("**/media/analyze*", async (route) => {
+        if (route.request().method() === "OPTIONS") {
+          await route.fulfill({ status: 204, headers: CORS_HEADERS });
+          return;
+        }
         await route.fulfill(
           jsonResponse({
             ok: true,
-            data: { job_id: "gif-job", status: "QUEUED" },
+            data: {
+              policy: { decision: "allowed", reason: "Public source" },
+              media: {
+                title: "X media post",
+                platform: "Twitter",
+                thumbnail_url: null,
+                duration_seconds: 120,
+                uploader: "Creator",
+                source_domain: "x.com",
+                view_count: 43574,
+                like_count: 546,
+                reaction_count: null,
+                is_animated_gif: output === "gif",
+              },
+              formats: [
+                {
+                  format_id: "http",
+                  extension: "mp4",
+                  type: "video",
+                  quality_label: "Original video",
+                  width: null,
+                  height: null,
+                  fps: null,
+                  bitrate: null,
+                  video_codec: null,
+                  audio_codec: null,
+                  filesize: null,
+                  has_video: true,
+                  has_audio: output === "mp3",
+                },
+              ],
+            },
             error: null,
           })
         );
-        return;
-      }
-      await route.fulfill(
-        jsonResponse({
-          ok: true,
-          data: { jobs: [], total: 0, limit: 100, offset: 0 },
-          error: null,
-        })
-      );
-    });
-
-    await page.goto("/dashboard");
-    const urlInput = page.getByRole("textbox", {
-      name: "Paste a clip link, e.g. https://...",
-    });
-    await urlInput.fill("https://x.com/i/status/2037838931568566363");
-    await urlInput.press("Enter");
-    await page.getByRole("button", { name: "GIF", exact: true }).click();
-    await page
-      .getByRole("button", {
-        name: /confirm rights and download|ยืนยันสิทธิ์และดาวน์โหลด/i,
-      })
-      .click();
-
-    await expect
-      .poll(() => createdBody)
-      .toMatchObject({
-        selected_format_id: "http",
-        output_format: "gif",
-        rights_confirmed: true,
       });
-  });
+      await page.route("**/downloads*", async (route) => {
+        if (route.request().method() === "OPTIONS") {
+          await route.fulfill({ status: 204, headers: CORS_HEADERS });
+          return;
+        }
+        if (route.request().method() === "POST") {
+          createdBody = route.request().postDataJSON();
+          await route.fulfill(
+            jsonResponse({
+              ok: true,
+              data: { job_id: `${output}-job`, status: "QUEUED" },
+              error: null,
+            })
+          );
+          return;
+        }
+        await route.fulfill(
+          jsonResponse({
+            ok: true,
+            data: { jobs: [], total: 0, limit: 100, offset: 0 },
+            error: null,
+          })
+        );
+      });
+
+      await page.goto("/dashboard");
+      const urlInput = page.getByRole("textbox", {
+        name: "Paste a clip link, e.g. https://...",
+      });
+      await urlInput.fill("https://x.com/i/status/2037838931568566363");
+      await urlInput.press("Enter");
+      if (output === "mp3") {
+        await page.getByRole("button", { name: "Audio (MP3)", exact: true }).click();
+        await expect(
+          page.getByRole("group", { name: "Quality", exact: true })
+        ).toBeVisible();
+        await expect(page.getByText("Uses the audio from the video")).toBeVisible();
+        await expect(page.getByText("BEST", { exact: true })).toHaveCount(0);
+        await expect(page.getByRole("radio", { name: /High quality/ })).toBeChecked();
+        await expect(page.getByRole("radio", { name: /128 kbps/ })).toBeEnabled();
+        await page.getByText("192 kbps", { exact: true }).click();
+        await expect(page.getByRole("radio", { name: /192 kbps/ })).toBeChecked();
+      } else {
+        await page.getByRole("button", { name: "GIF", exact: true }).click();
+      }
+      await page
+        .getByRole("button", {
+          name: /confirm rights and download|ยืนยันสิทธิ์และดาวน์โหลด/i,
+        })
+        .click();
+
+      await expect
+        .poll(() => createdBody)
+        .toMatchObject({
+          selected_format_id: "http",
+          output_format: output,
+          rights_confirmed: true,
+          ...(output === "mp3" ? { mp3_bitrate_kbps: 192 } : {}),
+        });
+    });
+  }
 
   test("should scroll back to top when queue closes after cancellation", async ({
     context,

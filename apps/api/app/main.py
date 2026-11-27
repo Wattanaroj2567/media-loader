@@ -1,3 +1,4 @@
+# pyright: reportArgumentType=error
 """
 Main FastAPI application entry point.
 """

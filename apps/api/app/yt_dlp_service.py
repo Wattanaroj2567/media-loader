@@ -55,22 +55,25 @@ class _LimitedMetadataResponse(Response):
         super().__init__(
             response,
             response.url,
-            response.headers,
+            {},
             response.status,
             response.reason,
             response.extensions,
         )
+        for name, value in response.headers.items():
+            self.headers.add_header(name, value)
         self._downloader = downloader
         self._remaining = _MAX_METADATA_RESPONSE_BYTES
 
     def read(self, amt: int | None = None) -> bytes:
         """Read decompressed bytes within both budgets, closing on overflow."""
         chunks = []
-        unlimited = amt is None or amt < 0
-        while unlimited or amt > 0:
+        if amt is not None and amt < 0:
+            amt = None
+        while amt is None or amt > 0:
             limit = min(self._remaining, self._downloader.remaining_metadata_bytes)
             size = min(64 * 1024, limit + 1)
-            if not unlimited:
+            if amt is not None:
                 size = min(size, amt)
             chunk = self.fp.read(size)
             if len(chunk) > limit:
@@ -81,7 +84,7 @@ class _LimitedMetadataResponse(Response):
             if not chunk:
                 break
             chunks.append(chunk)
-            if not unlimited:
+            if amt is not None:
                 amt -= len(chunk)
         return b"".join(chunks)
 
@@ -101,10 +104,10 @@ class _MetadataYoutubeDL(yt_dlp.YoutubeDL):
         ]
         return super().build_request_director(streaming_handlers, preferences)
 
-    def urlopen(self, request):
+    def urlopen(self, req) -> Response:
         """Apply the shared metadata budget to successful and HTTP error responses."""
         try:
-            response = super().urlopen(request)
+            response = super().urlopen(req)
         except HTTPError as error:
             # Extractors may deliberately accept an HTTP error response and
             # parse its body through expected_status.
@@ -328,9 +331,10 @@ def _run_yt_dlp_sync(url: str) -> dict[str, Any]:
 
         try:
             with _MetadataYoutubeDL(ydl_opts) as ydl:
-                info = ydl.extract_info(url, download=False)
-                if not info:
+                extracted_info = ydl.extract_info(url, download=False)
+                if not extracted_info:
                     raise ValueError("No metadata returned from yt-dlp")
+                info = dict(extracted_info)
                 if info.get("view_count") is None:
                     try:
                         instagram_view_count = _instagram_embed_view_count(url)
@@ -341,7 +345,6 @@ def _run_yt_dlp_sync(url: str) -> dict[str, Any]:
                         )
                     else:
                         if instagram_view_count is not None:
-                            info = dict(info)
                             info["view_count"] = instagram_view_count
                 return info
         except MetadataLimitExceeded:

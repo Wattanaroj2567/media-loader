@@ -2,8 +2,8 @@ name: Monthly yt-dlp Auto-Update
 
 on:
   schedule:
-    # Run every Sunday; the schedule guard below keeps only the first Sunday of each month.
-    - cron: '0 3 * * 0'
+    # Run on the first day of every month at 03:17 UTC.
+    - cron: '17 3 1 * *'
   workflow_dispatch:
 
 permissions:
@@ -11,29 +11,8 @@ permissions:
   pull-requests: write
 
 jobs:
-  schedule-guard:
-    name: Check monthly schedule
-    runs-on: ubuntu-latest
-    outputs:
-      should-run: ${{ steps.check.outputs.should-run }}
-    steps:
-      - name: Run on dispatch or the first Sunday of the month
-        id: check
-        env:
-          EVENT_NAME: ${{ github.event_name }}
-        run: |
-          if [ "$EVENT_NAME" != "schedule" ]; then
-            echo "should-run=true" >> "$GITHUB_OUTPUT"
-          elif [ "$(date -u +%u)" -eq 7 ] && [ "$(date -u +%d)" -le 7 ]; then
-            echo "should-run=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "should-run=false" >> "$GITHUB_OUTPUT"
-          fi
-
   update-ytdlp:
     name: Bump yt-dlp & Verify Tests
-    needs: schedule-guard
-    if: needs.schedule-guard.outputs.should-run == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -51,12 +30,27 @@ jobs:
 
       - name: Upgrade yt-dlp in API and Worker
         run: |
-          echo "Upgrading yt-dlp in apps/api..."
-          cd apps/api
-          uv lock --upgrade-package yt-dlp
-          cd ../worker
-          echo "Upgrading yt-dlp in apps/worker..."
-          uv lock --upgrade-package yt-dlp
+          uv lock --directory apps/api --upgrade-package yt-dlp
+          uv lock --directory apps/worker --upgrade-package yt-dlp
+
+      - name: Verify both lockfiles resolve the same yt-dlp version
+        id: get_version
+        run: |
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import tomllib
+          from pathlib import Path
+
+          versions = {}
+          for service in ("api", "worker"):
+              lock = tomllib.loads(Path(f"apps/{service}/uv.lock").read_text(encoding="utf-8"))
+              versions[service] = next(
+                  package["version"] for package in lock["package"] if package["name"] == "yt-dlp"
+              )
+
+          if versions["api"] != versions["worker"]:
+              raise SystemExit(f"yt-dlp version mismatch: {versions}")
+          print(f"version={versions['api']}")
+          PY
 
       - name: Check for lockfile changes
         id: check_diff
@@ -69,32 +63,17 @@ jobs:
             echo "yt-dlp updates detected in lockfiles."
           fi
 
-      - name: Get updated yt-dlp version
-        if: steps.check_diff.outputs.changed == 'true'
-        id: get_version
-        run: |
-          cd apps/api
-          uv sync --extra dev
-          VERSION=$(uv run python -c "import yt_dlp.version; print(yt_dlp.version.__version__)")
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "Detected new yt-dlp version: $VERSION"
-
       - name: Run API Tests
         if: steps.check_diff.outputs.changed == 'true'
-        env:
-          PYTHONPATH: .
+        working-directory: apps/api
         run: |
-          cd apps/api
-          uv run pytest
+          uv run --locked --extra dev pytest
 
       - name: Run Worker Tests
         if: steps.check_diff.outputs.changed == 'true'
-        env:
-          PYTHONPATH: .
+        working-directory: apps/worker
         run: |
-          cd apps/worker
-          uv sync --extra dev
-          uv run pytest
+          uv run --locked --extra dev pytest
 
       - name: Create Pull Request
         if: steps.check_diff.outputs.changed == 'true'

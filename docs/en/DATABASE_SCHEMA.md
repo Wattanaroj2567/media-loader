@@ -44,6 +44,7 @@ Stores each media job.
 | selected_quality | text | Human readable quality |
 | selected_has_audio | boolean | Selected video format already contains audio |
 | output_format | text | mp4, mp3, gif, original |
+| mp3_bitrate_kbps | integer | Optional fixed MP3 output bitrate (128 or 192). Null keeps the default behavior |
 | status | text | Job status |
 | progress | integer | 0-100 |
 | error_message | text | Safe error message |

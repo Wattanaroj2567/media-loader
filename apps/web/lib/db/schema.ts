@@ -50,6 +50,7 @@ export const downloadJobs = pgTable(
     selectedQuality: text("selected_quality"),
     selectedHasAudio: boolean("selected_has_audio").default(false).notNull(),
     outputFormat: text("output_format"),
+    mp3BitrateKbps: integer("mp3_bitrate_kbps"),
     status: text("status").default("PENDING").notNull(),
     progress: integer("progress").default(0).notNull(),
     errorMessage: text("error_message"),

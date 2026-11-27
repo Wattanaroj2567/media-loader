@@ -28,6 +28,7 @@ export interface MediaFormat {
 }
 
 export type MediaOutputFormat = "mp4" | "mp3" | "gif";
+export type Mp3Bitrate = 128 | 192;
 
 export function formatFileSize(bytes?: number | null): string | null {
   if (bytes === undefined || bytes === null || !Number.isFinite(bytes) || bytes < 0) {

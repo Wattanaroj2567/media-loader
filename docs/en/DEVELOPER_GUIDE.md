@@ -151,6 +151,17 @@ To rebuild the full Docker stack including the Cloudflare tunnel, include the
 docker compose --profile tunnel up -d --build
 ```
 
+### Updating yt-dlp
+
+The **Monthly yt-dlp Auto-Update** workflow checks for a new compatible release
+on the first day of each month at 03:17 UTC (10:17 in Thailand). When the
+lockfiles change, it checks that the API and worker resolve the same yt-dlp
+version, runs both test suites, and opens a pull request for review. Use
+**Run workflow** in GitHub Actions to check sooner if extraction breaks.
+
+After pulling the merged update on the Docker host, rebuild and recreate the
+API and worker with `pnpm docker:up` to load the new version.
+
 ### Testing
 
 ```bash
@@ -176,6 +187,7 @@ pnpm lint:api       # FastAPI (Ruff)
 pnpm lint:worker    # Media Worker (Ruff)
 pnpm lint:md        # Markdown files (markdownlint-cli2)
 pnpm lint:md:fix    # Auto-fix Markdown formatting
+pnpm check:imports  # Pyright missing-import check for API and worker
 
 # Format code automatically (Prettier + Ruff Format)
 pnpm format

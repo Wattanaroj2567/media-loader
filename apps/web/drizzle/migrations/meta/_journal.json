@@ -22,6 +22,13 @@
       "when": 1792505438524,
       "tag": "0002_misty_mach_iv",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1795721320525,
+      "tag": "0003_mp3_output_bitrate",
+      "breakpoints": true
     }
   ]
 }

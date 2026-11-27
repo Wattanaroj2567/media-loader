@@ -600,12 +600,15 @@ async def _run_cancellable_command(
             err_file.close()
 
 
-async def convert_to_mp3(input_path: Path, output_path: Path, *, job_id: str) -> bool:
+async def convert_to_mp3(
+    input_path: Path, output_path: Path, *, job_id: str, bitrate_kbps: int | None = None
+) -> bool:
     """Convert audio file to MP3 using FFmpeg.
 
     Args:
         input_path: Input file path
         output_path: Output MP3 file path
+        bitrate_kbps: Fixed output bitrate, or None for high-quality VBR
 
     Returns:
         True if conversion succeeded, False otherwise
@@ -614,14 +617,17 @@ async def convert_to_mp3(input_path: Path, output_path: Path, *, job_id: str) ->
 
     err_log = output_path.parent / f"{output_path.stem}.ffmpeg.log"
     try:
+        audio_options = ["-qscale:a", "0"]
+        if bitrate_kbps in (128, 192):
+            # MPEG-1 rates support both presets, even for low sample rate sources.
+            audio_options = ["-ar", "44100", "-b:a", f"{bitrate_kbps}k"]
         cmd = [
             str(settings.resolved_ffmpeg_executable),
             "-i",
             str(input_path),
             "-codec:a",
             "libmp3lame",
-            "-qscale:a",
-            "0",  # VBR ~245kbps — maximum MP3 quality
+            *audio_options,
             "-y",  # Overwrite output file
             str(output_path),
         ]
@@ -875,14 +881,20 @@ async def process_job(job: dict) -> bool:
         output_file: Optional[Path] = None
 
         if output_format == "mp3":
-            if downloaded_file.suffix.lower() == ".mp3":
+            bitrate_kbps = job.get("mp3_bitrate_kbps")
+            already_mp3 = downloaded_file.suffix.lower() == ".mp3"
+            if already_mp3 and bitrate_kbps is None:
                 output_file = downloaded_file
             else:
-                output_file = job_dir / f"{downloaded_file.stem}.mp3"
+                output_stem = downloaded_file.stem + (
+                    "-converted" if already_mp3 else ""
+                )
+                output_file = job_dir / f"{output_stem}.mp3"
                 success = await convert_to_mp3(
                     downloaded_file,
                     output_file,
                     job_id=job_id,
+                    bitrate_kbps=bitrate_kbps,
                 )
                 if not success:
                     update_job_status(

@@ -1,3 +1,4 @@
+# pyright: reportArgumentType=error
 """
 URL Policy Engine.
 
@@ -12,7 +13,7 @@ from urllib.parse import urlparse
 from app.schemas import PolicyResult
 
 
-def is_private_ip(ip_str: str) -> bool:
+def is_private_ip(ip_str: str | int) -> bool:
     """Treat every non-global IP range as unsafe for user-submitted URLs."""
     try:
         ip = ipaddress.ip_address(ip_str)
